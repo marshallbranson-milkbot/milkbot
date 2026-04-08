@@ -1,5 +1,4 @@
  require('dotenv').config();
- console.log('Token loaded:', process.env.TOKEN ? 'YES' : 'NO');
  const { Client, GatewayIntentBits } = require('discord.js');
   const fs = require('fs');
   const path = require('path');
