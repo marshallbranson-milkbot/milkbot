@@ -11,7 +11,7 @@ function getData(filePath) {
 module.exports = {
   name: 'lb',
   description: 'Shows the top 5 milk bucks holders.',
-  async execute(message) {
+  execute(message) {
     const balances = getData(balancesPath);
 
     const sorted = Object.entries(balances)
@@ -21,8 +21,6 @@ module.exports = {
     if (sorted.length === 0) {
       return message.reply('Nobody has any milk bucks yet. 🥛');
     }
-
-    await message.guild.members.fetch();
 
     const medals = ['👑', '🥈', '🥉', '4️⃣', '5️⃣'];
 
