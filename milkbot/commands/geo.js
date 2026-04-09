@@ -1,4 +1,3 @@
-const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,56 +20,69 @@ const XP_REWARD = 35;
 const GAME_TIME = 30000;
 
 const countries = [
-  { name: 'Afghanistan', lat: 33.93, lon: 67.71, aliases: [] },
-  { name: 'Argentina', lat: -38.42, lon: -63.62, aliases: [] },
-  { name: 'Australia', lat: -25.27, lon: 133.78, aliases: [] },
-  { name: 'Brazil', lat: -14.24, lon: -51.93, aliases: [] },
-  { name: 'Canada', lat: 56.13, lon: -106.35, aliases: [] },
-  { name: 'Chile', lat: -35.68, lon: -71.54, aliases: [] },
-  { name: 'China', lat: 35.86, lon: 104.20, aliases: [] },
-  { name: 'Colombia', lat: 4.57, lon: -74.30, aliases: [] },
-  { name: 'Egypt', lat: 26.82, lon: 30.80, aliases: [] },
-  { name: 'Ethiopia', lat: 9.15, lon: 40.49, aliases: [] },
-  { name: 'France', lat: 46.23, lon: 2.21, aliases: [] },
-  { name: 'Germany', lat: 51.17, lon: 10.45, aliases: [] },
-  { name: 'Ghana', lat: 7.95, lon: -1.02, aliases: [] },
-  { name: 'Greece', lat: 39.07, lon: 21.82, aliases: [] },
-  { name: 'Hungary', lat: 47.16, lon: 19.50, aliases: [] },
-  { name: 'India', lat: 20.59, lon: 78.96, aliases: [] },
-  { name: 'Indonesia', lat: -0.79, lon: 113.92, aliases: [] },
-  { name: 'Iran', lat: 32.43, lon: 53.69, aliases: [] },
-  { name: 'Iraq', lat: 33.22, lon: 43.68, aliases: [] },
-  { name: 'Italy', lat: 41.87, lon: 12.57, aliases: [] },
-  { name: 'Japan', lat: 36.20, lon: 138.25, aliases: [] },
-  { name: 'Kenya', lat: -0.02, lon: 37.91, aliases: [] },
-  { name: 'Malaysia', lat: 4.21, lon: 101.98, aliases: [] },
-  { name: 'Mexico', lat: 23.63, lon: -102.55, aliases: [] },
-  { name: 'Morocco', lat: 31.79, lon: -7.09, aliases: [] },
-  { name: 'New Zealand', lat: -40.90, lon: 174.89, aliases: [] },
-  { name: 'Nigeria', lat: 9.08, lon: 8.68, aliases: [] },
-  { name: 'Norway', lat: 60.47, lon: 8.47, aliases: [] },
-  { name: 'Pakistan', lat: 30.38, lon: 69.35, aliases: [] },
-  { name: 'Peru', lat: -9.19, lon: -75.02, aliases: [] },
-  { name: 'Philippines', lat: 12.88, lon: 121.77, aliases: [] },
-  { name: 'Poland', lat: 51.92, lon: 19.15, aliases: [] },
-  { name: 'Portugal', lat: 39.40, lon: -8.22, aliases: [] },
-  { name: 'Romania', lat: 45.94, lon: 24.97, aliases: [] },
-  { name: 'Russia', lat: 61.52, lon: 105.32, aliases: [] },
-  { name: 'Saudi Arabia', lat: 23.89, lon: 45.08, aliases: [] },
-  { name: 'South Africa', lat: -30.56, lon: 22.94, aliases: [] },
-  { name: 'South Korea', lat: 35.91, lon: 127.77, aliases: ['korea'] },
-  { name: 'Spain', lat: 40.46, lon: -3.75, aliases: [] },
-  { name: 'Sudan', lat: 12.86, lon: 30.22, aliases: [] },
-  { name: 'Sweden', lat: 60.13, lon: 18.64, aliases: [] },
-  { name: 'Tanzania', lat: -6.37, lon: 34.89, aliases: [] },
-  { name: 'Thailand', lat: 15.87, lon: 100.99, aliases: [] },
-  { name: 'Turkey', lat: 38.96, lon: 35.24, aliases: [] },
-  { name: 'Ukraine', lat: 48.38, lon: 31.17, aliases: [] },
-  { name: 'United Kingdom', lat: 55.38, lon: -3.44, aliases: ['uk', 'britain', 'england'] },
-  { name: 'United States', lat: 37.09, lon: -95.71, aliases: ['usa', 'us', 'america'] },
-  { name: 'Venezuela', lat: 6.42, lon: -66.59, aliases: [] },
-  { name: 'Vietnam', lat: 14.06, lon: 108.28, aliases: [] },
-  { name: 'Zimbabwe', lat: -19.02, lon: 29.15, aliases: [] },
+  { name: 'Afghanistan', flag: '🇦🇫', aliases: [] },
+  { name: 'Argentina', flag: '🇦🇷', aliases: [] },
+  { name: 'Australia', flag: '🇦🇺', aliases: [] },
+  { name: 'Austria', flag: '🇦🇹', aliases: [] },
+  { name: 'Belgium', flag: '🇧🇪', aliases: [] },
+  { name: 'Brazil', flag: '🇧🇷', aliases: ['brasil'] },
+  { name: 'Canada', flag: '🇨🇦', aliases: [] },
+  { name: 'Chile', flag: '🇨🇱', aliases: [] },
+  { name: 'China', flag: '🇨🇳', aliases: [] },
+  { name: 'Colombia', flag: '🇨🇴', aliases: [] },
+  { name: 'Croatia', flag: '🇭🇷', aliases: [] },
+  { name: 'Cuba', flag: '🇨🇺', aliases: [] },
+  { name: 'Czech Republic', flag: '🇨🇿', aliases: ['czechia'] },
+  { name: 'Denmark', flag: '🇩🇰', aliases: [] },
+  { name: 'Egypt', flag: '🇪🇬', aliases: [] },
+  { name: 'Ethiopia', flag: '🇪🇹', aliases: [] },
+  { name: 'Finland', flag: '🇫🇮', aliases: [] },
+  { name: 'France', flag: '🇫🇷', aliases: [] },
+  { name: 'Germany', flag: '🇩🇪', aliases: [] },
+  { name: 'Ghana', flag: '🇬🇭', aliases: [] },
+  { name: 'Greece', flag: '🇬🇷', aliases: [] },
+  { name: 'Hungary', flag: '🇭🇺', aliases: [] },
+  { name: 'India', flag: '🇮🇳', aliases: [] },
+  { name: 'Indonesia', flag: '🇮🇩', aliases: [] },
+  { name: 'Iran', flag: '🇮🇷', aliases: [] },
+  { name: 'Iraq', flag: '🇮🇶', aliases: [] },
+  { name: 'Ireland', flag: '🇮🇪', aliases: [] },
+  { name: 'Israel', flag: '🇮🇱', aliases: [] },
+  { name: 'Italy', flag: '🇮🇹', aliases: [] },
+  { name: 'Japan', flag: '🇯🇵', aliases: [] },
+  { name: 'Jordan', flag: '🇯🇴', aliases: [] },
+  { name: 'Kenya', flag: '🇰🇪', aliases: [] },
+  { name: 'Malaysia', flag: '🇲🇾', aliases: [] },
+  { name: 'Mexico', flag: '🇲🇽', aliases: [] },
+  { name: 'Morocco', flag: '🇲🇦', aliases: [] },
+  { name: 'Netherlands', flag: '🇳🇱', aliases: ['holland'] },
+  { name: 'New Zealand', flag: '🇳🇿', aliases: [] },
+  { name: 'Nigeria', flag: '🇳🇬', aliases: [] },
+  { name: 'North Korea', flag: '🇰🇵', aliases: [] },
+  { name: 'Norway', flag: '🇳🇴', aliases: [] },
+  { name: 'Pakistan', flag: '🇵🇰', aliases: [] },
+  { name: 'Peru', flag: '🇵🇪', aliases: [] },
+  { name: 'Philippines', flag: '🇵🇭', aliases: [] },
+  { name: 'Poland', flag: '🇵🇱', aliases: [] },
+  { name: 'Portugal', flag: '🇵🇹', aliases: [] },
+  { name: 'Romania', flag: '🇷🇴', aliases: [] },
+  { name: 'Russia', flag: '🇷🇺', aliases: ['russian federation'] },
+  { name: 'Saudi Arabia', flag: '🇸🇦', aliases: [] },
+  { name: 'South Africa', flag: '🇿🇦', aliases: [] },
+  { name: 'South Korea', flag: '🇰🇷', aliases: ['korea'] },
+  { name: 'Spain', flag: '🇪🇸', aliases: [] },
+  { name: 'Sudan', flag: '🇸🇩', aliases: [] },
+  { name: 'Sweden', flag: '🇸🇪', aliases: [] },
+  { name: 'Switzerland', flag: '🇨🇭', aliases: [] },
+  { name: 'Tanzania', flag: '🇹🇿', aliases: [] },
+  { name: 'Thailand', flag: '🇹🇭', aliases: [] },
+  { name: 'Turkey', flag: '🇹🇷', aliases: [] },
+  { name: 'Ukraine', flag: '🇺🇦', aliases: [] },
+  { name: 'United Kingdom', flag: '🇬🇧', aliases: ['uk', 'britain', 'england'] },
+  { name: 'United States', flag: '🇺🇸', aliases: ['usa', 'us', 'america'] },
+  { name: 'Venezuela', flag: '🇻🇪', aliases: [] },
+  { name: 'Vietnam', flag: '🇻🇳', aliases: [] },
+  { name: 'Zimbabwe', flag: '🇿🇼', aliases: [] },
 ];
 
 let activeGeo = null;
@@ -115,21 +127,19 @@ function check(message) {
     return true;
   }
 
-  // Consume wrong guesses silently to avoid spam
-  return true;
+  return true; // consume wrong guesses silently
 }
 
 module.exports = {
   name: 'geo',
-  description: 'Guess the country from a map. First correct answer wins 50 milk bucks.',
+  description: 'Guess the country from the flag. First correct answer wins 50 milk bucks.',
   check,
   execute(message) {
     if (activeGeo) {
-      return message.reply(`A game is already active! Guess the country on the map. ⏳`);
+      return message.reply(`A game is already active! Guess the flag. ⏳`);
     }
 
     const country = countries[Math.floor(Math.random() * countries.length)];
-    const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${country.lat},${country.lon}&zoom=4&size=600x400&markers=${country.lat},${country.lon},red-pushpin&maptype=mapnik`;
 
     const timeout = setTimeout(() => {
       if (activeGeo) {
@@ -141,15 +151,11 @@ module.exports = {
 
     activeGeo = { country, timeout };
 
-    const embed = new EmbedBuilder()
-      .setTitle('🌍 GEOGUESSER')
-      .setDescription(
-        `Where is the pin? Type the country name in chat!\n` +
-        `First correct answer wins **${REWARD} milk bucks**. You have **30 seconds**. ⏳`
-      )
-      .setImage(mapUrl)
-      .setColor(0x2ecc71);
-
-    message.channel.send({ embeds: [embed] });
+    message.channel.send(
+      `🚩 **WHAT COUNTRY IS THIS FLAG?** 🚩\n\n` +
+      `${country.flag}\n\n` +
+      `Type the country name in chat. First correct answer wins **${REWARD} milk bucks**!\n` +
+      `You have **30 seconds**. ⏳`
+    );
   }
 };
