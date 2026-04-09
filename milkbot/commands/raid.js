@@ -43,14 +43,14 @@ function getXp(size) {
 let activeRaid = null;
 
 module.exports = {
-  name: 'r',
+  name: 'ra',
   aliases: ['raid', 'j'],
-  description: 'Start a raid. Usage: !r amount',
+  description: 'Start a raid. Usage: !ra amount',
   execute(message, args) {
     // --- JOIN ---
     if (message.content.startsWith('!j')) {
       if (!activeRaid) {
-        return message.reply(`No raid is active right now. Start one with \`!r amount\`. 🥛`);
+        return message.reply(`No raid is active right now. Start one with \`!ra amount\`. 🥛`);
       }
 
       if (activeRaid.crew.has(message.author.id)) {
@@ -88,7 +88,7 @@ module.exports = {
     const buyIn = parseInt(args[0]);
 
     if (!buyIn || isNaN(buyIn) || buyIn <= 0) {
-      return message.reply(`Set a buy-in amount. \`!r amount\` 🥛`);
+      return message.reply(`Set a buy-in amount. \`!ra amount\` 🥛`);
     }
 
     const balances = getData(balancesPath);
