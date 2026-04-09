@@ -17,6 +17,7 @@ module.exports = {
 \`!sc\` — Unscramble a word to win milk bucks
 \`!sl\` — Spin the slots for 10 milk bucks (30s cooldown)
 \`!lb\` — Top 5 milk bucks leaderboard
+\`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)
       `;
       message.reply(helpMessage);
     }
