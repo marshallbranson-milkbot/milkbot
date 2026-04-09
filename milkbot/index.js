@@ -3,6 +3,12 @@
   const fs = require('fs');
   const path = require('path');
 
+  // Ensure data directory exists (important for Railway volume on first run)
+  const dataDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
