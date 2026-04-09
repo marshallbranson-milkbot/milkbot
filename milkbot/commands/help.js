@@ -22,6 +22,7 @@ module.exports = {
 \`!sc\` — Unscramble a word to win milk bucks
 \`!sl\` — Spin the slots for 10 milk bucks (30s cooldown)
 \`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)
+\`!r amount\` — Start a raid, others join with \`!join\` (60s window)
       `;
       message.reply(helpMessage);
     }
