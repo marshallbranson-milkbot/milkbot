@@ -15,7 +15,7 @@ module.exports = {
 \`!fh amount\` — Flip against MilkBot directly
 \`!g\` — Start a number guessing game (daily cooldown)
 \`!sc\` — Unscramble a word to win milk bucks
-\`!slots\` — Spin the slots for 10 milk bucks (30s cooldown)
+\`!sl\` — Spin the slots for 10 milk bucks (30s cooldown)
       `;
       message.reply(helpMessage);
     }
