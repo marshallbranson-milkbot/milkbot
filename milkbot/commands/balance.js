@@ -4,6 +4,7 @@ const fs = require('fs');
   const balancesPath = path.join(__dirname, '../data/balances.json');
 
   function getBalances() {
+    if (!fs.existsSync(balancesPath)) return {};
     return JSON.parse(fs.readFileSync(balancesPath, 'utf8'));
   }
 
