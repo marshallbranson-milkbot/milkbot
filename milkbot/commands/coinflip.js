@@ -3,6 +3,7 @@
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const xpPath = path.join(__dirname, '../data/xp.json');
+  const state = require('../state');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -58,7 +59,7 @@
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);
-        xp[winnerId] = (xp[winnerId] || 0) + 15;
+        xp[winnerId] = (xp[winnerId] || 0) + (15 * (state.doubleXp ? 2 : 1));
         saveData(xpPath, xp);
 
         const winnerName = challengerWins ? challenger?.username : message.author.username;

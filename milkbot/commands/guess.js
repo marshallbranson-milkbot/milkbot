@@ -4,6 +4,7 @@
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
   const xpPath = path.join(__dirname, '../data/xp.json');
+  const state = require('../state');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -39,7 +40,7 @@
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + 20;
+      xp[message.author.id] = (xp[message.author.id] || 0) + (20 * (state.doubleXp ? 2 : 1));
       saveData(xpPath, xp);
 
       clearTimeout(activeGame.timeout);

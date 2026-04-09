@@ -3,6 +3,7 @@
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
+const state = require('../state');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -72,7 +73,7 @@ const xpPath = path.join(__dirname, '../data/xp.json');
       balances[message.author.id] = (balances[message.author.id] || 0) + activeScramble.reward;
       saveData(balancesPath, balances);
 
-      const xpGain = activeScramble.rare ? 25 : 5;
+      const xpGain = (activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1);
       const xp = getData(xpPath);
       xp[message.author.id] = (xp[message.author.id] || 0) + xpGain;
       saveData(xpPath, xp);

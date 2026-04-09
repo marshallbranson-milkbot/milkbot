@@ -4,6 +4,7 @@ const path = require('path');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
+const state = require('../state');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -104,7 +105,7 @@ module.exports = {
     }
     if (xpGain > 0) {
       const xp = getData(xpPath);
-      xp[userId] = (xp[userId] || 0) + xpGain;
+      xp[userId] = (xp[userId] || 0) + (xpGain * (state.doubleXp ? 2 : 1));
       saveData(xpPath, xp);
     }
 

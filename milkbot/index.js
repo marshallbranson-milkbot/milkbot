@@ -2,6 +2,7 @@
  const { Client, GatewayIntentBits } = require('discord.js');
   const fs = require('fs');
   const path = require('path');
+  const state = require('./state');
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');
@@ -66,6 +67,30 @@
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
+
+    // Check for double XP events every minute
+    setInterval(() => {
+      const estTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const hours = estTime.getHours();
+      const minutes = estTime.getMinutes();
+
+      if (minutes === 0 && (hours === 12 || hours === 20) && !state.doubleXp) {
+        state.doubleXp = true;
+
+        const guild = client.guilds.cache.get('562076997979865118');
+        const channel = guild?.channels.cache.find(c => c.name === 'milkbot');
+        if (channel) {
+          channel.send(`⚡ **DOUBLE XP HOUR HAS STARTED!** ⚡\nAll XP gains are doubled for the next hour. Get in there. 🥛`);
+        }
+
+        setTimeout(() => {
+          state.doubleXp = false;
+          if (channel) {
+            channel.send(`⏰ Double XP hour is over. Back to normal. 🥛`);
+          }
+        }, 60 * 60 * 1000);
+      }
+    }, 60000);
   });
 
   function scheduleMilkLord() {

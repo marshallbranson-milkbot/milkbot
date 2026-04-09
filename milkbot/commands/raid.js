@@ -3,6 +3,7 @@ const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
+const state = require('../state');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -120,9 +121,10 @@ module.exports = {
 
       if (success) {
         const payout = Math.floor(activeRaid.buyIn * multiplier);
+        const xpActual = xpGain * (state.doubleXp ? 2 : 1);
         for (const [userId] of finalCrew) {
           balances[userId] = (balances[userId] || 0) + payout;
-          xp[userId] = (xp[userId] || 0) + xpGain;
+          xp[userId] = (xp[userId] || 0) + xpActual;
         }
         saveData(balancesPath, balances);
         saveData(xpPath, xp);

@@ -3,6 +3,7 @@
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
  const xpPath = path.join(__dirname, '../data/xp.json');
+ const state = require('../state');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -38,7 +39,7 @@
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);
-        xp[userId] = (xp[userId] || 0) + 15;
+        xp[userId] = (xp[userId] || 0) + (15 * (state.doubleXp ? 2 : 1));
         saveData(xpPath, xp);
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
