@@ -4,6 +4,7 @@ const path = require('path');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
+const ws = require('../winstreak');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -121,10 +122,15 @@ module.exports = {
 
       if (success) {
         const payout = Math.floor(activeRaid.buyIn * multiplier);
-        const xpActual = xpGain * (state.doubleXp ? 2 : 1);
-        for (const [userId] of finalCrew) {
-          balances[userId] = (balances[userId] || 0) + payout;
-          xp[userId] = (xp[userId] || 0) + xpActual;
+        const baseXp = xpGain * (state.doubleXp ? 2 : 1);
+        const hotAnnouncements = [];
+
+        for (const [userId, username] of finalCrew) {
+          const newStreak = ws.recordWin(userId);
+          const hotMultiplier = newStreak >= 3 ? 1.5 : 1;
+          balances[userId] = (balances[userId] || 0) + Math.floor(payout * hotMultiplier);
+          xp[userId] = (xp[userId] || 0) + Math.floor(baseXp * hotMultiplier);
+          if (newStreak === 3) hotAnnouncements.push(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
         }
         saveData(balancesPath, balances);
         saveData(xpPath, xp);
@@ -135,7 +141,13 @@ module.exports = {
           `The job went clean. Everyone walks away with **${payout} milk bucks**. Milk money. 🥛\n` +
           `*(+${xpGain} XP each)*`
         );
+        for (const msg of hotAnnouncements) message.channel.send(msg);
       } else {
+        const coldAnnouncements = [];
+        for (const [userId, username] of finalCrew) {
+          const prevStreak = ws.resetStreak(userId);
+          if (prevStreak >= 3) coldAnnouncements.push(`❄️ **${username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
+        }
         saveData(balancesPath, balances);
 
         message.channel.send(
@@ -143,6 +155,7 @@ module.exports = {
           `**Crew:** ${crewNames}\n` +
           `You got cooked. MilkBot ate every last milk buck. Should've brought more crew. 🥛`
         );
+        for (const msg of coldAnnouncements) message.channel.send(msg);
       }
 
       activeRaid = null;

@@ -4,6 +4,7 @@
   const balancesPath = path.join(__dirname, '../data/balances.json');
  const xpPath = path.join(__dirname, '../data/xp.json');
  const state = require('../state');
+ const ws = require('../winstreak');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -35,20 +36,32 @@
       const playerWins = Math.random() < 0.5;
 
       if (playerWins) {
-        balances[userId] = balance + bet;
+        const newStreak = ws.recordWin(userId);
+        const multiplier = newStreak >= 3 ? 1.5 : 1;
+        const payout = Math.floor(bet * multiplier);
+
+        balances[userId] = balance + payout;
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);
-        xp[userId] = (xp[userId] || 0) + (15 * (state.doubleXp ? 2 : 1));
+        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * multiplier);
         saveData(xpPath, xp);
+
+        if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
           `${message.author.username} bet **${bet} milk bucks** against MilkBot.\n\n` +
-          `**${message.author.username} wins!** The house takes the L. Enjoy it while it lasts. 🥛`
+          `**${message.author.username} wins!** The house takes the L. Enjoy it while it lasts. 🥛` +
+          (multiplier > 1 ? ` *(🔥 1.5x — won ${payout})*` : '')
         );
       } else {
+        const prevStreak = ws.resetStreak(userId);
         balances[userId] = balance - bet;
         saveData(balancesPath, balances);
+
+        if (prevStreak >= 3) message.channel.send(`❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
+
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
           `${message.author.username} bet **${bet} milk bucks** against MilkBot.\n\n` +

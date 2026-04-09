@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
+const ws = require('../winstreak');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -66,24 +67,33 @@ module.exports = {
     const success = Math.random() < SUCCESS_CHANCE;
 
     if (success) {
-      const stolen = Math.max(1, Math.floor(targetBalance * 0.05));
+      const newStreak = ws.recordWin(message.author.id);
+      const multiplier = newStreak >= 3 ? 1.5 : 1;
+      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * multiplier));
+
       balances[message.author.id] = robberBalance + stolen;
       balances[target.id] = targetBalance - stolen;
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + (50 * (state.doubleXp ? 2 : 1));
+      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(50 * (state.doubleXp ? 2 : 1) * multiplier);
       saveData(xpPath, xp);
+
+      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
       message.channel.send(
         `🕵️ **ROB SUCCESSFUL** 🕵️\n` +
-        `${message.author.username} snuck into ${target.username}'s wallet and walked away with **${stolen} milk bucks**. Slick. 🥛`
+        `${message.author.username} snuck into ${target.username}'s wallet and walked away with **${stolen} milk bucks**. Slick. 🥛` +
+        (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '')
       );
     } else {
+      const prevStreak = ws.resetStreak(message.author.id);
       const penalty = Math.max(1, Math.floor(robberBalance * 0.10));
       balances[message.author.id] = robberBalance - penalty;
       balances[target.id] = targetBalance + penalty;
       saveData(balancesPath, balances);
+
+      if (prevStreak >= 3) message.channel.send(`❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
 
       message.channel.send(
         `🚨 **ROB FAILED** 🚨\n` +

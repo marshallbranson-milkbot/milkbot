@@ -5,6 +5,7 @@
   const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
   const xpPath = path.join(__dirname, '../data/xp.json');
   const state = require('../state');
+  const ws = require('../winstreak');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -35,25 +36,32 @@
     activeGame.guessed.add(message.author.id);
 
     if (guess === activeGame.number) {
+      const newStreak = ws.recordWin(message.author.id);
+      const multiplier = newStreak >= 3 ? 1.5 : 1;
+      const reward = Math.floor(REWARD * multiplier);
+
       const balances = getData(balancesPath);
-      balances[message.author.id] = (balances[message.author.id] || 0) + REWARD;
+      balances[message.author.id] = (balances[message.author.id] || 0) + reward;
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + (20 * (state.doubleXp ? 2 : 1));
+      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(20 * (state.doubleXp ? 2 : 1) * multiplier);
       saveData(xpPath, xp);
 
       clearTimeout(activeGame.timeout);
       activeGame = null;
 
+      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
       message.channel.send(
         `🎯 **${message.author.username} got it!** The number was **${guess}**.\n` +
-        `They just earned **${REWARD} milk bucks**. 🥛`
+        `They just earned **${reward} milk bucks**.` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
       );
       return true;
     } else {
+      ws.resetStreak(message.author.id);
       const direction = guess < activeGame.number ? 'Too low.' : 'Too high.';
-      message.reply(`${direction} Keep guessing!`);
+      message.reply(`${direction} One guess per person though — you're out. 🥛`);
       return true;
     }
   }

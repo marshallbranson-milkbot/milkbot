@@ -4,6 +4,7 @@
   const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
+const ws = require('../winstreak');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -69,27 +70,33 @@ const state = require('../state');
     activeScramble.guessed.add(message.author.id);
 
     if (guess === activeScramble.word.toLowerCase()) {
+      const newStreak = ws.recordWin(message.author.id);
+      const multiplier = newStreak >= 3 ? 1.5 : 1;
+      const reward = Math.floor(activeScramble.reward * multiplier);
+      const xpGain = Math.floor((activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1) * multiplier);
+      const rare = activeScramble.rare;
+
       const balances = getData(balancesPath);
-      balances[message.author.id] = (balances[message.author.id] || 0) + activeScramble.reward;
+      balances[message.author.id] = (balances[message.author.id] || 0) + reward;
       saveData(balancesPath, balances);
 
-      const xpGain = (activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1);
       const xp = getData(xpPath);
       xp[message.author.id] = (xp[message.author.id] || 0) + xpGain;
       saveData(xpPath, xp);
 
       clearTimeout(activeScramble.timeout);
-      const reward = activeScramble.reward;
-      const rare = activeScramble.rare;
       activeScramble = null;
+
+      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
       message.channel.send(
         `${rare ? '💎 **RARE WORD!**' : '✅'} **${message.author.username} got it!** The word was **${guess}**.\n` +
-        `They earned **${reward} milk bucks**! 🥛`
+        `They earned **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
       );
       return true;
     }
 
+    ws.resetStreak(message.author.id);
     message.reply(`Nope. One guess per round — you're out. 🥛`);
     return true;
   }

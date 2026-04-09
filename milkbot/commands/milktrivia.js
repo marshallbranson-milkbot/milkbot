@@ -4,6 +4,7 @@ const path = require('path');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
+const ws = require('../winstreak');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -57,23 +58,30 @@ function check(message) {
   activeTrivia.answered.add(message.author.id);
 
   if (answer === activeTrivia.answer) {
+    const newStreak = ws.recordWin(message.author.id);
+    const multiplier = newStreak >= 3 ? 1.5 : 1;
+    const reward = Math.floor(REWARD * multiplier);
+
     const balances = getData(balancesPath);
-    balances[message.author.id] = (balances[message.author.id] || 0) + REWARD;
+    balances[message.author.id] = (balances[message.author.id] || 0) + reward;
     saveData(balancesPath, balances);
 
     const xp = getData(xpPath);
-    xp[message.author.id] = (xp[message.author.id] || 0) + (10 * (state.doubleXp ? 2 : 1));
+    xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(10 * (state.doubleXp ? 2 : 1) * multiplier);
     saveData(xpPath, xp);
 
     clearTimeout(activeTrivia.timeout);
     activeTrivia = null;
 
+    if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
     message.channel.send(
-      `✅ **${message.author.username} got it!** +**${REWARD} milk bucks**! 🥛`
+      `✅ **${message.author.username} got it!** +**${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
     );
     return true;
   }
 
+  ws.resetStreak(message.author.id);
   message.reply(`Wrong answer. One guess per person. 🥛`);
   return true;
 }

@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
+const ws = require('../winstreak');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -93,7 +94,20 @@ module.exports = {
       resultLine = `Nothing. The house ate your milk bucks. Better luck next time. 🥛`;
     }
 
-    balances[userId] = (balances[userId] || 0) + winnings;
+    // Hot streak + win streak logic
+    let streakAnnouncement = null;
+    let multiplier = 1;
+    if (winnings > 0) {
+      const newStreak = ws.recordWin(userId);
+      multiplier = newStreak >= 3 ? 1.5 : 1;
+      if (newStreak === 3) streakAnnouncement = `🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`;
+    } else {
+      const prevStreak = ws.resetStreak(userId);
+      if (prevStreak >= 3) streakAnnouncement = `❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`;
+    }
+
+    const actualWinnings = Math.floor(winnings * multiplier);
+    balances[userId] = (balances[userId] || 0) + actualWinnings;
     saveData(balancesPath, balances);
     saveData(cooldownsPath, cooldowns);
 
@@ -105,11 +119,11 @@ module.exports = {
     }
     if (xpGain > 0) {
       const xp = getData(xpPath);
-      xp[userId] = (xp[userId] || 0) + (xpGain * (state.doubleXp ? 2 : 1));
+      xp[userId] = (xp[userId] || 0) + Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier);
       saveData(xpPath, xp);
     }
 
-    const net = winnings - COST;
+    const net = actualWinnings - COST;
     const netStr = net >= 0 ? `+${net}` : `${net}`;
     const isJackpot = a === b && b === c && a === '👑';
 
@@ -118,18 +132,16 @@ module.exports = {
 
     setTimeout(() => {
       if (isJackpot) {
-        spinMsg.edit(
-          `🎰 | ${a} ${b} ${c} | 🎰\n` +
-          resultLine
-        );
+        spinMsg.edit(`🎰 | ${a} ${b} ${c} | 🎰\n` + resultLine);
         message.channel.send(`🚨 <@${userId}> HIT THE JACKPOT 🚨`);
       } else {
         spinMsg.edit(
           `🎰 | ${a} ${b} ${c} | 🎰\n` +
           `${resultLine}\n` +
-          `*(net: ${netStr} milk bucks)*`
+          `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''})*`
         );
       }
+      if (streakAnnouncement) message.channel.send(streakAnnouncement);
     }, 2000);
   }
 };

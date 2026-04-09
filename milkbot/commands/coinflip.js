@@ -4,6 +4,7 @@
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const xpPath = path.join(__dirname, '../data/xp.json');
   const state = require('../state');
+  const ws = require('../winstreak');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -54,21 +55,31 @@
         const winnerId = challengerWins ? challengerId : message.author.id;
         const loserId = challengerWins ? message.author.id : challengerId;
 
-        balances[winnerId] = (balances[winnerId] || 0) + bet;
+        const newStreak = ws.recordWin(winnerId);
+        const multiplier = newStreak >= 3 ? 1.5 : 1;
+        const bonus = Math.floor(bet * (multiplier - 1));
+
+        balances[winnerId] = (balances[winnerId] || 0) + bet + bonus;
         balances[loserId] = (balances[loserId] || 0) - bet;
         saveData(balancesPath, balances);
 
+        const prevLoserStreak = ws.resetStreak(loserId);
+
         const xp = getData(xpPath);
-        xp[winnerId] = (xp[winnerId] || 0) + (15 * (state.doubleXp ? 2 : 1));
+        xp[winnerId] = (xp[winnerId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * multiplier);
         saveData(xpPath, xp);
 
         const winnerName = challengerWins ? challenger?.username : message.author.username;
         const loserName = challengerWins ? message.author.username : challenger?.username;
 
+        if (newStreak === 3) message.channel.send(`🔥 **${winnerName} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+        if (prevLoserStreak >= 3) message.channel.send(`❄️ **${loserName}'s hot streak is OVER** after ${prevLoserStreak} wins. Back to normal. 🥛`);
+
         return message.channel.send(
           `🪙 **COINFLIP** 🪙\n` +
           `**${bet} milk bucks** on the line!\n\n` +
-          `**${winnerName} wins!** 🎉 ${loserName} just got cleaned out. 🥛`
+          `**${winnerName} wins!** 🎉 ${loserName} just got cleaned out. 🥛` +
+          (multiplier > 1 ? ` *(🔥 1.5x — won ${bet + bonus})*` : '')
         );
       }
 
