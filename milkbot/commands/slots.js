@@ -48,7 +48,7 @@ module.exports = {
   name: 'sl',
   aliases: ['slots'],
   description: 'Spin the slots for 10 milk bucks.',
-  execute(message) {
+  async execute(message) {
     const userId = message.author.id;
     const now = Date.now();
 
@@ -97,20 +97,25 @@ module.exports = {
 
     const net = winnings - COST;
     const netStr = net >= 0 ? `+${net}` : `${net}`;
-
     const isJackpot = a === b && b === c && a === '👑';
 
-    if (isJackpot) {
-      message.channel.send(
-        `🎰 | ${a} ${b} ${c} | 🎰\n` +
-        resultLine
-      );
-    } else {
-      message.reply(
-        `🎰 | ${a} ${b} ${c} | 🎰\n` +
-        `${resultLine}\n` +
-        `*(net: ${netStr} milk bucks)*`
-      );
-    }
+    // Send spinning message then edit with result after delay
+    const spinMsg = await message.reply(`🎰 | ⬛ ⬛ ⬛ | 🎰\n*Spinning...*`);
+
+    setTimeout(() => {
+      if (isJackpot) {
+        spinMsg.edit(
+          `🎰 | ${a} ${b} ${c} | 🎰\n` +
+          resultLine
+        );
+        message.channel.send(`🚨 <@${userId}> HIT THE JACKPOT 🚨`);
+      } else {
+        spinMsg.edit(
+          `🎰 | ${a} ${b} ${c} | 🎰\n` +
+          `${resultLine}\n` +
+          `*(net: ${netStr} milk bucks)*`
+        );
+      }
+    }, 2000);
   }
 };
