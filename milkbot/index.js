@@ -68,6 +68,9 @@
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
 
+    // Schedule random crate drops
+    scheduleCrateDrops(client);
+
     // Check for double XP events every minute
     setInterval(() => {
       const estTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -92,6 +95,44 @@
       }
     }, 60000);
   });
+
+  function scheduleCrateDrops(client) {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const msRemaining = midnight - now;
+
+    const count = Math.floor(Math.random() * 3) + 3; // 3-5 drops
+    for (let i = 0; i < count; i++) {
+      const delay = Math.floor(Math.random() * msRemaining);
+      setTimeout(() => dropCrate(client), delay);
+    }
+
+    // Reschedule for next day
+    setTimeout(() => scheduleCrateDrops(client), msRemaining);
+  }
+
+  function dropCrate(client) {
+    if (state.activeCrate) return;
+
+    const guild = client.guilds.cache.get('562076997979865118');
+    const channel = guild?.channels.cache.find(c => c.name === 'milkbot');
+    if (!channel) return;
+
+    const expireTimeout = setTimeout(() => {
+      if (state.activeCrate) {
+        state.activeCrate = null;
+        channel.send(`📦 The milk crate expired unclaimed. Nobody wanted free milk bucks? 🥛`);
+      }
+    }, 15 * 60 * 1000);
+
+    state.activeCrate = { expireTimeout };
+
+    channel.send(
+      `📦 **A MILK CRATE JUST DROPPED!** 📦\n` +
+      `First to type \`!cc\` claims **500 milk bucks**! You have 15 minutes. ⏳`
+    );
+  }
 
   function scheduleMilkLord() {
     const now = new Date();

@@ -13,6 +13,7 @@ module.exports = {
 \`!bal\` — Check your milk bucks balance
 \`!xp\` — Check your XP, level, and rank
 \`!da\` — Claim your daily milk bucks (streak bonuses up to 300)
+\`!cc\` — Claim an active milk crate drop (500 milk bucks, first come first served)
 
 **Games**
 \`!cf @user amount\` — Challenge someone to a coinflip
