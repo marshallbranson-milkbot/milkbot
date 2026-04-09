@@ -18,15 +18,17 @@ const STOCK_DEFS = [
 const BASE_PRICE = 100;
 
 function getPrices() {
-  if (!fs.existsSync(stocksPath)) {
-    const initial = {};
-    for (const s of STOCK_DEFS) {
-      initial[s.ticker] = { price: BASE_PRICE, lastChange: 0 };
-    }
-    fs.writeFileSync(stocksPath, JSON.stringify(initial, null, 2));
-    return initial;
+  if (fs.existsSync(stocksPath)) {
+    const data = JSON.parse(fs.readFileSync(stocksPath, 'utf8'));
+    const allPresent = STOCK_DEFS.every(s => data[s.ticker]);
+    if (allPresent) return data;
   }
-  return JSON.parse(fs.readFileSync(stocksPath, 'utf8'));
+  const initial = {};
+  for (const s of STOCK_DEFS) {
+    initial[s.ticker] = { price: BASE_PRICE, lastChange: 0 };
+  }
+  fs.writeFileSync(stocksPath, JSON.stringify(initial, null, 2));
+  return initial;
 }
 
 function savePrices(data) {

@@ -34,7 +34,7 @@ module.exports = {
 \`!port\` — View your portfolio
 
 **Stocks & Volatility**
-\`MLIK\` MilkCorp Industries — Stable (±2-5%)
+\`MILK\` MilkCorp Industries — Stable (±2-5%)
 \`CREM\` Creme Capital — Stable (±2-5%)
 \`BUTR\` ButterCo Holdings — Medium (±5-10%)
 \`WHEY\` Whey Street Group — Medium (±5-10%)
