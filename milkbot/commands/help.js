@@ -6,10 +6,12 @@ module.exports = {
 **MilkBot Commands** 🥛
 
 **Leaderboard**
-\`!lb\` — Top 5 milk bucks leaderboard
+\`!mblb\` — Top 5 milk bucks leaderboard
+\`!xplb\` — Top 5 XP leaderboard
 
 **Currency**
 \`!bal\` — Check your milk bucks balance
+\`!xp\` — Check your XP, level, and rank
 \`!da\` — Claim your daily 100 milk bucks
 
 **Games**

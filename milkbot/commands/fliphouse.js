@@ -2,6 +2,7 @@
   const path = require('path');
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
+ const xpPath = path.join(__dirname, '../data/xp.json');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -35,6 +36,10 @@
       if (playerWins) {
         balances[userId] = balance + bet;
         saveData(balancesPath, balances);
+
+        const xp = getData(xpPath);
+        xp[userId] = (xp[userId] || 0) + 15;
+        saveData(xpPath, xp);
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
           `${message.author.username} bet **${bet} milk bucks** against MilkBot.\n\n` +

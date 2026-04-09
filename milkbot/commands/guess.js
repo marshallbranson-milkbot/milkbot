@@ -3,6 +3,7 @@
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
+  const xpPath = path.join(__dirname, '../data/xp.json');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -36,6 +37,10 @@
       const balances = getData(balancesPath);
       balances[message.author.id] = (balances[message.author.id] || 0) + REWARD;
       saveData(balancesPath, balances);
+
+      const xp = getData(xpPath);
+      xp[message.author.id] = (xp[message.author.id] || 0) + 20;
+      saveData(xpPath, xp);
 
       clearTimeout(activeGame.timeout);
       activeGame = null;

@@ -3,6 +3,7 @@ const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
+const xpPath = path.join(__dirname, '../data/xp.json');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -94,6 +95,18 @@ module.exports = {
     balances[userId] = (balances[userId] || 0) + winnings;
     saveData(balancesPath, balances);
     saveData(cooldownsPath, cooldowns);
+
+    let xpGain = 0;
+    if (a === b && b === c) {
+      xpGain = a === '👑' ? 100 : a === '🥛' ? 15 : 30;
+    } else if (a === b || b === c || a === c) {
+      xpGain = 5;
+    }
+    if (xpGain > 0) {
+      const xp = getData(xpPath);
+      xp[userId] = (xp[userId] || 0) + xpGain;
+      saveData(xpPath, xp);
+    }
 
     const net = winnings - COST;
     const netStr = net >= 0 ? `+${net}` : `${net}`;

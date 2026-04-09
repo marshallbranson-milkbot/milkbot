@@ -9,7 +9,7 @@ function getData(filePath) {
 }
 
 module.exports = {
-  name: 'lb',
+  name: 'mblb',
   description: 'Shows the top 5 milk bucks holders.',
   execute(message) {
     const balances = getData(balancesPath);

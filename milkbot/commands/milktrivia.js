@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
+const xpPath = path.join(__dirname, '../data/xp.json');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -58,6 +59,10 @@ function check(message) {
     const balances = getData(balancesPath);
     balances[message.author.id] = (balances[message.author.id] || 0) + REWARD;
     saveData(balancesPath, balances);
+
+    const xp = getData(xpPath);
+    xp[message.author.id] = (xp[message.author.id] || 0) + 10;
+    saveData(xpPath, xp);
 
     clearTimeout(activeTrivia.timeout);
     activeTrivia = null;
