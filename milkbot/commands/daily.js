@@ -13,18 +13,26 @@ const fs = require('fs');
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   }
 
-  const DAILY_AMOUNT = 100;
-  const COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours
+  const STREAK_EXPIRE = 48 * 60 * 60 * 1000; // 48 hours — miss this and streak resets
+
+  function getPayoutAndMessage(streak) {
+    if (streak >= 5) return { amount: 300, msg: `🔥 **Day ${streak} streak!** You're locked in. **300 milk bucks**. 🥛` };
+    if (streak === 4) return { amount: 250, msg: `🔥 **Day 4 streak!** Keep it going. **250 milk bucks**. 🥛` };
+    if (streak === 3) return { amount: 200, msg: `🔥 **Day 3 streak!** Nice consistency. **200 milk bucks**. 🥛` };
+    if (streak === 2) return { amount: 150, msg: `🔥 **Day 2 streak!** Come back tomorrow for more. **150 milk bucks**. 🥛` };
+    return { amount: 100, msg: `Here's your daily **100 milk bucks**. Don't spend it all in one place. 🥛` };
+  }
 
   module.exports = {
     name: 'da',
-    description: 'Claim your daily 100 milk bucks.',
+    description: 'Claim your daily milk bucks. Streak bonuses for consecutive days.',
     execute(message) {
       const userId = message.author.id;
       const now = Date.now();
 
       const cooldowns = getData(cooldownsPath);
-      const lastClaim = cooldowns[userId] || 0;
+      const lastClaim = cooldowns[`daily_${userId}`] || 0;
       const timeLeft = COOLDOWN - (now - lastClaim);
 
       if (timeLeft > 0) {
@@ -33,13 +41,22 @@ const fs = require('fs');
         return message.reply(`Slow down. You already got your milk today. Come back in **${hours}h ${minutes}m**. 🥛`);
       }
 
+      // Determine streak
+      const streakBroken = lastClaim > 0 && (now - lastClaim) >= STREAK_EXPIRE;
+      let streak = cooldowns[`streak_${userId}`] || 0;
+      streak = streakBroken ? 1 : streak + 1;
+
+      const { amount, msg } = getPayoutAndMessage(streak);
+
       const balances = getData(balancesPath);
-      balances[userId] = (balances[userId] || 0) + DAILY_AMOUNT;
-      cooldowns[userId] = now;
+      balances[userId] = (balances[userId] || 0) + amount;
+
+      cooldowns[`daily_${userId}`] = now;
+      cooldowns[`streak_${userId}`] = streak;
 
       saveData(balancesPath, balances);
       saveData(cooldownsPath, cooldowns);
 
-      message.reply(`Here's your daily **${DAILY_AMOUNT} milk bucks**. Don't spend it all in one place. 🥛`);
+      message.reply(msg);
     }
   };
