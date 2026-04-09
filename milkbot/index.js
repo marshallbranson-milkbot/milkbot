@@ -3,6 +3,7 @@
   const fs = require('fs');
   const path = require('path');
   const state = require('./state');
+  const { updatePrices } = require('./stockdata');
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');
@@ -70,6 +71,9 @@
 
     // Schedule random crate drops
     scheduleCrateDrops(client);
+
+    // Update stock prices every 15 minutes
+    setInterval(() => updatePrices(), 15 * 60 * 1000);
 
     // Check for double XP events every minute
     setInterval(() => {

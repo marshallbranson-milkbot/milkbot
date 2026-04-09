@@ -26,6 +26,22 @@ module.exports = {
 \`!geo\` — Guess the country from the flag (30s, 50 milk bucks)
 \`!ra amount\` — Start a raid, others join with \`!j\` (60s window)
 \`!ro @user\` — Rob someone (33% success, 2hr cooldown)
+
+**Milk Stock Market** 📈
+\`!st\` — View current stock prices
+\`!buy TICKER amount\` — Buy shares in a stock
+\`!sell TICKER amount|all\` — Sell shares
+\`!port\` — View your portfolio
+
+**Stocks & Volatility**
+\`MLIK\` MilkCorp Industries — Stable (±2-5%)
+\`CREM\` Creme Capital — Stable (±2-5%)
+\`BUTR\` ButterCo Holdings — Medium (±5-10%)
+\`WHEY\` Whey Street Group — Medium (±5-10%)
+\`MOO\` Moo Markets Inc — Medium (±5-10%)
+\`CHUG\` Chug Enterprises — Volatile (±10-20%)
+\`GOT\` Got Milk Global — Volatile (±10-20%)
+\`SPOIL\` Spoiled Rotten LLC — Chaotic (±5-30%)
       `;
       message.reply(helpMessage);
     }
