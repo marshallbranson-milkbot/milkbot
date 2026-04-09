@@ -45,7 +45,8 @@ function spin() {
 }
 
 module.exports = {
-  name: 'slots',
+  name: 'sl',
+  aliases: ['slots'],
   description: 'Spin the slots for 10 milk bucks.',
   execute(message) {
     const userId = message.author.id;
