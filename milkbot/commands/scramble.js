@@ -83,7 +83,8 @@
       return true;
     }
 
-    return false;
+    message.reply(`Nope. One guess per round — you're out. 🥛`);
+    return true;
   }
 
   module.exports = {
