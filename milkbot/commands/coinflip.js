@@ -15,9 +15,9 @@
   const pendingChallenges = {};
 
   module.exports = {
-    name: 'coinflip',
+    name: 'cf',
     aliases: ['accept', 'decline'],
-    description: 'Challenge someone to a coinflip. Usage: !coinflip @user amount',
+    description: 'Challenge someone to a coinflip. Usage: !cf @user amount',
     execute(message, args) {
       const balances = getData(balancesPath);
 
@@ -83,11 +83,11 @@
       const bet = parseInt(args[1]);
 
       if (!opponent) {
-        return message.reply('You need to tag someone. `!coinflip @user amount`');
+        return message.reply('You need to tag someone. `!cf @user amount`');
       }
 
       if (opponent.bot) {
-        return message.reply("Can't challenge a bot. Try `!fliphouse` if you want to go against the house. 🥛");
+        return message.reply("Can't challenge a bot. Try `!fh` if you want to go against the house. 🥛");
       }
 
       if (opponent.id === challenger.id) {
@@ -95,7 +95,7 @@
       }
 
       if (!bet || isNaN(bet) || bet <= 0) {
-        return message.reply('Enter a valid amount. `!coinflip @user amount`');
+        return message.reply('Enter a valid amount. `!cf @user amount`');
       }
 
       const challengerBalance = balances[challenger.id] || 0;

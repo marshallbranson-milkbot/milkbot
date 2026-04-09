@@ -86,7 +86,7 @@
   }
 
   module.exports = {
-    name: 'scramble',
+    name: 'sc',
     description: 'Unscramble the word to win milk bucks.',
     check,
     execute(message) {

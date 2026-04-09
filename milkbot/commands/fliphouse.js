@@ -12,14 +12,14 @@
   }
 
   module.exports = {
-    name: 'fliphouse',
-    description: 'Flip against MilkBot. Usage: !fliphouse amount',
+    name: 'fh',
+    description: 'Flip against MilkBot. Usage: !fh amount',
     execute(message, args) {
       const bet = parseInt(args[0]);
       const userId = message.author.id;
 
       if (!bet || isNaN(bet) || bet <= 0) {
-        return message.reply('Enter a valid amount. `!fliphouse amount`');
+        return message.reply('Enter a valid amount. `!fh amount`');
       }
 
       const balances = getData(balancesPath);

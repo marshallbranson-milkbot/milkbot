@@ -52,7 +52,7 @@
   }
 
   module.exports = {
-    name: 'guess',
+    name: 'g',
     description: 'MilkBot picks a number 1-100. First to guess it wins 150 milk bucks.',
     check,
     execute(message) {

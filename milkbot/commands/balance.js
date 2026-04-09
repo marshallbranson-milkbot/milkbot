@@ -13,8 +13,7 @@ const fs = require('fs');
   }
 
   module.exports = {
-    name: 'balance',
-    aliases: ['wallet'],
+    name: 'bal',
     description: 'Check your milk bucks balance.',
     execute(message) {
       const balance = getBalance(message.author.id);
