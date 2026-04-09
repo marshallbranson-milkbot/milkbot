@@ -43,11 +43,11 @@ let activeRaid = null;
 
 module.exports = {
   name: 'r',
-  aliases: ['raid', 'join'],
+  aliases: ['raid', 'j'],
   description: 'Start a raid. Usage: !r amount',
   execute(message, args) {
     // --- JOIN ---
-    if (message.content.startsWith('!join')) {
+    if (message.content.startsWith('!j')) {
       if (!activeRaid) {
         return message.reply(`No raid is active right now. Start one with \`!r amount\`. 🥛`);
       }
@@ -81,7 +81,7 @@ module.exports = {
 
     // --- START RAID ---
     if (activeRaid) {
-      return message.reply(`A raid is already in progress! Type \`!join\` to get in. 🥛`);
+      return message.reply(`A raid is already in progress! Type \`!j\` to get in. 🥛`);
     }
 
     const buyIn = parseInt(args[0]);
@@ -151,7 +151,7 @@ module.exports = {
     message.channel.send(
       `🔫 **RAID STARTING** 🔫\n` +
       `${message.author.username} is launching a raid with a **${buyIn} milk buck** buy-in!\n\n` +
-      `Type \`!join\` to get in. You have **60 seconds**. More crew = better odds + bigger payout. ⏳`
+      `Type \`!j\` to get in. You have **60 seconds**. More crew = better odds + bigger payout. ⏳`
     );
   }
 };
