@@ -5,7 +5,7 @@ const stocksPath = path.join(__dirname, 'data/stocks.json');
 const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
 
 const STOCK_DEFS = [
-  { ticker: 'MLIK', name: 'MilkCorp Industries',   volatility: [0.02, 0.05] },
+  { ticker: 'MILK', name: 'MilkCorp Industries',   volatility: [0.02, 0.05] },
   { ticker: 'CREM', name: 'Creme Capital',          volatility: [0.02, 0.05] },
   { ticker: 'BUTR', name: 'ButterCo Holdings',      volatility: [0.05, 0.10] },
   { ticker: 'WHEY', name: 'Whey Street Group',      volatility: [0.05, 0.10] },
