@@ -17,7 +17,7 @@ const fs = require('fs');
   const COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
   module.exports = {
-    name: 'd',
+    name: 'da',
     description: 'Claim your daily 100 milk bucks.',
     execute(message) {
       const userId = message.author.id;

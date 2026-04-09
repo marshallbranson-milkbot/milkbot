@@ -17,13 +17,13 @@
 
   module.exports = {
     name: 'cf',
-    aliases: ['accept', 'decline'],
+    aliases: ['a', 'd'],
     description: 'Challenge someone to a coinflip. Usage: !cf @user amount',
     execute(message, args) {
       const balances = getData(balancesPath);
 
       // --- ACCEPT ---
-      if (message.content.startsWith('!accept')) {
+      if (message.content.startsWith('!a')) {
         const challenge = pendingChallenges[message.author.id];
         if (!challenge) {
           return message.reply("You don't have any pending challenges.");
@@ -67,7 +67,7 @@
       }
 
       // --- DECLINE ---
-      if (message.content.startsWith('!decline')) {
+      if (message.content.startsWith('!d')) {
         const challenge = pendingChallenges[message.author.id];
         if (!challenge) {
           return message.reply("You don't have any pending challenges.");
@@ -123,7 +123,7 @@
       message.channel.send(
         `🪙 **COINFLIP CHALLENGE** 🪙\n` +
         `${challenger.username} is challenging ${opponent.username} to a flip for **${bet} milk bucks**!\n\n` +
-        `${opponent.username}, type \`!accept\` or \`!decline\`. You have 60 seconds. ⏳`
+        `${opponent.username}, type \`!a\` to accept or \`!d\` to decline. You have 60 seconds. ⏳`
       );
     }
   };
