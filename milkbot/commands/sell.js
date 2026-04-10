@@ -47,11 +47,11 @@ module.exports = {
     } else {
       const amount = parseInt(amountArg);
       if (!amount || isNaN(amount) || amount <= 0) {
-        return message.reply(`Enter a valid amount or "all". \`!sell ${ticker} amount\` 🥛`);
+        return message.reply(`Enter a number of shares or "all". \`!sell ${ticker} shares\` 🥛`);
       }
-      sharesToSell = Math.min(Math.floor(amount / price), holding.shares);
+      sharesToSell = Math.min(amount, holding.shares);
       if (sharesToSell < 1) {
-        return message.reply(`Not enough to sell even 1 share. **${ticker}** is **${price} 🥛** per share.`);
+        return message.reply(`You don't have that many shares of **${ticker}**. 🥛`);
       }
     }
 

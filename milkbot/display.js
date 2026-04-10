@@ -62,8 +62,8 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
 ━━━━━━━━━━━━━━━━━━━━━━
 \`!st\` — check current prices
-\`!b TICKER amount\` — buy shares
-\`!s TICKER amount|all\` — dump shares
+\`!b TICKER shares\` — buy shares
+\`!s TICKER shares|all\` — dump shares
 \`!port\` — view your portfolio
 
 \`MILK\` MilkCorp Industries — Stable ±2-5%

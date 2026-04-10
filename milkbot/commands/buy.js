@@ -29,17 +29,12 @@ module.exports = {
     }
 
     if (!amount || isNaN(amount) || amount <= 0) {
-      return message.reply(`Enter a valid amount. \`!buy ${ticker} amount\` 🥛`);
+      return message.reply(`Enter a number of shares. \`!buy ${ticker} shares\` 🥛`);
     }
 
     const prices = getPrices();
     const price = prices[ticker].price;
-    const shares = Math.floor(amount / price);
-
-    if (shares < 1) {
-      return message.reply(`Not enough to buy even 1 share. **${ticker}** is currently **${price} 🥛** per share.`);
-    }
-
+    const shares = amount;
     const cost = shares * price;
     const userId = message.author.id;
     const balances = getData(balancesPath);
