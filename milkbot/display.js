@@ -72,7 +72,7 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`GOT\` Got Milk Global — Volatile ±10-20%
 \`SPOIL\` Spoiled Rotten LLC — Chaotic ±5-30%
 
-*milk money. 🥛*`;
+*milk bucks. 🥛*`;
 
 function buildLeaderboardText(guild) {
   const balances = getData(balancesPath);
