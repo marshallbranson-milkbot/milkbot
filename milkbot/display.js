@@ -123,28 +123,41 @@ async function findBotMessage(channel, client) {
 
 async function initDisplays(client) {
   const guild = client.guilds.cache.get(GUILD_ID);
-  if (!guild) return;
+  if (!guild) { console.log('[display] Guild not found'); return; }
 
   const helpChannel = guild.channels.cache.find(c => c.name === 'milkbot-commands');
-  if (helpChannel) {
+  if (!helpChannel) {
+    console.log('[display] milkbot-commands channel not found');
+  } else {
     const existing = await findBotMessage(helpChannel, client);
     if (existing) {
       helpMessage = await existing.edit(HELP_TEXT).catch(console.error);
+      console.log('[display] Help message updated');
     } else {
       helpMessage = await helpChannel.send(HELP_TEXT).catch(console.error);
+      console.log('[display] Help message posted');
     }
   }
 
   const lbChannel = guild.channels.cache.find(c => c.name === 'milkbot-leaderboard');
-  if (lbChannel) {
+  if (!lbChannel) {
+    console.log('[display] milkbot-leaderboard channel not found');
+  } else {
     const lbText = buildLeaderboardText(guild);
     const existing = await findBotMessage(lbChannel, client);
     if (existing) {
       lbMessage = await existing.edit(lbText).catch(console.error);
+      console.log('[display] Leaderboard updated');
     } else {
       lbMessage = await lbChannel.send(lbText).catch(console.error);
+      console.log('[display] Leaderboard posted');
     }
   }
+}
+
+async function refreshHelp(client) {
+  if (!helpMessage) return;
+  await helpMessage.edit(HELP_TEXT).catch(console.error);
 }
 
 async function refreshLeaderboard(client) {
@@ -155,4 +168,4 @@ async function refreshLeaderboard(client) {
   await lbMessage.edit(lbText).catch(console.error);
 }
 
-module.exports = { initDisplays, refreshLeaderboard, HELP_TEXT };
+module.exports = { initDisplays, refreshHelp, refreshLeaderboard, HELP_TEXT };

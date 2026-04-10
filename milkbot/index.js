@@ -74,7 +74,7 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
       }
     }
 
-    command.execute(message, args);
+    command.execute(message, args, client);
   });
 
   client.once('ready', async () => {
