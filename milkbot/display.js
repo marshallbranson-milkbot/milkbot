@@ -44,8 +44,8 @@ const HELP_TEXT = `**MilkBot Commands** 🥛
 \`!a\` / \`!d\` — Accept or decline a coinflip challenge
 \`!fh amount\` — Flip against MilkBot directly
 \`!g\` — Guess the number (1-100), closest in 15s wins 150 milk bucks
-\`!sc\` — Unscramble a word to win milk bucks
-\`!sl\` — Spin the slots for 10 milk bucks (30s cooldown)
+\`!sc\` — Unscramble a word (15s, 3 milk bucks/letter — rare words 10/letter)
+\`!sl\` — Spin the slots for 10 milk bucks
 \`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)
 \`!geo\` — Guess the country from the flag (15s, 25 milk bucks)
 \`!ra amount\` — Start a raid, others join with \`!j\` (60s window)
