@@ -110,13 +110,19 @@ function buildLeaderboardText(guild) {
   });
 
   return [
-    '**Milk Bucks Leaderboard** 🥛',
+    '🥛 **who\'s got the most milk bucks. updated live.**',
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    '💰 **MILK BUCKS STANDINGS**',
+    '━━━━━━━━━━━━━━━━━━━━━━',
     mbLines.join('\n'),
     '',
-    '**XP Leaderboard** ⭐',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    '⭐ **XP & RANK STANDINGS**',
+    '━━━━━━━━━━━━━━━━━━━━━━',
     xpLines.join('\n'),
     '',
-    `*Last updated: ${now} EST*`
+    `*refreshed: ${now} EST — play games to climb. 🥛*`
   ].join('\n');
 }
 
