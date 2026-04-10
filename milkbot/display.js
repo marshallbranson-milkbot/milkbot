@@ -47,7 +47,7 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!cf @user amount\` — challenge someone to a coinflip
 \`!a\` / \`!d\` — accept or decline a coinflip
 \`!fh amount\` — flip against MilkBot directly (good luck)
-\`!g\` — guess 1-100, closest in 15s wins 150 milk bucks (solo: must be within 10)
+\`!g\` — guess 1-100, closest in 15s wins 5 milk bucks (solo: must be within 10)
 \`!sc\` — unscramble the word (15s · 3/letter, rare words 10/letter)
 \`!sl\` — spin the slots for 10 milk bucks
 \`!mt\` — milk trivia, A/B/C, first right answer wins (15s · 15 milk bucks)

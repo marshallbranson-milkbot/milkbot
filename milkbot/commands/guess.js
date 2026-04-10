@@ -15,7 +15,7 @@ function saveData(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-const REWARD = 150;
+const REWARD = 5;
 const GAME_TIME = 15000;
 const SOLO_WITHIN = 10;
 
