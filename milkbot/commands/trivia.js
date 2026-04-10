@@ -429,33 +429,41 @@ module.exports = {
     const pool = QUESTIONS[category.key];
     const q = pool[Math.floor(Math.random() * pool.length)];
 
-    // Pick two random intermediate spin positions (different from final)
-    const spin1 = (catIndex + 2) % CATEGORIES.length;
-    const spin2 = (catIndex + 4) % CATEGORIES.length;
+    // Spin through 5 frames then land on final category
+    const spins = [
+      (catIndex + 3) % CATEGORIES.length,
+      (catIndex + 5) % CATEGORIES.length,
+      (catIndex + 2) % CATEGORIES.length,
+      (catIndex + 4) % CATEGORIES.length,
+      (catIndex + 1) % CATEGORIES.length,
+    ];
 
-    message.channel.send(buildSpinFrame(spin1)).then(spinMsg => {
-      setTimeout(() => spinMsg.edit(buildSpinFrame(spin2)).catch(() => {}), 600);
+    message.channel.send(buildSpinFrame(spins[0])).then(spinMsg => {
+      // Cycle through intermediate frames
+      spins.slice(1).forEach((pos, i) => {
+        setTimeout(() => spinMsg.edit(buildSpinFrame(pos)).catch(() => {}), 600 * (i + 1));
+      });
 
+      // Land on final category at 2400ms
+      setTimeout(() => spinMsg.edit(buildSpinFrame(catIndex)).catch(() => {}), 2400);
+
+      // Show question at 3400ms
       setTimeout(() => {
-        spinMsg.edit(buildSpinFrame(catIndex)).catch(() => {});
+        const game = { category, q, channel: message.channel, timeout: null };
 
-        setTimeout(() => {
-          const game = { category, q, channel: message.channel, timeout: null };
+        const timeout = setTimeout(() => {
+          if (!activeGame) return;
+          activeGame = null;
+          message.channel.send(
+            `⏰ Time's up! Nobody got it. The answer was **${q.ans.toUpperCase()}** — ${q[q.ans]}. 🥛`
+          );
+        }, GAME_TIME);
 
-          const timeout = setTimeout(() => {
-            if (!activeGame) return;
-            activeGame = null;
-            message.channel.send(
-              `⏰ Time's up! Nobody got it. The answer was **${q.ans.toUpperCase()}** — ${q[q.ans]}. 🥛`
-            );
-          }, GAME_TIME);
+        game.timeout = timeout;
+        activeGame = game;
 
-          game.timeout = timeout;
-          activeGame = game;
-
-          spinMsg.edit(buildQuestionMsg(game)).catch(() => {});
-        }, 800);
-      }, 1200);
+        spinMsg.edit(buildQuestionMsg(game)).catch(() => {});
+      }, 3400);
     }).catch(console.error);
   }
 };
