@@ -33,13 +33,13 @@ function getRank(level) {
 
 const HELP_TEXT = `**MilkBot Commands** 🥛
 
-**Currency** *(use in #bot-games)*
+**Currency** *(use in #milkbot-games)*
 \`!bal\` — Check your milk bucks balance
 \`!xp\` — Check your XP, level, and rank
 \`!da\` — Claim your daily milk bucks (streak bonuses up to 300)
 \`!cc\` — Claim an active milk crate drop (500 milk bucks, first come first served)
 
-**Games** *(use in #bot-games)*
+**Games** *(use in #milkbot-games)*
 \`!cf @user amount\` — Challenge someone to a coinflip
 \`!a\` / \`!d\` — Accept or decline a coinflip challenge
 \`!fh amount\` — Flip against MilkBot directly
@@ -51,7 +51,7 @@ const HELP_TEXT = `**MilkBot Commands** 🥛
 \`!ra amount\` — Start a raid, others join with \`!j\` (60s window)
 \`!ro @user\` — Rob someone (33% success, 2hr cooldown)
 
-**Milk Stock Market** 📈 *(use in #bot-stocks)*
+**Milk Stock Market** 📈 *(use in #milkbot-stocks)*
 \`!st\` — View current stock prices
 \`!buy TICKER amount\` — Buy shares in a stock
 \`!sell TICKER amount|all\` — Sell shares
@@ -127,7 +127,7 @@ async function initDisplays(client) {
 
   await guild.members.fetch();
 
-  const helpChannel = guild.channels.cache.find(c => c.name === 'bot-commands');
+  const helpChannel = guild.channels.cache.find(c => c.name === 'milkbot-commands');
   if (helpChannel) {
     const existing = await findBotMessage(helpChannel, client);
     if (existing) {
@@ -137,7 +137,7 @@ async function initDisplays(client) {
     }
   }
 
-  const lbChannel = guild.channels.cache.find(c => c.name === 'bot-leaderboard');
+  const lbChannel = guild.channels.cache.find(c => c.name === 'milkbot-leaderboard');
   if (lbChannel) {
     const lbText = buildLeaderboardText(guild);
     const existing = await findBotMessage(lbChannel, client);

@@ -65,12 +65,12 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
 
     const channelName = message.channel.name;
     if (STOCKS_COMMANDS.has(commandName)) {
-      if (channelName !== 'bot-stocks') {
-        return message.reply('📈 Stock commands go in **#bot-stocks**!');
+      if (channelName !== 'milkbot-stocks') {
+        return message.reply('📈 Stock commands go in **#milkbot-stocks**!');
       }
     } else if (commandName !== 'h') {
-      if (channelName !== 'bot-games') {
-        return message.reply('🎮 Game and currency commands go in **#bot-games**!');
+      if (channelName !== 'milkbot-games') {
+        return message.reply('🎮 Game and currency commands go in **#milkbot-games**!');
       }
     }
 
@@ -105,7 +105,7 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
         state.doubleXp = true;
 
         const guild = client.guilds.cache.get('562076997979865118');
-        const channel = guild?.channels.cache.find(c => c.name === 'bot-games');
+        const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
         if (channel) {
           channel.send(`⚡ **DOUBLE XP HOUR HAS STARTED!** ⚡\nAll XP gains are doubled for the next hour. Get in there. 🥛`);
         }
@@ -140,7 +140,7 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
     if (state.activeCrate) return;
 
     const guild = client.guilds.cache.get('562076997979865118');
-    const channel = guild?.channels.cache.find(c => c.name === 'bot-games');
+    const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
     if (!channel) return;
 
     const expireTimeout = setTimeout(() => {

@@ -39,7 +39,7 @@ const fs = require('fs');
       // Give role to the top user
       if (!topMember.roles.cache.has(MILK_LORD_ROLE_ID)) {
         await topMember.roles.add(role);
-        const channel = guild.channels.cache.find(c => c.name === 'bot-games' && c.isTextBased());
+        const channel = guild.channels.cache.find(c => c.name === 'milkbot-games' && c.isTextBased());
         if (channel) {
           channel.send(`👑 **${topMember.user.username}** is the new **Milk Lord** with **${balances[topUserId]} milk
   bucks**! bow down. 🥛`);
