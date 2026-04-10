@@ -34,7 +34,7 @@ function getRank(level) {
 const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 
 ━━━━━━━━━━━━━━━━━━━━━━
-💰 **YOUR MILK MONEY** *(#milkbot-games)*
+💰 **YOUR MILK BUCKS** *(#milkbot-games)*
 ━━━━━━━━━━━━━━━━━━━━━━
 \`!bal\` — how broke are you right now
 \`!xp\` — your XP, level, and rank
@@ -48,11 +48,12 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!a\` / \`!d\` — accept or decline a coinflip
 \`!fh amount\` — flip against MilkBot directly (good luck)
 \`!g\` — guess 1-100, closest in 15s wins 5 milk bucks (solo: must be within 10)
-\`!sc\` — unscramble the word (15s · 3/letter, rare words 10/letter)
+\`!sc\` — unscramble the word (3/letter, rare words 10/letter)
 \`!sl\` — spin the slots for 10 milk bucks
-\`!mt\` — milk trivia, A/B/C, first right answer wins (15s · 15 milk bucks)
-\`!geo\` — name the country from the flag (15s · 25 milk bucks)
-\`!ra amount\` — start a raid, crew joins with \`!j\` (15s window)
+\`!mt\` — milk trivia, A/B/C, first right answer wins · 15 milk bucks
+\`!geo\` — name the country from the flag · 25 milk bucks
+\`!bl amount\` — blackjack vs MilkBot (min 25 · blackjack pays 3:2)
+\`!ra amount\` — start a raid, crew joins with \`!j\`
 \`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
 
 ━━━━━━━━━━━━━━━━━━━━━━
