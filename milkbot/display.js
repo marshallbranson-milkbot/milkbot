@@ -125,8 +125,6 @@ async function initDisplays(client) {
   const guild = client.guilds.cache.get(GUILD_ID);
   if (!guild) return;
 
-  await guild.members.fetch();
-
   const helpChannel = guild.channels.cache.find(c => c.name === 'milkbot-commands');
   if (helpChannel) {
     const existing = await findBotMessage(helpChannel, client);
@@ -153,7 +151,6 @@ async function refreshLeaderboard(client) {
   if (!lbMessage) return;
   const guild = client.guilds.cache.get(GUILD_ID);
   if (!guild) return;
-  await guild.members.fetch();
   const lbText = buildLeaderboardText(guild);
   await lbMessage.edit(lbText).catch(console.error);
 }

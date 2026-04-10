@@ -13,7 +13,6 @@ const fs = require('fs');
   async function assignMilkLord(client) {
     try {
       const guild = await client.guilds.fetch(GUILD_ID);
-      await guild.members.fetch();
 
       const balances = getData(balancesPath);
 
