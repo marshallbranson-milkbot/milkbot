@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -142,6 +143,9 @@ module.exports = {
           `*(+${xpGain} XP each)*`
         );
         for (const msg of hotAnnouncements) message.channel.send(msg);
+        for (const [userId, username] of finalCrew) {
+          ach.check(userId, username, 'raid_win', { balance: balances[userId] }, message.channel);
+        }
       } else {
         const coldAnnouncements = [];
         for (const [userId, username] of finalCrew) {

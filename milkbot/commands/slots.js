@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -128,6 +129,10 @@ module.exports = {
         );
       }
       if (streakAnnouncement) message.channel.send(streakAnnouncement);
+      if (winnings > 0) {
+        const isJackpotWin = a === b && b === c && a === '👑';
+        ach.check(userId, message.author.username, isJackpotWin ? 'slots_jackpot' : 'game_win', { balance: balances[userId], streak: winnings > 0 ? ws.getStreak(userId) : 0 }, message.channel);
+      }
     }, 2000);
   }
 };

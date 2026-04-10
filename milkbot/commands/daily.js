@@ -3,6 +3,7 @@ const fs = require('fs');
 
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
+  const ach = require('../achievements');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -58,5 +59,6 @@ const fs = require('fs');
       saveData(cooldownsPath, cooldowns);
 
       message.reply(msg);
+      ach.check(userId, message.author.username, 'daily_streak', { balance: balances[userId], dailyStreak: streak }, message.channel);
     }
   };

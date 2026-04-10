@@ -6,6 +6,7 @@ const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -80,6 +81,8 @@ module.exports = {
       saveData(xpPath, xp);
 
       if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
+      ach.check(message.author.id, message.author.username, 'rob_success', { balance: balances[message.author.id] }, message.channel);
 
       message.channel.send(
         `🕵️ **ROB SUCCESSFUL** 🕵️\n` +

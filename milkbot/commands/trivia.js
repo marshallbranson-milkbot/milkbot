@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -406,6 +407,8 @@ function check(message) {
     `✅ **${username}** got it! The answer was **${correct}**.\n` +
     `They win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
   );
+
+  ach.check(userId, username, 'trivia_win', { balance: balances[userId], xp: xp[userId], streak: newStreak }, channel);
 
   if (newStreak === 3) {
     channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);

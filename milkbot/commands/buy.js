@@ -4,6 +4,7 @@ const path = require('path');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -59,6 +60,10 @@ module.exports = {
     portfolios[userId][ticker].shares += shares;
     portfolios[userId][ticker].spent += cost;
     savePortfolios(portfolios);
+
+    const portfolioSize = Object.keys(portfolios[userId]).length;
+    ach.check(userId, message.author.username, 'trade_made', {}, message.channel);
+    if (portfolioSize >= 3) ach.check(userId, message.author.username, 'portfolio', { portfolioSize }, message.channel);
 
     message.reply(
       `✅ Bought **${shares} share(s)** of **${ticker}** at **${price} 🥛** each.\n` +

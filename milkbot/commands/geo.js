@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -119,6 +120,8 @@ function check(message) {
     activeGeo = null;
 
     if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
+    ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], xp: xp[userId], streak: newStreak }, message.channel);
 
     message.channel.send(
       `✅ **${message.author.username} got it!** The country was **${countryName}**.\n` +

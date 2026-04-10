@@ -3,6 +3,7 @@ const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const state = require('../state');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -33,5 +34,7 @@ module.exports = {
     message.channel.send(
       `📦 **${message.author.username} claimed the milk crate!** +**${REWARD} milk bucks**! 🥛`
     );
+
+    ach.check(message.author.id, message.author.username, 'crate_claim', { balance: balances[message.author.id] }, message.channel);
   }
 };

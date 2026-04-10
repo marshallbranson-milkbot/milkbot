@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -269,6 +270,10 @@ function resolveGame(userId, channel, gameMsg) {
   if (newStreak === 3) {
     channel.send(`🔥 **<@${userId}> is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
   }
+
+  if (newStreak > 0) {
+    ach.check(userId, game.username, 'game_win', { balance: balances[userId], xp: xpGain > 0 ? xp[userId] : undefined, streak: newStreak }, channel);
+  }
 }
 
 function check(message) {
@@ -388,6 +393,7 @@ module.exports = {
         saveData(balancesPath, balances);
         quip = randQuip(BLACKJACK_QUIPS);
         resultLine = `**Blackjack!** 3:2 payout — You win **${winnings} milk bucks**!${multiplier > 1 ? ' *(🔥 1.5x)*' : ''} Balance: **${balances[userId]}** 🥛`;
+        ach.check(userId, message.author.username, 'blackjack_natural', { balance: balances[userId], xp: xp[userId], streak: newStreak }, message.channel);
       }
 
       const instantGame = { playerHand, dealerHand, bet, quip, resultLine, deck };
@@ -396,7 +402,7 @@ module.exports = {
     }
 
     const quip = randQuip(DEAL_QUIPS);
-    const game = { playerHand, dealerHand, deck, bet, quip, gameMsg: null, timeout: null, resultLine: null };
+    const game = { playerHand, dealerHand, deck, bet, quip, gameMsg: null, timeout: null, resultLine: null, username: message.author.username };
 
     const timeout = setTimeout(() => {
       if (!activeGames.has(userId)) return;

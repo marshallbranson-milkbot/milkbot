@@ -5,6 +5,7 @@
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
+const ach = require('../achievements');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -88,6 +89,8 @@ const ws = require('../winstreak');
       activeScramble = null;
 
       if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
+      ach.check(message.author.id, message.author.username, rare ? 'rare_word' : 'game_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak }, message.channel);
 
       message.channel.send(
         `${rare ? '💎 **RARE WORD!**' : '✅'} **${message.author.username} got it!** The word was **${guess}**.\n` +

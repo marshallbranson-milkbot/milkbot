@@ -5,6 +5,7 @@
   const xpPath = path.join(__dirname, '../data/xp.json');
   const state = require('../state');
   const ws = require('../winstreak');
+  const ach = require('../achievements');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -74,6 +75,8 @@
 
         if (newStreak === 3) message.channel.send(`🔥 **${winnerName} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
         if (prevLoserStreak >= 3) message.channel.send(`❄️ **${loserName}'s hot streak is OVER** after ${prevLoserStreak} wins. Back to normal. 🥛`);
+
+        ach.check(winnerId, winnerName, 'game_win', { balance: balances[winnerId], streak: newStreak }, message.channel);
 
         return message.channel.send(
           `🪙 **COINFLIP** 🪙\n` +

@@ -39,6 +39,7 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 ━━━━━━━━━━━━━━━━━━━━━━
 \`!bal\` — how broke are you right now
 \`!xp\` — your XP, level, and rank
+\`!ach\` — view your achievements
 \`!da\` — grab your daily milk bucks (streaks pay up to 300)
 \`!cc\` — claim a crate drop before someone else does (500 milk bucks)
 
