@@ -32,7 +32,20 @@ const ach = require('../achievements');
     'magnet', 'crystal', 'temple', 'cursed', 'ancient', 'lantern',
     'engine', 'circuit', 'battery', 'gadget', 'signal', 'reactor',
     'summit', 'canyon', 'glacier', 'swamp', 'cavern', 'crater',
-    'bounty', 'outpost', 'raider', 'smuggler', 'convoy', 'ambush'
+    'bounty', 'outpost', 'raider', 'smuggler', 'convoy', 'ambush',
+    'blaster', 'warrior', 'paladin', 'samurai', 'ninja', 'console',
+    'joystick', 'respawn', 'stamina', 'tavern', 'citadel', 'barracks',
+    'patrol', 'stealth', 'assault', 'pistol', 'shotgun', 'dagger',
+    'spear', 'vampire', 'zombie', 'skeleton', 'wraith', 'golem',
+    'phoenix', 'griffin', 'hydra', 'chimera', 'titan', 'vortex',
+    'nebula', 'pulsar', 'comet', 'orbit', 'volcano', 'tundra',
+    'plateau', 'ravine', 'compass', 'voyage', 'harbor', 'galleon',
+    'cipher', 'laser', 'plasma', 'turbo', 'specter', 'oracle',
+    'shaman', 'rogue', 'bandit', 'outlaw', 'marshal', 'champion',
+    'trench', 'rampart', 'sentry', 'musket', 'pendant', 'relic',
+    'mythic', 'heroic', 'savage', 'frenzy', 'mayhem', 'typhoon',
+    'cyclone', 'tsunami', 'inferno', 'scorched', 'pilgrim', 'nomad',
+    'warlock', 'druid', 'templar', 'crusader', 'spartan', 'legion',
   ];
 
   const rareWords = [
@@ -41,7 +54,12 @@ const ach = require('../achievements');
     'phosphorus', 'algorithm', 'cryptogram', 'obsidian', 'stratagem',
     'pyroclastic', 'leviathan', 'juggernaut', 'sovereignty', 'equilibrium',
     'contraband', 'insurgent', 'trajectory', 'catastrophe', 'necromancer',
-    'behemoth', 'colosseum', 'mausoleum', 'purgatory', 'inquisition'
+    'behemoth', 'colosseum', 'mausoleum', 'purgatory', 'inquisition',
+    'fluorescent', 'kaleidoscope', 'bureaucracy', 'hallucination', 'metamorphosis',
+    'reconnaissance', 'conglomerate', 'infrastructure', 'perpendicular', 'incandescent',
+    'miscellaneous', 'camouflage', 'flabbergasted', 'discombobulate', 'onomatopoeia',
+    'perseverance', 'accomplishment', 'exhilaration', 'subterranean', 'dilapidated',
+    'melancholy', 'philosophical', 'pandemonium', 'serendipity', 'turbulence',
   ];
 
   function scrambleWord(word) {
@@ -114,7 +132,7 @@ const ach = require('../achievements');
   **${activeScramble.scrambled.toLowerCase()}**`);
       }
 
-      const isRare = Math.random() < 0.05;
+      const isRare = Math.random() < 0.10;
       const wordPool = isRare ? rareWords : normalWords;
       const word = wordPool[Math.floor(Math.random() * wordPool.length)];
       const scrambled = scrambleWord(word);
