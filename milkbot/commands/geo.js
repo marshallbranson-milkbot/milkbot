@@ -15,9 +15,9 @@ function saveData(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-const REWARD = 50;
+const REWARD = 25;
 const XP_REWARD = 35;
-const GAME_TIME = 30000;
+const GAME_TIME = 15000;
 
 const countries = [
   { name: 'Afghanistan', flag: '🇦🇫', aliases: [] },
@@ -132,7 +132,7 @@ function check(message) {
 
 module.exports = {
   name: 'geo',
-  description: 'Guess the country from the flag. First correct answer wins 50 milk bucks.',
+  description: 'Guess the country from the flag. First correct answer wins 25 milk bucks.',
   check,
   execute(message) {
     if (activeGeo) {
@@ -155,7 +155,7 @@ module.exports = {
       `🚩 **WHAT COUNTRY IS THIS FLAG?** 🚩\n\n` +
       `${country.flag}\n\n` +
       `Type the country name in chat. First correct answer wins **${REWARD} milk bucks**!\n` +
-      `You have **30 seconds**. ⏳`
+      `You have **15 seconds**. ⏳`
     );
   }
 };
