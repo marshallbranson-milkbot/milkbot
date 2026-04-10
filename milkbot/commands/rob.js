@@ -17,7 +17,7 @@ function saveData(filePath, data) {
 }
 
 const COOLDOWN = 2 * 60 * 60 * 1000; // 2 hours
-const SUCCESS_CHANCE = 0.3333;
+const SUCCESS_CHANCE = 0.25;
 
 module.exports = {
   name: 'ro',
