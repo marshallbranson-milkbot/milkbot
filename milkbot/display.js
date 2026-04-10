@@ -48,7 +48,7 @@ const HELP_TEXT = `**MilkBot Commands** 🥛
 \`!sl\` — Spin the slots for 10 milk bucks
 \`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)
 \`!geo\` — Guess the country from the flag (15s, 25 milk bucks)
-\`!ra amount\` — Start a raid, others join with \`!j\` (60s window)
+\`!ra amount\` — Start a raid, others join with \`!j\` (15s window)
 \`!ro @user\` — Rob someone (25% success, 2hr cooldown)
 
 **Milk Stock Market** 📈 *(use in #milkbot-stocks)*

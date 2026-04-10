@@ -15,7 +15,7 @@ function saveData(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-const JOIN_WINDOW = 60000;
+const JOIN_WINDOW = 15000;
 
 // odds by crew size
 function getOdds(size) {
@@ -166,7 +166,7 @@ module.exports = {
     message.channel.send(
       `🔫 **RAID STARTING** 🔫\n` +
       `${message.author.username} is launching a raid with a **${buyIn} milk buck** buy-in!\n\n` +
-      `Type \`!j\` to get in. You have **60 seconds**. More crew = better odds + bigger payout. ⏳`
+      `Type \`!j\` to get in. You have **15 seconds**. More crew = better odds + bigger payout. ⏳`
     );
   }
 };
