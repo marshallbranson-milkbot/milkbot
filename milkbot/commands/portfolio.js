@@ -35,6 +35,9 @@ module.exports = {
       `**📊 ${message.author.username}'s Portfolio** 🥛\n\n` +
       lines.join('\n') +
       `\n\n**Total Value:** ${totalValue} milk bucks | **Total P&L:** ${totalStr} milk bucks`
-    );
+    ).then(reply => {
+      setTimeout(() => reply.delete().catch(() => {}), 30000);
+      setTimeout(() => message.delete().catch(() => {}), 30000);
+    });
   }
 };
