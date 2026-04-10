@@ -3,6 +3,7 @@ const path = require('path');
 
 const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
+const bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
 const GUILD_ID = '562076997979865118';
 
 function getData(filePath) {
@@ -79,7 +80,12 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 function buildLeaderboardText(guild) {
   const balances = getData(balancesPath);
   const xpData = getData(xpPath);
+  const bigTrades = getData(bigTradesPath);
   const medals = ['👑', '🥈', '🥉'];
+
+  const { getPrices, getPortfolios } = require('./stockdata');
+  const prices = getPrices();
+  const portfolios = getPortfolios();
 
   const mbSorted = Object.entries(balances).sort(([, a], [, b]) => b - a);
   const mbLines = mbSorted.length === 0
@@ -103,6 +109,36 @@ function buildLeaderboardText(guild) {
         return `${medal} **${name}** — Lvl ${level} ${rank} (${totalXp.toLocaleString()} XP)`;
       });
 
+  // Biggest single trade
+  const bigTradeSorted = Object.entries(bigTrades).sort(([, a], [, b]) => b - a);
+  const bigTradeLines = bigTradeSorted.length === 0
+    ? ['No trades recorded yet.']
+    : bigTradeSorted.map(([userId, amount], i) => {
+        const member = guild.members.cache.get(userId);
+        const name = member ? member.displayName : 'Unknown';
+        const medal = medals[i] ?? `${i + 1}.`;
+        return `${medal} **${name}** — ${amount.toLocaleString()} milk bucks`;
+      });
+
+  // Most currently invested in the market
+  const marketValues = {};
+  for (const [userId, holdings] of Object.entries(portfolios)) {
+    let total = 0;
+    for (const [ticker, { shares }] of Object.entries(holdings)) {
+      total += shares * (prices[ticker]?.price || 0);
+    }
+    if (total > 0) marketValues[userId] = total;
+  }
+  const marketSorted = Object.entries(marketValues).sort(([, a], [, b]) => b - a);
+  const marketLines = marketSorted.length === 0
+    ? ['Nobody is in the market right now.']
+    : marketSorted.map(([userId, value], i) => {
+        const member = guild.members.cache.get(userId);
+        const name = member ? member.displayName : 'Unknown';
+        const medal = medals[i] ?? `${i + 1}.`;
+        return `${medal} **${name}** — ${value.toLocaleString()} milk bucks invested`;
+      });
+
   const now = new Date().toLocaleString('en-US', {
     timeZone: 'America/New_York',
     month: 'short',
@@ -123,6 +159,16 @@ function buildLeaderboardText(guild) {
     '⭐ **XP & RANK STANDINGS**',
     '━━━━━━━━━━━━━━━━━━━━━━',
     xpLines.join('\n'),
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    '📊 **BIGGEST SINGLE TRADE**',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    bigTradeLines.join('\n'),
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    '📈 **MOST IN THE MARKET**',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    marketLines.join('\n'),
     '',
     `*refreshed: ${now} EST — play games to climb. 🥛*`
   ].join('\n');

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
+const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
 
 function getData(filePath) {
@@ -50,6 +51,12 @@ module.exports = {
 
     balances[userId] = balance - cost;
     saveData(balancesPath, balances);
+
+    const bigTrades = getData(bigTradesPath);
+    if (cost > (bigTrades[userId] || 0)) {
+      bigTrades[userId] = cost;
+      saveData(bigTradesPath, bigTrades);
+    }
 
     const portfolios = getPortfolios();
     if (!portfolios[userId]) portfolios[userId] = {};

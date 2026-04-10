@@ -3,6 +3,7 @@ const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
+const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
 const state = require('../state');
 
@@ -71,6 +72,12 @@ module.exports = {
     const balances = getData(balancesPath);
     balances[userId] = (balances[userId] || 0) + revenue;
     saveData(balancesPath, balances);
+
+    const bigTrades = getData(bigTradesPath);
+    if (revenue > (bigTrades[userId] || 0)) {
+      bigTrades[userId] = revenue;
+      saveData(bigTradesPath, bigTrades);
+    }
 
     // Award XP on profit
     let xpGain = 0;
