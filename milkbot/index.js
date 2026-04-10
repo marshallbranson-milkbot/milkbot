@@ -89,8 +89,8 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
     // Schedule random crate drops
     scheduleCrateDrops(client);
 
-    // Update stock prices every 15 minutes
-    setInterval(() => updatePrices(), 15 * 60 * 1000);
+    // Update stock prices every 5 minutes
+    setInterval(() => updatePrices(), 5 * 60 * 1000);
 
     // Refresh leaderboard every 5 minutes
     setInterval(() => refreshLeaderboard(client), 5 * 60 * 1000);

@@ -51,7 +51,7 @@ const HELP_TEXT = `**MilkBot Commands** 🥛
 \`!ra amount\` — Start a raid, others join with \`!j\` (15s window)
 \`!ro @user\` — Rob someone (25% success, 2hr cooldown)
 
-**Milk Stock Market** 📈 *(use in #milkbot-stocks)*
+**Milk Stock Market** 📈 *(use in #milkbot-stocks, updates every 5 min)*
 \`!st\` — View current stock prices
 \`!buy TICKER amount\` — Buy shares in a stock
 \`!sell TICKER amount|all\` — Sell shares
