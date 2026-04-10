@@ -15,7 +15,7 @@ const ws = require('../winstreak');
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   }
 
-  const SCRAMBLE_TIME = 30000;
+  const SCRAMBLE_TIME = 15000;
 
   const normalWords = [
     'discord', 'server', 'gaming', 'winner', 'chicken', 'laptop',
@@ -115,7 +115,7 @@ const ws = require('../winstreak');
       const wordPool = isRare ? rareWords : normalWords;
       const word = wordPool[Math.floor(Math.random() * wordPool.length)];
       const scrambled = scrambleWord(word);
-      const reward = isRare ? word.length * 10 : word.length * 1;
+      const reward = isRare ? word.length * 10 : word.length * 3;
       const guessed = new Set();
 
       const timeout = setTimeout(() => {
@@ -132,7 +132,7 @@ const ws = require('../winstreak');
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +
         `Unscramble this word: **${scrambled.toLowerCase()}**\n` +
         `Just type your answer in chat. First correct answer wins **${reward} milk bucks**!\n` +
-        `You have **30 seconds**. ⏳`
+        `You have **15 seconds**. ⏳`
       );
     }
   };
