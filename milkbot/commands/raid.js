@@ -20,18 +20,18 @@ const JOIN_WINDOW = 15000;
 
 // odds by crew size
 function getOdds(size) {
-  if (size >= 4) return 0.70;
-  if (size === 3) return 0.60;
-  if (size === 2) return 0.45;
-  return 0.30;
+  if (size >= 4) return 0.75;
+  if (size === 3) return 0.65;
+  if (size === 2) return 0.52;
+  return 0.35;
 }
 
 // payout multiplier by crew size
 function getMultiplier(size) {
-  if (size >= 4) return 2.0;
-  if (size === 3) return 1.75;
-  if (size === 2) return 1.60;
-  return 1.50;
+  if (size >= 4) return 2.75;
+  if (size === 3) return 2.25;
+  if (size === 2) return 2.0;
+  return 1.75;
 }
 
 // XP by crew size
