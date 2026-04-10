@@ -51,6 +51,7 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!sc\` — unscramble the word (3/letter, rare words 10/letter)
 \`!sl\` — spin the slots for 10 milk bucks
 \`!mt\` — milk trivia, A/B/C, first right answer wins · 15 milk bucks
+\`!tr\` — trivia crack, spin for 1 of 6 categories, A/B/C/D · 20 milk bucks
 \`!geo\` — name the country from the flag · 25 milk bucks
 \`!bl amount\` — blackjack vs MilkBot (min 25 · blackjack pays 3:2)
 \`!ra amount\` — start a raid, crew joins with \`!j\`
