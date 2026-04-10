@@ -61,6 +61,9 @@ module.exports = {
     message.reply(
       `✅ Bought **${shares} share(s)** of **${ticker}** at **${price} 🥛** each.\n` +
       `Total cost: **${cost} milk bucks**. New balance: **${balances[userId]} 🥛**`
-    );
+    ).then(reply => {
+      setTimeout(() => reply.delete().catch(() => {}), 5 * 60 * 1000);
+      setTimeout(() => message.delete().catch(() => {}), 5 * 60 * 1000);
+    });
   }
 };

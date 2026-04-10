@@ -89,6 +89,9 @@ module.exports = {
       `Revenue: **${revenue} milk bucks** | P&L: **${profitStr} milk bucks**` +
       (xpGain > 0 ? ` | +**${xpGain} XP**` : '') +
       ` 🥛`
-    );
+    ).then(reply => {
+      setTimeout(() => reply.delete().catch(() => {}), 5 * 60 * 1000);
+      setTimeout(() => message.delete().catch(() => {}), 5 * 60 * 1000);
+    });
   }
 };
