@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { pendingModifiers } = require('./moosnews');
 
 const stocksPath = path.join(__dirname, 'data/stocks.json');
 const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
@@ -48,16 +49,25 @@ function updatePrices() {
   const prices = getPrices();
   for (const s of STOCK_DEFS) {
     const [min, max] = s.volatility;
-    const pct = min + Math.random() * (max - min);
-    const direction = Math.random() < 0.5 ? 1 : -1;
-    const change = pct * direction;
+    const newsModifier = pendingModifiers[s.ticker] ?? pendingModifiers['ALL'] ?? 0;
+    delete pendingModifiers[s.ticker];
+
+    let change;
+    if (newsModifier !== 0) {
+      // News-driven tick: modifier sets direction, small noise added
+      const noise = (Math.random() * 0.06) - 0.03;
+      change = newsModifier + noise;
+    } else {
+      const pct = min + Math.random() * (max - min);
+      const direction = Math.random() < 0.5 ? 1 : -1;
+      change = pct * direction;
+    }
+
     const current = prices[s.ticker].price;
     const newPrice = Math.max(1, Math.round(current * (1 + change)));
-    prices[s.ticker] = {
-      price: newPrice,
-      lastChange: change,
-    };
+    prices[s.ticker] = { price: newPrice, lastChange: change };
   }
+  delete pendingModifiers['ALL'];
   savePrices(prices);
   return prices;
 }

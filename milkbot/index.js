@@ -5,6 +5,7 @@ const path = require('path');
 const state = require('./state');
 const { updatePrices } = require('./stockdata');
 const { initDisplays, refreshLeaderboard } = require('./display');
+const { scheduleNews } = require('./moosnews');
 
 const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
 
@@ -82,6 +83,9 @@ const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
 
     // Post/update help and leaderboard display messages
     await initDisplays(client);
+
+    // Schedule daily Moo News drops
+    scheduleNews(client);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
