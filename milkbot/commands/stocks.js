@@ -19,6 +19,9 @@ module.exports = {
       `**📊 MILK MARKET** 📊\n\n` +
       lines.join('\n') +
       `\n\nUse \`!buy TICKER amount\` and \`!sell TICKER amount\` to trade. 🥛`
-    );
+    ).then(reply => {
+      setTimeout(() => reply.delete().catch(() => {}), 5 * 60 * 1000);
+      setTimeout(() => message.delete().catch(() => {}), 5 * 60 * 1000);
+    });
   }
 };
