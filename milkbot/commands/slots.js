@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
-const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
@@ -17,7 +16,6 @@ function saveData(filePath, data) {
 }
 
 const COST = 10;
-const COOLDOWN = 30 * 1000; // 30 seconds
 
 const SYMBOLS = [
   { emoji: '🥛', weight: 50 },  // Common
@@ -28,11 +26,11 @@ const SYMBOLS = [
 ];
 
 const PAYOUTS = {
-  '🥛': 50,
-  '🎲': 150,
-  '🔥': 350,
-  '💎': 750,
-  '👑': 1500,
+  '🥛': 75,
+  '🎲': 225,
+  '🔥': 525,
+  '💎': 1125,
+  '👑': 2250,
 };
 
 function spin() {
@@ -53,16 +51,6 @@ module.exports = {
   description: 'Spin the slots for 10 milk bucks.',
   async execute(message) {
     const userId = message.author.id;
-    const now = Date.now();
-
-    const cooldowns = getData(cooldownsPath);
-    const lastSpin = cooldowns[`slots_${userId}`] || 0;
-    const timeLeft = COOLDOWN - (now - lastSpin);
-
-    if (timeLeft > 0) {
-      const seconds = Math.ceil(timeLeft / 1000);
-      return message.reply(`Slow down. Try again in **${seconds}s**. 🥛`);
-    }
 
     const balances = getData(balancesPath);
     const balance = balances[userId] || 0;
@@ -75,7 +63,6 @@ module.exports = {
     const [a, b, c] = reels;
 
     balances[userId] = balance - COST;
-    cooldowns[`slots_${userId}`] = now;
 
     let winnings = 0;
     let resultLine = '';
@@ -88,7 +75,7 @@ module.exports = {
         resultLine = `**Three of a kind!** You win **${winnings} milk bucks**! 🥛`;
       }
     } else if (a === b || b === c || a === c) {
-      winnings = 10;
+      winnings = 15;
       resultLine = `Two of a kind. You win **${winnings} milk bucks** back. Take it. 🥛`;
     } else {
       resultLine = `Nothing. The house ate your milk bucks. Better luck next time. 🥛`;
@@ -109,7 +96,6 @@ module.exports = {
     const actualWinnings = Math.floor(winnings * multiplier);
     balances[userId] = (balances[userId] || 0) + actualWinnings;
     saveData(balancesPath, balances);
-    saveData(cooldownsPath, cooldowns);
 
     let xpGain = 0;
     if (a === b && b === c) {
