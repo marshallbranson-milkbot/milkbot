@@ -43,7 +43,7 @@ const HELP_TEXT = `**MilkBot Commands** 🥛
 \`!cf @user amount\` — Challenge someone to a coinflip
 \`!a\` / \`!d\` — Accept or decline a coinflip challenge
 \`!fh amount\` — Flip against MilkBot directly
-\`!g\` — Start a number guessing game (daily cooldown)
+\`!g\` — Guess the number (1-100), closest in 15s wins 150 milk bucks
 \`!sc\` — Unscramble a word to win milk bucks
 \`!sl\` — Spin the slots for 10 milk bucks (30s cooldown)
 \`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)

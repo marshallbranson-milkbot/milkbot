@@ -1,113 +1,136 @@
- const fs = require('fs');
-  const path = require('path');
+const fs = require('fs');
+const path = require('path');
 
-  const balancesPath = path.join(__dirname, '../data/balances.json');
-  const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
-  const xpPath = path.join(__dirname, '../data/xp.json');
-  const state = require('../state');
-  const ws = require('../winstreak');
+const balancesPath = path.join(__dirname, '../data/balances.json');
+const xpPath = path.join(__dirname, '../data/xp.json');
+const state = require('../state');
+const ws = require('../winstreak');
 
-  function getData(filePath) {
-    if (!fs.existsSync(filePath)) return {};
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+function getData(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function saveData(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+const REWARD = 150;
+const GAME_TIME = 15000;
+const SOLO_WITHIN = 10;
+
+let activeGame = null;
+
+function awardWinner(userId, username, channel) {
+  const newStreak = ws.recordWin(userId);
+  const multiplier = newStreak >= 3 ? 1.5 : 1;
+  const reward = Math.floor(REWARD * multiplier);
+
+  const balances = getData(balancesPath);
+  balances[userId] = (balances[userId] || 0) + reward;
+  saveData(balancesPath, balances);
+
+  const xp = getData(xpPath);
+  xp[userId] = (xp[userId] || 0) + Math.floor(20 * (state.doubleXp ? 2 : 1) * multiplier);
+  saveData(xpPath, xp);
+
+  if (newStreak === 3) channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+
+  return { reward, multiplier };
+}
+
+function resolveGame(channel) {
+  if (!activeGame) return;
+  const { number, guesses } = activeGame;
+  activeGame = null;
+
+  if (guesses.size === 0) {
+    return channel.send(`⏰ Time's up! Nobody guessed. The number was **${number}**. 🥛`);
   }
 
-  function saveData(filePath, data) {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  }
+  if (guesses.size === 1) {
+    const [userId, { guess, username }] = [...guesses.entries()][0];
+    const diff = Math.abs(guess - number);
 
-  const GUESS_COOLDOWN = 24 * 60 * 60 * 1000;
-  const REWARD = 150;
-  const GUESS_TIME = 30000;
-
-  let activeGame = null;
-
-  function check(message) {
-    if (!activeGame) return false;
-
-    const guess = parseInt(message.content.trim());
-    if (isNaN(guess) || guess < 1 || guess > 100) return false;
-
-    if (activeGame.guessed.has(message.author.id)) {
-      message.reply("You already guessed this round. One shot per person. 🥛");
-      return true;
-    }
-
-    activeGame.guessed.add(message.author.id);
-
-    if (guess === activeGame.number) {
-      const newStreak = ws.recordWin(message.author.id);
-      const multiplier = newStreak >= 3 ? 1.5 : 1;
-      const reward = Math.floor(REWARD * multiplier);
-
-      const balances = getData(balancesPath);
-      balances[message.author.id] = (balances[message.author.id] || 0) + reward;
-      saveData(balancesPath, balances);
-
-      const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(20 * (state.doubleXp ? 2 : 1) * multiplier);
-      saveData(xpPath, xp);
-
-      clearTimeout(activeGame.timeout);
-      activeGame = null;
-
-      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
-
-      message.channel.send(
-        `🎯 **${message.author.username} got it!** The number was **${guess}**.\n` +
-        `They just earned **${reward} milk bucks**.` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
-      );
-      return true;
-    } else {
-      ws.resetStreak(message.author.id);
-      const direction = guess < activeGame.number ? 'Too low.' : 'Too high.';
-      message.reply(`${direction} One guess per person though — you're out. 🥛`);
-      return true;
-    }
-  }
-
-  module.exports = {
-    name: 'g',
-    description: 'MilkBot picks a number 1-100. First to guess it wins 150 milk bucks.',
-    check,
-    execute(message) {
-      const userId = message.author.id;
-      const now = Date.now();
-
-      if (activeGame) {
-        return message.reply(`A game is already running! Just type a number between 1 and 100.`);
-      }
-
-      const cooldowns = getData(cooldownsPath);
-      const lastGuess = cooldowns[`guess_${userId}`] || 0;
-      const timeLeft = GUESS_COOLDOWN - (now - lastGuess);
-
-      if (timeLeft > 0) {
-        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        return message.reply(`You already started a guess game today. Come back in **${hours}h ${minutes}m**. 🥛`);
-      }
-
-      cooldowns[`guess_${userId}`] = now;
-      saveData(cooldownsPath, cooldowns);
-
-      const number = Math.floor(Math.random() * 100) + 1;
-      const guessed = new Set();
-
-      const timeout = setTimeout(() => {
-        if (activeGame) {
-          message.channel.send(`⏰ Time's up! Nobody guessed it. The number was **${activeGame.number}**. 🥛`);
-          activeGame = null;
-        }
-      }, GUESS_TIME);
-
-      activeGame = { number, guessed, timeout };
-
-      message.channel.send(
-        `🎯 **GUESS THE NUMBER** 🎯\n` +
-        `I'm thinking of a number between **1 and 100**.\n` +
-        `Just type your number in chat. First correct answer wins **${REWARD} milk bucks**!\n` +
-        `You have **30 seconds**. ⏳`
+    if (diff > SOLO_WITHIN) {
+      ws.resetStreak(userId);
+      return channel.send(
+        `⏰ Time's up! **${username}** guessed **${guess}** but the number was **${number}** — ` +
+        `too far off (must be within ${SOLO_WITHIN} to win solo). Nobody wins. 🥛`
       );
     }
-  };
+
+    const { reward, multiplier } = awardWinner(userId, username, channel);
+    channel.send(
+      `🎯 The number was **${number}**! **${username}** guessed **${guess}** — close enough!\n` +
+      `They win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+    );
+    return;
+  }
+
+  // Multiple guessers — closest wins, first to guess wins ties
+  let winnerId = null;
+  let winnerEntry = null;
+  let winnerDiff = Infinity;
+
+  for (const [userId, data] of guesses.entries()) {
+    const diff = Math.abs(data.guess - number);
+    if (diff < winnerDiff) {
+      winnerDiff = diff;
+      winnerId = userId;
+      winnerEntry = data;
+    }
+  }
+
+  for (const [userId] of guesses.entries()) {
+    if (userId !== winnerId) ws.resetStreak(userId);
+  }
+
+  const { reward, multiplier } = awardWinner(winnerId, winnerEntry.username, channel);
+  channel.send(
+    `🎯 The number was **${number}**!\n` +
+    `**${winnerEntry.username}** was closest with **${winnerEntry.guess}** (off by ${winnerDiff}) — ` +
+    `they win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+  );
+}
+
+function check(message) {
+  if (!activeGame) return false;
+
+  const guess = parseInt(message.content.trim());
+  if (isNaN(guess) || guess < 1 || guess > 100) return false;
+
+  if (activeGame.guesses.has(message.author.id)) {
+    message.reply(`One guess per round. 🥛`);
+    return true;
+  }
+
+  activeGame.guesses.set(message.author.id, { guess, username: message.author.username });
+  message.reply(`Locked in. 🥛`);
+  return true;
+}
+
+module.exports = {
+  name: 'g',
+  description: 'MilkBot picks a number 1-100. Closest guess in 15 seconds wins 150 milk bucks.',
+  check,
+  execute(message) {
+    if (activeGame) {
+      return message.reply(`A game is already running! Type a number between **1 and 100**. ⏳`);
+    }
+
+    const number = Math.floor(Math.random() * 100) + 1;
+    const guesses = new Map();
+
+    const timeout = setTimeout(() => resolveGame(message.channel), GAME_TIME);
+    activeGame = { number, guesses, timeout };
+
+    message.channel.send(
+      `🎯 **GUESS THE NUMBER** 🎯\n` +
+      `I'm thinking of a number between **1 and 100**.\n` +
+      `Everyone gets **one guess**. Closest after **15 seconds** wins **${REWARD} milk bucks**!\n` +
+      `*(Playing solo? You must be within ${SOLO_WITHIN})*\n` +
+      `Start guessing! ⏳`
+    );
+  }
+};
