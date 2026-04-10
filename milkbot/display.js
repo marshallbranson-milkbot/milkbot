@@ -31,41 +31,48 @@ function getRank(level) {
   return 'Milk Baby';
 }
 
-const HELP_TEXT = `**MilkBot Commands** 🥛
+const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 
-**Currency** *(use in #milkbot-games)*
-\`!bal\` — Check your milk bucks balance
-\`!xp\` — Check your XP, level, and rank
-\`!da\` — Claim your daily milk bucks (streak bonuses up to 300)
-\`!cc\` — Claim an active milk crate drop (500 milk bucks, first come first served)
+━━━━━━━━━━━━━━━━━━━━━━
+💰 **YOUR MILK MONEY** *(#milkbot-games)*
+━━━━━━━━━━━━━━━━━━━━━━
+\`!bal\` — how broke are you right now
+\`!xp\` — your XP, level, and rank
+\`!da\` — grab your daily milk bucks (streaks pay up to 300)
+\`!cc\` — claim a crate drop before someone else does (500 milk bucks)
 
-**Games** *(use in #milkbot-games)*
-\`!cf @user amount\` — Challenge someone to a coinflip
-\`!a\` / \`!d\` — Accept or decline a coinflip challenge
-\`!fh amount\` — Flip against MilkBot directly
-\`!g\` — Guess the number (1-100), closest in 15s wins 150 milk bucks
-\`!sc\` — Unscramble a word (15s, 3 milk bucks/letter — rare words 10/letter)
-\`!sl\` — Spin the slots for 10 milk bucks
-\`!mt\` — Milk trivia (A/B/C, first correct wins 15 milk bucks)
-\`!geo\` — Guess the country from the flag (15s, 25 milk bucks)
-\`!ra amount\` — Start a raid, others join with \`!j\` (15s window)
-\`!ro @user\` — Rob someone (25% success, 2hr cooldown)
+━━━━━━━━━━━━━━━━━━━━━━
+🎮 **GAMES** *(#milkbot-games)*
+━━━━━━━━━━━━━━━━━━━━━━
+\`!cf @user amount\` — challenge someone to a coinflip, coward
+\`!a\` / \`!d\` — accept or dodge a coinflip
+\`!fh amount\` — flip against MilkBot directly (good luck)
+\`!g\` — guess 1-100, closest in 15s wins 150 milk bucks
+\`!sc\` — unscramble the word (15s · 3/letter, rare words 10/letter)
+\`!sl\` — spin the slots for 10 milk bucks
+\`!mt\` — trivia, A/B/C, first right answer wins 15 milk bucks
+\`!geo\` — name the country from the flag (15s · 25 milk bucks)
+\`!ra amount\` — start a raid, crew joins with \`!j\` (15s window)
+\`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
 
-**Milk Stock Market** 📈 *(use in #milkbot-stocks, updates every 5 min)*
-\`!st\` — View current stock prices
-\`!buy TICKER amount\` — Buy shares in a stock
-\`!sell TICKER amount|all\` — Sell shares
-\`!port\` — View your portfolio
+━━━━━━━━━━━━━━━━━━━━━━
+📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
+━━━━━━━━━━━━━━━━━━━━━━
+\`!st\` — check current prices
+\`!buy TICKER amount\` — buy shares
+\`!sell TICKER amount|all\` — dump shares
+\`!port\` — view your portfolio
 
-**Stocks & Volatility**
-\`MILK\` MilkCorp Industries — Stable (±2-5%)
-\`CREM\` Creme Capital — Stable (±2-5%)
-\`BUTR\` ButterCo Holdings — Medium (±5-10%)
-\`WHEY\` Whey Street Group — Medium (±5-10%)
-\`MOO\` Moo Markets Inc — Medium (±5-10%)
-\`CHUG\` Chug Enterprises — Volatile (±10-20%)
-\`GOT\` Got Milk Global — Volatile (±10-20%)
-\`SPOIL\` Spoiled Rotten LLC — Chaotic (±5-30%)`;
+\`MILK\` MilkCorp Industries — Stable ±2-5%
+\`CREM\` Creme Capital — Stable ±2-5%
+\`BUTR\` ButterCo Holdings — Medium ±5-10%
+\`WHEY\` Whey Street Group — Medium ±5-10%
+\`MOO\` Moo Markets Inc — Medium ±5-10%
+\`CHUG\` Chug Enterprises — Volatile ±10-20%
+\`GOT\` Got Milk Global — Volatile ±10-20%
+\`SPOIL\` Spoiled Rotten LLC — Chaotic ±5-30%
+
+*milk money. 🥛*`;
 
 function buildLeaderboardText(guild) {
   const balances = getData(balancesPath);
