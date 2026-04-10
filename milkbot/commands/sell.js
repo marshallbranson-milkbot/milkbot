@@ -18,8 +18,9 @@ function saveData(filePath, data) {
 const validTickers = STOCK_DEFS.map(s => s.ticker);
 
 module.exports = {
-  name: 'sell',
-  description: 'Sell stock. Usage: !sell TICKER amount|all',
+  name: 's',
+  aliases: ['sell'],
+  description: 'Sell stock. Usage: !s TICKER amount|all',
   execute(message, args) {
     const ticker = args[0]?.toUpperCase();
     const amountArg = args[1];

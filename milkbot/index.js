@@ -7,7 +7,7 @@ const { updatePrices } = require('./stockdata');
 const { initDisplays, refreshLeaderboard } = require('./display');
 const { scheduleNews } = require('./moosnews');
 
-const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
+const STOCKS_COMMANDS = new Set(['st', 'b', 'buy', 's', 'sell', 'port']);
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');

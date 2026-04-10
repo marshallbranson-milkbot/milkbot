@@ -44,13 +44,13 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 ━━━━━━━━━━━━━━━━━━━━━━
 🎮 **GAMES** *(#milkbot-games)*
 ━━━━━━━━━━━━━━━━━━━━━━
-\`!cf @user amount\` — challenge someone to a coinflip, coward
-\`!a\` / \`!d\` — accept or dodge a coinflip
+\`!cf @user amount\` — challenge someone to a coinflip
+\`!a\` / \`!d\` — accept or decline a coinflip
 \`!fh amount\` — flip against MilkBot directly (good luck)
-\`!g\` — guess 1-100, closest in 15s wins 150 milk bucks
+\`!g\` — guess 1-100, closest in 15s wins 150 milk bucks (solo: must be within 10)
 \`!sc\` — unscramble the word (15s · 3/letter, rare words 10/letter)
 \`!sl\` — spin the slots for 10 milk bucks
-\`!mt\` — trivia, A/B/C, first right answer wins 15 milk bucks
+\`!mt\` — milk trivia, A/B/C, first right answer wins (15s · 15 milk bucks)
 \`!geo\` — name the country from the flag (15s · 25 milk bucks)
 \`!ra amount\` — start a raid, crew joins with \`!j\` (15s window)
 \`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
@@ -59,8 +59,8 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
 ━━━━━━━━━━━━━━━━━━━━━━
 \`!st\` — check current prices
-\`!buy TICKER amount\` — buy shares
-\`!sell TICKER amount|all\` — dump shares
+\`!b TICKER amount\` — buy shares
+\`!s TICKER amount|all\` — dump shares
 \`!port\` — view your portfolio
 
 \`MILK\` MilkCorp Industries — Stable ±2-5%
