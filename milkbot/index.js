@@ -1,9 +1,12 @@
- require('dotenv').config();
- const { Client, GatewayIntentBits } = require('discord.js');
-  const fs = require('fs');
-  const path = require('path');
-  const state = require('./state');
-  const { updatePrices } = require('./stockdata');
+require('dotenv').config();
+const { Client, GatewayIntentBits } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const state = require('./state');
+const { updatePrices } = require('./stockdata');
+const { initDisplays, refreshLeaderboard } = require('./display');
+
+const STOCKS_COMMANDS = new Set(['st', 'buy', 'sell', 'port']);
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');
@@ -60,11 +63,25 @@
     const command = commands[commandName];
     if (!command) return;
 
+    const channelName = message.channel.name;
+    if (STOCKS_COMMANDS.has(commandName)) {
+      if (channelName !== 'bot-stocks') {
+        return message.reply('📈 Stock commands go in **#bot-stocks**!');
+      }
+    } else if (commandName !== 'h') {
+      if (channelName !== 'bot-games') {
+        return message.reply('🎮 Game and currency commands go in **#bot-games**!');
+      }
+    }
+
     command.execute(message, args);
   });
 
-  client.once('ready', () => {
+  client.once('ready', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
+
+    // Post/update help and leaderboard display messages
+    await initDisplays(client);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
@@ -74,6 +91,9 @@
 
     // Update stock prices every 15 minutes
     setInterval(() => updatePrices(), 15 * 60 * 1000);
+
+    // Refresh leaderboard every 5 minutes
+    setInterval(() => refreshLeaderboard(client), 5 * 60 * 1000);
 
     // Check for double XP events every minute
     setInterval(() => {
@@ -85,7 +105,7 @@
         state.doubleXp = true;
 
         const guild = client.guilds.cache.get('562076997979865118');
-        const channel = guild?.channels.cache.find(c => c.name === 'milkbot');
+        const channel = guild?.channels.cache.find(c => c.name === 'bot-games');
         if (channel) {
           channel.send(`⚡ **DOUBLE XP HOUR HAS STARTED!** ⚡\nAll XP gains are doubled for the next hour. Get in there. 🥛`);
         }
@@ -120,7 +140,7 @@
     if (state.activeCrate) return;
 
     const guild = client.guilds.cache.get('562076997979865118');
-    const channel = guild?.channels.cache.find(c => c.name === 'milkbot');
+    const channel = guild?.channels.cache.find(c => c.name === 'bot-games');
     if (!channel) return;
 
     const expireTimeout = setTimeout(() => {
