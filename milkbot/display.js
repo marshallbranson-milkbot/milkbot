@@ -156,16 +156,28 @@ async function initDisplays(client) {
 }
 
 async function refreshHelp(client) {
-  if (!helpMessage) return;
-  await helpMessage.edit(HELP_TEXT).catch(console.error);
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return;
+  const helpChannel = guild.channels.cache.find(c => c.name === 'milkbot-commands');
+  if (!helpChannel) return;
+  if (helpMessage) {
+    const updated = await helpMessage.edit(HELP_TEXT).catch(() => null);
+    if (updated) return;
+  }
+  helpMessage = await helpChannel.send(HELP_TEXT).catch(console.error);
 }
 
 async function refreshLeaderboard(client) {
-  if (!lbMessage) return;
   const guild = client.guilds.cache.get(GUILD_ID);
   if (!guild) return;
+  const lbChannel = guild.channels.cache.find(c => c.name === 'milkbot-leaderboard');
+  if (!lbChannel) return;
   const lbText = buildLeaderboardText(guild);
-  await lbMessage.edit(lbText).catch(console.error);
+  if (lbMessage) {
+    const updated = await lbMessage.edit(lbText).catch(() => null);
+    if (updated) return;
+  }
+  lbMessage = await lbChannel.send(lbText).catch(console.error);
 }
 
 module.exports = { initDisplays, refreshHelp, refreshLeaderboard, HELP_TEXT };
