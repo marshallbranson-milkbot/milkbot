@@ -152,13 +152,13 @@ const STOCKS_COMMANDS = new Set(['st', 'b', 'buy', 's', 'sell', 'port']);
         state.activeCrate = null;
         channel.send(`📦 The milk crate expired unclaimed. Nobody wanted free milk bucks? 🥛`);
       }
-    }, 15 * 60 * 1000);
+    }, 30 * 60 * 1000);
 
     state.activeCrate = { expireTimeout };
 
     channel.send(
       `📦 **A MILK CRATE JUST DROPPED!** 📦\n` +
-      `First to type \`!cc\` claims **500 milk bucks**! You have 15 minutes. ⏳`
+      `First to type \`!cc\` claims **500 milk bucks**! You have 30 minutes. ⏳`
     );
   }
 
