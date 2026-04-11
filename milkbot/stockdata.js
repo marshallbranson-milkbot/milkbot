@@ -6,14 +6,14 @@ const stocksPath = path.join(__dirname, 'data/stocks.json');
 const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
 
 const STOCK_DEFS = [
-  { ticker: 'MILK', name: 'MilkCorp Industries',   volatility: [0.02, 0.05] },
-  { ticker: 'CREM', name: 'Creme Capital',          volatility: [0.02, 0.05] },
-  { ticker: 'BUTR', name: 'ButterCo Holdings',      volatility: [0.05, 0.10] },
-  { ticker: 'WHEY', name: 'Whey Street Group',      volatility: [0.05, 0.10] },
-  { ticker: 'MOO',  name: 'Moo Markets Inc',        volatility: [0.05, 0.10] },
-  { ticker: 'CHUG', name: 'Chug Enterprises',       volatility: [0.10, 0.20] },
-  { ticker: 'GOT',  name: 'Got Milk Global',        volatility: [0.10, 0.20] },
-  { ticker: 'SPOIL',name: 'Spoiled Rotten LLC',     volatility: [0.05, 0.30] },
+  { ticker: 'MILK', name: 'MilkCorp Industries',   volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'CREM', name: 'Creme Capital',          volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'BUTR', name: 'ButterCo Holdings',      volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'WHEY', name: 'Whey Street Group',      volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'MOO',  name: 'Moo Markets Inc',        volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'CHUG', name: 'Chug Enterprises',       volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'GOT',  name: 'Got Milk Global',        volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'SPOIL',name: 'Spoiled Rotten LLC',     volatility: [0.05, 0.30], minPrice:  5 },
 ];
 
 const BASE_PRICE = 100;
@@ -64,7 +64,7 @@ function updatePrices() {
     }
 
     const current = prices[s.ticker].price;
-    const newPrice = Math.max(1, Math.round(current * (1 + change)));
+    const newPrice = Math.max(s.minPrice, Math.round(current * (1 + change)));
     prices[s.ticker] = { price: newPrice, lastChange: change };
   }
   delete pendingModifiers['ALL'];
