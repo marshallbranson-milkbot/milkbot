@@ -25,6 +25,54 @@ function getLevel(totalXp) {
   return level;
 }
 
+function getRank(level) {
+  if (level >= 25) return 'Milk God';
+  if (level >= 20) return 'Milk Legend';
+  if (level >= 15) return 'Milk Hustler';
+  if (level >= 10) return 'Milk Fiend';
+  if (level >= 5)  return 'Milk Drinker';
+  return 'Milk Baby';
+}
+
+function xpToNextLevel(totalXp) {
+  let xpUsed = 0, level = 1;
+  while (true) {
+    const needed = level * 100;
+    if (xpUsed + needed > totalXp) return (xpUsed + needed) - totalXp;
+    xpUsed += needed;
+    level++;
+  }
+}
+
+const LEVEL_QUIPS = [
+  'Not bad for a dairy enjoyer.',
+  'The grind is real and so are you.',
+  'MilkBot is proud. Don\'t make it weird.',
+  'Keep it up and you might actually be someone.',
+  'The milk is strong with this one.',
+];
+
+const RANK_DMS = {
+  'Milk Drinker': (u, lvl, n) => `🥛 **NEW RANK: MILK DRINKER** 🥛\n\nLook at you, ${u}. You graduated from baby formula. Welcome to the real stuff.\n\n**Level ${lvl}** — *${n} XP to Level ${lvl + 1}*`,
+  'Milk Fiend':   (u, lvl, n) => `🥛 **NEW RANK: MILK FIEND** 🥛\n\nYou can't stop. Won't stop. The milk has completely taken over, ${u}.\n\n**Level ${lvl}** — *${n} XP to Level ${lvl + 1}*`,
+  'Milk Hustler': (u, lvl, n) => `🥛 **NEW RANK: MILK HUSTLER** 🥛\n\nGrinding like the dairy never closes. This is your life now, ${u}.\n\n**Level ${lvl}** — *${n} XP to Level ${lvl + 1}*`,
+  'Milk Legend':  (u, lvl, n) => `⭐ **NEW RANK: MILK LEGEND** ⭐\n\nPeople whisper your name in milkbot channels, ${u}. This is real.\n\n**Level ${lvl}** — *${n} XP to Level ${lvl + 1}*`,
+  'Milk God':     (u, lvl, n) => `🌟 **NEW RANK: MILK GOD** 🌟\n\nYou have ascended, ${u}. The cows kneel. There is only milk.\n\n**Level ${lvl}** — *${n} XP to Level ${lvl + 1}*`,
+};
+
+const RANK_ANNOUNCEMENTS = {
+  'Milk Drinker': (u, lvl) => `🥛 **${u}** just became a **Milk Drinker**! (Level ${lvl}) No more baby formula for them. 🍼`,
+  'Milk Fiend':   (u, lvl) => `🔥 **${u}** is now a **Milk Fiend**! (Level ${lvl}) Someone stop them before they break the bot. 🥛`,
+  'Milk Hustler': (u, lvl) => `💪 **${u}** just ranked up to **Milk Hustler**! (Level ${lvl}) Respect the grind. 🥛`,
+  'Milk Legend':  (u, lvl) => `⭐ **LEGEND STATUS** — **${u}** is now a **Milk Legend**! (Level ${lvl}) 🥛`,
+  'Milk God':     (u, lvl) => `🌟 **THE MILK GODS HAVE SPOKEN** 🌟\n**${u}** has ascended to **MILK GOD** at Level ${lvl}. We are not worthy. 🥛`,
+};
+
+function buildLevelDm(username, level, toNext) {
+  const quip = LEVEL_QUIPS[level % LEVEL_QUIPS.length];
+  return `🥛 **Level Up!**\n\nYou just hit **Level ${level}**, ${username}! ${quip}\n\n*${toNext} XP until Level ${level + 1}*`;
+}
+
 const ACHIEVEMENTS = [
   // ── WINS & STREAKS ─────────────────────────────────────────────────────────
   { id: 'first_sip',        emoji: '🎯', name: 'First Sip',           xp: 25,  desc: 'Win your first game'                                        },
@@ -265,35 +313,63 @@ function check(userId, username, event, data, channel) {
     if (data.xp >= 1000) unlock('grinder');
   }
 
-  // ── SAVE ─────────────────────────────────────────────────────────────────
+  // ── ANNOUNCE ACHIEVEMENTS + AWARD BONUS XP ───────────────────────────────
+  let bonusXp = 0;
+  for (const id of newlyUnlocked) {
+    const a = ACHIEVEMENTS.find(a => a.id === id);
+    if (!a) continue;
+    bonusXp += a.xp;
+    channel.send(
+      `🏆 **ACHIEVEMENT UNLOCKED** — **${username}**\n` +
+      `${a.emoji} **${a.name}** — ${a.desc}` +
+      (a.xp > 0 ? ` *(+${a.xp} XP)* 🥛` : ` 🥛`)
+    );
+  }
+  if (bonusXp > 0) {
+    try {
+      const xpData = fs.existsSync(xpPath) ? JSON.parse(fs.readFileSync(xpPath, 'utf8')) : {};
+      xpData[userId] = (xpData[userId] || 0) + bonusXp;
+      fs.writeFileSync(xpPath, JSON.stringify(xpData, null, 2));
+    } catch (_) {}
+  }
+
+  // ── LEVEL-UP CHECK ────────────────────────────────────────────────────────
+  try {
+    const xpData = fs.existsSync(xpPath) ? JSON.parse(fs.readFileSync(xpPath, 'utf8')) : {};
+    const finalXp = xpData[userId] || 0;
+    const newLevel = getLevel(finalXp);
+    const storedLevel = user.level;
+
+    if (storedLevel === undefined) {
+      user.level = newLevel; // first time — set baseline silently
+    } else if (newLevel > storedLevel) {
+      const oldRank = getRank(storedLevel);
+      const newRank = getRank(newLevel);
+      const rankChanged = newRank !== oldRank;
+      user.level = newLevel;
+      const toNext = xpToNextLevel(finalXp);
+
+      // DM the player
+      channel.client.users.fetch(userId).then(u => {
+        const dm = rankChanged
+          ? (RANK_DMS[newRank]?.(username, newLevel, toNext) ?? buildLevelDm(username, newLevel, toNext))
+          : buildLevelDm(username, newLevel, toNext);
+        u.send(dm).catch(() => {});
+      }).catch(() => {});
+
+      // Channel shoutout on new rank
+      if (rankChanged) {
+        const fn = RANK_ANNOUNCEMENTS[newRank];
+        if (fn) channel.send(fn(username, newLevel));
+      }
+    }
+  } catch (_) {}
+
+  // ── SAVE ──────────────────────────────────────────────────────────────────
   user.unlocked = [...unlocked];
   user.counters = c;
   allData[userId] = user;
   saveData(allData);
-
-  // ── AWARD XP + ANNOUNCE ──────────────────────────────────────────────────
-  if (newlyUnlocked.length > 0) {
-    let bonusXp = 0;
-    for (const id of newlyUnlocked) {
-      const a = ACHIEVEMENTS.find(a => a.id === id);
-      if (!a) continue;
-      bonusXp += a.xp;
-      channel.send(
-        `🏆 **ACHIEVEMENT UNLOCKED** — **${username}**\n` +
-        `${a.emoji} **${a.name}** — ${a.desc}` +
-        (a.xp > 0 ? ` *(+${a.xp} XP)* 🥛` : ` 🥛`)
-      );
-    }
-    if (bonusXp > 0) {
-      try {
-        const xpData = fs.existsSync(xpPath)
-          ? JSON.parse(fs.readFileSync(xpPath, 'utf8'))
-          : {};
-        xpData[userId] = (xpData[userId] || 0) + bonusXp;
-        fs.writeFileSync(xpPath, JSON.stringify(xpData, null, 2));
-      } catch (_) {}
-    }
-  }
 }
 
 module.exports = { ACHIEVEMENTS, check };
