@@ -88,7 +88,7 @@ function buildLeaderboardText(guild) {
   const prices = getPrices();
   const portfolios = getPortfolios();
 
-  const mbSorted = Object.entries(balances).sort(([, a], [, b]) => b - a);
+  const mbSorted = Object.entries(balances).sort(([, a], [, b]) => b - a).slice(0, 10);
   const mbLines = mbSorted.length === 0
     ? ['No milk bucks earned yet.']
     : mbSorted.map(([userId, balance], i) => {
@@ -98,7 +98,7 @@ function buildLeaderboardText(guild) {
         return `${medal} **${name}** — ${balance.toLocaleString()} milk bucks`;
       });
 
-  const xpSorted = Object.entries(xpData).sort(([, a], [, b]) => b - a);
+  const xpSorted = Object.entries(xpData).sort(([, a], [, b]) => b - a).slice(0, 10);
   const xpLines = xpSorted.length === 0
     ? ['No XP earned yet.']
     : xpSorted.map(([userId, totalXp], i) => {
@@ -111,7 +111,7 @@ function buildLeaderboardText(guild) {
       });
 
   // Biggest single trade
-  const bigTradeSorted = Object.entries(bigTrades).sort(([, a], [, b]) => b - a);
+  const bigTradeSorted = Object.entries(bigTrades).sort(([, a], [, b]) => b - a).slice(0, 10);
   const bigTradeLines = bigTradeSorted.length === 0
     ? ['No trades recorded yet.']
     : bigTradeSorted.map(([userId, amount], i) => {
@@ -130,7 +130,7 @@ function buildLeaderboardText(guild) {
     }
     if (total > 0) marketValues[userId] = total;
   }
-  const marketSorted = Object.entries(marketValues).sort(([, a], [, b]) => b - a);
+  const marketSorted = Object.entries(marketValues).sort(([, a], [, b]) => b - a).slice(0, 10);
   const marketLines = marketSorted.length === 0
     ? ['Nobody is in the market right now.']
     : marketSorted.map(([userId, value], i) => {
