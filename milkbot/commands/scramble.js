@@ -94,6 +94,7 @@ const ach = require('../achievements');
       const reward = Math.floor(activeScramble.reward * multiplier);
       const xpGain = Math.floor((activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1) * multiplier);
       const rare = activeScramble.rare;
+      const responseMs = Date.now() - activeScramble.startedAt;
 
       const balances = getData(balancesPath);
       balances[message.author.id] = (balances[message.author.id] || 0) + reward;
@@ -108,7 +109,7 @@ const ach = require('../achievements');
 
       if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
-      ach.check(message.author.id, message.author.username, rare ? 'rare_word' : 'game_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak }, message.channel);
+      ach.check(message.author.id, message.author.username, 'scramble_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak, responseMs, isRare: rare, gameType: 'scramble' }, message.channel);
 
       message.channel.send(
         `${rare ? '💎 **RARE WORD!**' : '✅'} **${message.author.username} got it!** The word was **${guess}**.\n` +
@@ -147,7 +148,7 @@ const ach = require('../achievements');
         }
       }, SCRAMBLE_TIME);
 
-      activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout };
+      activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now() };
 
       message.channel.send(
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +

@@ -121,7 +121,7 @@ function check(message) {
 
     if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
-    ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], xp: xp[userId], streak: newStreak }, message.channel);
+    ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'geo' }, message.channel);
 
     message.channel.send(
       `✅ **${message.author.username} got it!** The country was **${countryName}**.\n` +
@@ -130,7 +130,8 @@ function check(message) {
     return true;
   }
 
-  return true; // consume wrong guesses silently
+  ach.check(message.author.id, message.author.username, 'game_loss', { gameType: 'geo' }, message.channel);
+  return true;
 }
 
 module.exports = {

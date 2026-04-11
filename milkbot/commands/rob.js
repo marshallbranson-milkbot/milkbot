@@ -83,6 +83,7 @@ module.exports = {
       if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
       ach.check(message.author.id, message.author.username, 'rob_success', { balance: balances[message.author.id] }, message.channel);
+      ach.check(target.id, target.username, 'rob_victim', { balance: balances[target.id] }, message.channel);
 
       message.channel.send(
         `🕵️ **ROB SUCCESSFUL** 🕵️\n` +

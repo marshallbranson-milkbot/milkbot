@@ -1,4 +1,5 @@
 const GUILD_ID = '562076997979865118';
+const state = require('./state');
 
 // Tier magnitude ranges [min, max] — sign already encoded
 const TIER = {
@@ -373,6 +374,8 @@ async function dropNews(client) {
     `*${headline.text}*\n\n` +
     `*— Moo News, your trusted source for dairy market intelligence* 🥛`
   ).catch(console.error);
+
+  state.lastNewsAt = Date.now();
 }
 
 function scheduleNews(client) {

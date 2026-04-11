@@ -50,7 +50,7 @@
 
         if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
-        ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], streak: newStreak }, message.channel);
+        ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], streak: newStreak, gameType: 'fh' }, message.channel);
 
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
@@ -64,6 +64,8 @@
         saveData(balancesPath, balances);
 
         if (prevStreak >= 3) message.channel.send(`❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
+
+        ach.check(userId, message.author.username, 'game_loss', { gameType: 'fh', balance: balances[userId] }, message.channel);
 
         return message.channel.send(
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +

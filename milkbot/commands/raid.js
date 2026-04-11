@@ -144,7 +144,7 @@ module.exports = {
         );
         for (const msg of hotAnnouncements) message.channel.send(msg);
         for (const [userId, username] of finalCrew) {
-          ach.check(userId, username, 'raid_win', { balance: balances[userId] }, message.channel);
+          ach.check(userId, username, 'raid_win', { balance: balances[userId], crewSize, gameType: 'raid' }, message.channel);
         }
       } else {
         const coldAnnouncements = [];

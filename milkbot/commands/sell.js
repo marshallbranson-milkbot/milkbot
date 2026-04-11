@@ -6,6 +6,7 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
 const state = require('../state');
+const ach = require('../achievements');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -59,6 +60,8 @@ module.exports = {
     const spentPerShare = holding.spent / holding.shares;
     const costBasis = Math.round(spentPerShare * sharesToSell);
     const profit = revenue - costBasis;
+    const profitRatio = costBasis > 0 ? profit / costBasis : 0;
+    const heldHours = holding.boughtAt ? (Date.now() - holding.boughtAt) / (1000 * 60 * 60) : 0;
 
     // Update portfolio
     holding.shares -= sharesToSell;
@@ -90,6 +93,8 @@ module.exports = {
 
     const profitStr = profit >= 0 ? `+${profit}` : `${profit}`;
     const profitEmoji = profit > 0 ? '📈' : profit < 0 ? '📉' : '➡️';
+
+    ach.check(userId, message.author.username, 'sell_result', { profit, profitRatio, heldHours, balance: balances[userId] }, message.channel);
 
     message.reply(
       `${profitEmoji} Sold **${sharesToSell} share(s)** of **${ticker}** at **${price} 🥛** each.\n` +

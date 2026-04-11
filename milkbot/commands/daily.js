@@ -59,6 +59,9 @@ const fs = require('fs');
       saveData(cooldownsPath, cooldowns);
 
       message.reply(msg);
-      ach.check(userId, message.author.username, 'daily_streak', { balance: balances[userId], dailyStreak: streak }, message.channel);
+      const estHour = parseInt(new Date(now).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));
+      const isEarlyBird = estHour >= 6 && estHour < 9;
+      const isNightOwl = estHour >= 0 && estHour < 3;
+      ach.check(userId, message.author.username, 'daily_streak', { balance: balances[userId], dailyStreak: streak, isEarlyBird, isNightOwl }, message.channel);
     }
   };

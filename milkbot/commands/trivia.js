@@ -408,7 +408,7 @@ function check(message) {
     `They win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
   );
 
-  ach.check(userId, username, 'trivia_win', { balance: balances[userId], xp: xp[userId], streak: newStreak }, channel);
+  ach.check(userId, username, 'trivia_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'trivia' }, channel);
 
   if (newStreak === 3) {
     channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);

@@ -129,9 +129,12 @@ module.exports = {
         );
       }
       if (streakAnnouncement) message.channel.send(streakAnnouncement);
+      ach.check(userId, message.author.username, 'slot_spin', {}, message.channel);
       if (winnings > 0) {
         const isJackpotWin = a === b && b === c && a === '👑';
-        ach.check(userId, message.author.username, isJackpotWin ? 'slots_jackpot' : 'game_win', { balance: balances[userId], streak: winnings > 0 ? ws.getStreak(userId) : 0 }, message.channel);
+        ach.check(userId, message.author.username, isJackpotWin ? 'slots_jackpot' : 'game_win', { balance: balances[userId], streak: ws.getStreak(userId), gameType: 'slots' }, message.channel);
+      } else {
+        ach.check(userId, message.author.username, 'game_loss', { gameType: 'slots', balance: balances[userId] }, message.channel);
       }
     }, 2000);
   }

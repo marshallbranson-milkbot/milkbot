@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, '../data/balances.json');
 const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
 const ach = require('../achievements');
+const state = require('../state');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -56,13 +57,14 @@ module.exports = {
 
     const portfolios = getPortfolios();
     if (!portfolios[userId]) portfolios[userId] = {};
-    if (!portfolios[userId][ticker]) portfolios[userId][ticker] = { shares: 0, spent: 0 };
+    if (!portfolios[userId][ticker]) portfolios[userId][ticker] = { shares: 0, spent: 0, boughtAt: Date.now() };
     portfolios[userId][ticker].shares += shares;
     portfolios[userId][ticker].spent += cost;
     savePortfolios(portfolios);
 
     const portfolioSize = Object.keys(portfolios[userId]).length;
-    ach.check(userId, message.author.username, 'trade_made', {}, message.channel);
+    const minutesSinceNews = state.lastNewsAt ? (Date.now() - state.lastNewsAt) / (1000 * 60) : 999;
+    ach.check(userId, message.author.username, 'trade_made', { minutesSinceNews }, message.channel);
     if (portfolioSize >= 3) ach.check(userId, message.author.username, 'portfolio', { portfolioSize }, message.channel);
 
     message.reply(

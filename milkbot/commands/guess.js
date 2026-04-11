@@ -37,7 +37,7 @@ function awardWinner(userId, username, channel) {
 
   if (newStreak === 3) channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
 
-  ach.check(userId, username, 'game_win', { balance: balances[userId], streak: newStreak }, channel);
+  ach.check(userId, username, 'game_win', { balance: balances[userId], streak: newStreak, gameType: 'guess' }, channel);
 
   return { reward, multiplier };
 }

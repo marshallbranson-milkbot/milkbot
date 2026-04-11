@@ -229,6 +229,7 @@ function resolveGame(userId, channel, gameMsg) {
     ws.resetStreak(userId);
     game.quip = randQuip(DEALER_BLACKJACK_QUIPS);
     resultLine = `You lose **${game.bet} milk bucks**. Balance: **${balances[userId] || 0}** 🥛`;
+    ach.check(userId, game.username, 'game_loss', { gameType: 'blackjack', balance: balances[userId] || 0 }, channel);
   } else if (dealerTotal > 21) {
     // Dealer busts
     newStreak = ws.recordWin(userId);
@@ -252,6 +253,7 @@ function resolveGame(userId, channel, gameMsg) {
     ws.resetStreak(userId);
     game.quip = randQuip(LOSE_QUIPS);
     resultLine = `You lose **${game.bet} milk bucks**. Balance: **${balances[userId] || 0}** 🥛`;
+    ach.check(userId, game.username, 'game_loss', { gameType: 'blackjack', balance: balances[userId] || 0 }, channel);
   } else {
     // Push
     balances[userId] = (balances[userId] || 0) + game.bet;
@@ -272,7 +274,7 @@ function resolveGame(userId, channel, gameMsg) {
   }
 
   if (newStreak > 0) {
-    ach.check(userId, game.username, 'game_win', { balance: balances[userId], xp: xpGain > 0 ? xp[userId] : undefined, streak: newStreak }, channel);
+    ach.check(userId, game.username, 'bj_win', { balance: balances[userId], xp: xpGain > 0 ? xp[userId] : undefined, streak: newStreak, bet: game.bet, gameType: 'blackjack' }, channel);
   }
 }
 
@@ -296,7 +298,8 @@ function check(message) {
       activeGames.delete(message.author.id);
       ws.resetStreak(message.author.id);
       game.quip = randQuip(BUST_QUIPS);
-      game.resultLine = `You lose **${game.bet} milk bucks**. Bust at **${total}**. Balance: **${(getData(balancesPath)[message.author.id] || 0)}** 🥛`;
+      const bustBalance = getData(balancesPath)[message.author.id] || 0;
+      game.resultLine = `You lose **${game.bet} milk bucks**. Bust at **${total}**. Balance: **${bustBalance}** 🥛`;
 
       // Dealer reveal for bust
       while (handTotal(game.dealerHand) < 17) {
@@ -306,6 +309,7 @@ function check(message) {
       game.gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {
         message.channel.send(buildGameMessage(game, 'done'));
       });
+      ach.check(message.author.id, game.username, 'bj_bust', { bet: game.bet, balance: bustBalance }, message.channel);
       return true;
     }
 
@@ -321,8 +325,8 @@ function check(message) {
       activeGames.delete(message.author.id);
       game.quip = `timed out. the dealer takes your milk bucks for the inactivity.`;
       game.resultLine = `You lose **${game.bet} milk bucks** (timeout). 🥛`;
-      const balances = getData(balancesPath);
       game.gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {});
+      ach.check(message.author.id, game.username, 'bj_timeout', { bet: game.bet }, message.channel);
     }, ACTION_TIMEOUT);
 
     game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
@@ -393,7 +397,8 @@ module.exports = {
         saveData(balancesPath, balances);
         quip = randQuip(BLACKJACK_QUIPS);
         resultLine = `**Blackjack!** 3:2 payout — You win **${winnings} milk bucks**!${multiplier > 1 ? ' *(🔥 1.5x)*' : ''} Balance: **${balances[userId]}** 🥛`;
-        ach.check(userId, message.author.username, 'blackjack_natural', { balance: balances[userId], xp: xp[userId], streak: newStreak }, message.channel);
+        ach.check(userId, message.author.username, 'blackjack_natural', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'blackjack' }, message.channel);
+        ach.check(userId, message.author.username, 'bj_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, bet, gameType: 'blackjack' }, message.channel);
       }
 
       const instantGame = { playerHand, dealerHand, bet, quip, resultLine, deck };
@@ -416,6 +421,7 @@ module.exports = {
       if (game.gameMsg) {
         game.gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {});
       }
+      ach.check(userId, game.username, 'bj_timeout', { bet }, message.channel);
     }, ACTION_TIMEOUT);
 
     game.timeout = timeout;
