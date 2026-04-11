@@ -8,6 +8,7 @@ const { initDisplays, refreshLeaderboard } = require('./display');
 const { scheduleNews } = require('./moosnews');
 
 const STOCKS_COMMANDS = new Set(['st', 'b', 'buy', 's', 'sell', 'port']);
+const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');
@@ -69,7 +70,7 @@ const STOCKS_COMMANDS = new Set(['st', 'b', 'buy', 's', 'sell', 'port']);
       if (channelName !== 'milkbot-stocks') {
         return message.reply('📈 Stock commands go in **#milkbot-stocks**!');
       }
-    } else if (commandName !== 'h') {
+    } else if (!BOTH_CHANNELS.has(commandName)) {
       if (channelName !== 'milkbot-games') {
         return message.reply('🎮 Game and currency commands go in **#milkbot-games**!');
       }
