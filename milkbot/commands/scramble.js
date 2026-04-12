@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -90,9 +92,10 @@ const ach = require('../achievements');
 
     if (guess === activeScramble.word.toLowerCase()) {
       const newStreak = ws.recordWin(message.author.id);
-      const multiplier = newStreak >= 3 ? 1.5 : 1;
-      const reward = Math.floor(activeScramble.reward * multiplier);
-      const xpGain = Math.floor((activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1) * multiplier);
+      const hotMultiplier = newStreak >= 3 ? 1.5 : 1;
+      const pm = prestige.getMultiplier(message.author.id);
+      const reward = Math.floor(activeScramble.reward * hotMultiplier * pm);
+      const xpGain = Math.floor((activeScramble.rare ? 25 : 5) * (state.doubleXp ? 2 : 1) * hotMultiplier * pm);
       const rare = activeScramble.rare;
       const responseMs = Date.now() - activeScramble.startedAt;
 
@@ -107,13 +110,15 @@ const ach = require('../achievements');
       clearTimeout(activeScramble.timeout);
       activeScramble = null;
 
-      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+      if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
+      jackpot.tryJackpot(message.author.id, message.author.username, message.channel);
 
       ach.check(message.author.id, message.author.username, 'scramble_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak, responseMs, isRare: rare, gameType: 'scramble' }, message.channel);
 
+      const bonuses = [hotMultiplier > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
       message.channel.send(
         `${rare ? '💎 **RARE WORD!**' : '✅'} **${message.author.username} got it!** The word was **${guess}**.\n` +
-        `They earned **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+        `They earned **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
       );
       return true;
     }
@@ -149,6 +154,7 @@ const ach = require('../achievements');
       }, SCRAMBLE_TIME);
 
       activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now() };
+      jackpot.addToJackpot(5);
 
       message.channel.send(
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +

@@ -6,6 +6,8 @@
  const state = require('../state');
  const ws = require('../winstreak');
  const ach = require('../achievements');
+ const jackpot = require('../jackpot');
+ const prestige = require('../prestige');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -35,20 +37,24 @@
       }
 
       const playerWins = Math.random() < 0.5;
+      jackpot.addToJackpot(5);
 
       if (playerWins) {
         const newStreak = ws.recordWin(userId);
-        const multiplier = newStreak >= 3 ? 1.5 : 1;
-        const payout = Math.floor(bet * multiplier);
+        const hotMul = newStreak >= 3 ? 1.5 : 1;
+        const pm = prestige.getMultiplier(userId);
+        const payout = Math.floor(bet * hotMul * pm);
 
         balances[userId] = balance + payout;
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);
-        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * multiplier);
+        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
         saveData(xpPath, xp);
 
-        if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+        const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+        if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
+        jackpot.tryJackpot(userId, message.author.username, message.channel);
 
         ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], streak: newStreak, gameType: 'fh' }, message.channel);
 
@@ -56,7 +62,7 @@
           `🪙 **FLIP vs THE HOUSE** 🪙\n` +
           `${message.author.username} bet **${bet} milk bucks** against MilkBot.\n\n` +
           `**${message.author.username} wins!** The house takes the L. Enjoy it while it lasts. 🥛` +
-          (multiplier > 1 ? ` *(🔥 1.5x — won ${payout})*` : '')
+          (bonuses ? ` *(${bonuses} — won ${payout})*` : '')
         );
       } else {
         const prevStreak = ws.resetStreak(userId);

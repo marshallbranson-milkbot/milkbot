@@ -6,6 +6,8 @@
   const state = require('../state');
   const ws = require('../winstreak');
   const ach = require('../achievements');
+  const jackpot = require('../jackpot');
+  const prestige = require('../prestige');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -57,8 +59,9 @@
         const loserId = challengerWins ? message.author.id : challengerId;
 
         const newStreak = ws.recordWin(winnerId);
-        const multiplier = newStreak >= 3 ? 1.5 : 1;
-        const bonus = Math.floor(bet * (multiplier - 1));
+        const hotMul = newStreak >= 3 ? 1.5 : 1;
+        const pm = prestige.getMultiplier(winnerId);
+        const bonus = Math.floor(bet * (hotMul * pm - 1));
 
         balances[winnerId] = (balances[winnerId] || 0) + bet + bonus;
         balances[loserId] = (balances[loserId] || 0) - bet;
@@ -67,14 +70,17 @@
         const prevLoserStreak = ws.resetStreak(loserId);
 
         const xp = getData(xpPath);
-        xp[winnerId] = (xp[winnerId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * multiplier);
+        xp[winnerId] = (xp[winnerId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
         saveData(xpPath, xp);
 
         const winnerName = challengerWins ? challenger?.username : message.author.username;
         const loserName = challengerWins ? message.author.username : challenger?.username;
 
-        if (newStreak === 3) message.channel.send(`🔥 **${winnerName} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+        const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+        jackpot.addToJackpot(5);
+        if (newStreak >= 3) ws.announceStreak(message.channel, winnerName, newStreak);
         if (prevLoserStreak >= 3) message.channel.send(`❄️ **${loserName}'s hot streak is OVER** after ${prevLoserStreak} wins. Back to normal. 🥛`);
+        jackpot.tryJackpot(winnerId, winnerName, message.channel);
 
         ach.check(winnerId, winnerName, 'coinflip_win', { balance: balances[winnerId], streak: newStreak, gameType: 'coinflip' }, message.channel);
         ach.check(loserId, loserName, 'coinflip_loss', { balance: balances[loserId] }, message.channel);
@@ -83,7 +89,7 @@
           `🪙 **COINFLIP** 🪙\n` +
           `**${bet} milk bucks** on the line!\n\n` +
           `**${winnerName} wins!** 🎉 ${loserName} just got cleaned out. 🥛` +
-          (multiplier > 1 ? ` *(🔥 1.5x — won ${bet + bonus})*` : '')
+          (bonuses ? ` *(${bonuses} — won ${bet + bonus})*` : '')
         );
       }
 

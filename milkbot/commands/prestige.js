@@ -1,0 +1,53 @@
+const fs = require('fs');
+const path = require('path');
+const prestige = require('../prestige');
+
+const xpPath = path.join(__dirname, '../data/xp.json');
+
+function getLevel(totalXp) {
+  let level = 1;
+  let xpUsed = 0;
+  while (true) {
+    const needed = level * 100;
+    if (xpUsed + needed > totalXp) break;
+    xpUsed += needed;
+    level++;
+  }
+  return level;
+}
+
+module.exports = {
+  name: 'prestige',
+  aliases: ['pr'],
+  description: 'Prestige at level 25 to reset XP and gain a permanent multiplier.',
+  execute(message) {
+    const userId = message.author.id;
+
+    const xpData = fs.existsSync(xpPath) ? JSON.parse(fs.readFileSync(xpPath, 'utf8')) : {};
+    const totalXp = xpData[userId] || 0;
+    const level = getLevel(totalXp);
+    const currentPrestige = prestige.getPrestige(userId);
+
+    if (level < 25) {
+      return message.reply(
+        `You need to be **level 25** to prestige. You're level **${level}**. ` +
+        `${25 - level} more level${25 - level === 1 ? '' : 's'} to go. Keep drinking. 🥛`
+      );
+    }
+
+    const newPrestige = prestige.doPrestige(userId);
+    const newMultiplier = newPrestige + 1;
+
+    message.channel.send(
+      `🌟 **${message.author.username} HAS PRESTIGED!** 🌟\n\n` +
+      `They've reached **Prestige ${newPrestige}** — ` +
+      `all game XP and milk buck gains are permanently **${newMultiplier}x**.\n` +
+      `XP reset to zero. The grind restarts. Can they do it again? 🥛`
+    );
+
+    message.reply(
+      `✅ You are now **Prestige ${newPrestige}** — **${newMultiplier}x** on all game earnings and XP.\n` +
+      `Your XP has been wiped. Level up again for even more. 🌟`
+    );
+  }
+};

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const xpPath = path.join(__dirname, '../data/xp.json');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -37,9 +38,16 @@ module.exports = {
     const totalXp = xpData[message.author.id] || 0;
     const { level, xpIntoLevel, xpForNext } = getLevel(totalXp);
     const rank = getRank(level);
+    const prestigeLevel = prestige.getPrestige(message.author.id);
+    const multiplier = prestige.getMultiplier(message.author.id);
+
+    const prestigeLine = prestigeLevel > 0
+      ? `**Prestige:** ${prestigeLevel} *(${multiplier}x on all game gains)*\n`
+      : '';
 
     message.reply(
       `**${message.author.username}'s Stats** 🥛\n` +
+      prestigeLine +
       `**Rank:** ${rank}\n` +
       `**Level:** ${level}\n` +
       `**XP:** ${xpIntoLevel} / ${xpForNext} (${totalXp} total)`

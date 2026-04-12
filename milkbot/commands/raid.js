@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -115,6 +117,7 @@ module.exports = {
       const multiplier = getMultiplier(crewSize);
       const xpGain = getXp(crewSize);
       const success = Math.random() < odds;
+      jackpot.addToJackpot(5);
 
       const balances = getData(balancesPath);
       const xp = getData(xpPath);
@@ -129,9 +132,10 @@ module.exports = {
         for (const [userId, username] of finalCrew) {
           const newStreak = ws.recordWin(userId);
           const hotMultiplier = newStreak >= 3 ? 1.5 : 1;
-          balances[userId] = (balances[userId] || 0) + Math.floor(payout * hotMultiplier);
-          xp[userId] = (xp[userId] || 0) + Math.floor(baseXp * hotMultiplier);
-          if (newStreak === 3) hotAnnouncements.push(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+          const pm = prestige.getMultiplier(userId);
+          balances[userId] = (balances[userId] || 0) + Math.floor(payout * hotMultiplier * pm);
+          xp[userId] = (xp[userId] || 0) + Math.floor(baseXp * hotMultiplier * pm);
+          if (newStreak >= 3) hotAnnouncements.push({ username, newStreak });
         }
         saveData(balancesPath, balances);
         saveData(xpPath, xp);
@@ -142,7 +146,9 @@ module.exports = {
           `The job went clean. Everyone walks away with **${payout} milk bucks**. Milk money. 🥛\n` +
           `*(+${xpGain} XP each)*`
         );
-        for (const msg of hotAnnouncements) message.channel.send(msg);
+        for (const { username, newStreak } of hotAnnouncements) ws.announceStreak(message.channel, username, newStreak);
+        // One jackpot try for the raid leader
+        jackpot.tryJackpot(activeRaid.leaderId, finalCrew.get(activeRaid.leaderId), message.channel);
         for (const [userId, username] of finalCrew) {
           ach.check(userId, username, 'raid_win', { balance: balances[userId], crewSize, gameType: 'raid' }, message.channel);
         }

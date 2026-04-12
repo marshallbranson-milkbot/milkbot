@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -103,9 +105,10 @@ function check(message) {
   if (isCorrect(guess, activeGeo.country)) {
     const userId = message.author.id;
     const newStreak = ws.recordWin(userId);
-    const multiplier = newStreak >= 3 ? 1.5 : 1;
-    const reward = Math.floor(REWARD * multiplier);
-    const xpGain = Math.floor(XP_REWARD * (state.doubleXp ? 2 : 1) * multiplier);
+    const hotMul = newStreak >= 3 ? 1.5 : 1;
+    const pm = prestige.getMultiplier(userId);
+    const reward = Math.floor(REWARD * hotMul * pm);
+    const xpGain = Math.floor(XP_REWARD * (state.doubleXp ? 2 : 1) * hotMul * pm);
 
     const balances = getData(balancesPath);
     balances[userId] = (balances[userId] || 0) + reward;
@@ -119,13 +122,15 @@ function check(message) {
     const countryName = activeGeo.country.name;
     activeGeo = null;
 
-    if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+    const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+    if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
+    jackpot.tryJackpot(userId, message.author.username, message.channel);
 
     ach.check(userId, message.author.username, 'game_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'geo' }, message.channel);
 
     message.channel.send(
       `✅ **${message.author.username} got it!** The country was **${countryName}**.\n` +
-      `+**${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+      `+**${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
     );
     return true;
   }
@@ -154,6 +159,7 @@ module.exports = {
     }, GAME_TIME);
 
     activeGeo = { country, timeout };
+    jackpot.addToJackpot(5);
 
     message.channel.send(
       `🚩 **WHAT COUNTRY IS THIS FLAG?** 🚩\n\n` +

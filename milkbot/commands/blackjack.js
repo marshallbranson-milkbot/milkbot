@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -233,22 +235,26 @@ function resolveGame(userId, channel, gameMsg) {
   } else if (dealerTotal > 21) {
     // Dealer busts
     newStreak = ws.recordWin(userId);
-    const multiplier = newStreak >= 3 ? 1.5 : 1;
-    const winnings = Math.floor(game.bet * multiplier);
+    const hotMul = newStreak >= 3 ? 1.5 : 1;
+    const pm = prestige.getMultiplier(userId);
+    const winnings = Math.floor(game.bet * hotMul * pm);
     balances[userId] = (balances[userId] || 0) + game.bet + winnings;
-    xpGain = Math.floor(Math.max(5, game.bet / 10) * (state.doubleXp ? 2 : 1) * multiplier);
+    xpGain = Math.floor(Math.max(5, game.bet / 10) * (state.doubleXp ? 2 : 1) * hotMul * pm);
     xp[userId] = (xp[userId] || 0) + xpGain;
     game.quip = `dealer busts at ${dealerTotal}! 💥 ` + randQuip(WIN_QUIPS);
-    resultLine = `You win **${winnings} milk bucks**!${multiplier > 1 ? ' *(🔥 1.5x hot streak)*' : ''} Balance: **${balances[userId]}** 🥛`;
+    const bonusesBust = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+    resultLine = `You win **${winnings} milk bucks**!${bonusesBust ? ` *(${bonusesBust})*` : ''} Balance: **${balances[userId]}** 🥛`;
   } else if (playerTotal > dealerTotal) {
     newStreak = ws.recordWin(userId);
-    const multiplier = newStreak >= 3 ? 1.5 : 1;
-    const winnings = Math.floor(game.bet * multiplier);
+    const hotMul = newStreak >= 3 ? 1.5 : 1;
+    const pm = prestige.getMultiplier(userId);
+    const winnings = Math.floor(game.bet * hotMul * pm);
     balances[userId] = (balances[userId] || 0) + game.bet + winnings;
-    xpGain = Math.floor(Math.max(5, game.bet / 10) * (state.doubleXp ? 2 : 1) * multiplier);
+    xpGain = Math.floor(Math.max(5, game.bet / 10) * (state.doubleXp ? 2 : 1) * hotMul * pm);
     xp[userId] = (xp[userId] || 0) + xpGain;
     game.quip = randQuip(WIN_QUIPS);
-    resultLine = `You win **${winnings} milk bucks**!${multiplier > 1 ? ' *(🔥 1.5x hot streak)*' : ''} Balance: **${balances[userId]}** 🥛`;
+    const bonusesWin = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+    resultLine = `You win **${winnings} milk bucks**!${bonusesWin ? ` *(${bonusesWin})*` : ''} Balance: **${balances[userId]}** 🥛`;
   } else if (dealerTotal > playerTotal) {
     ws.resetStreak(userId);
     game.quip = randQuip(LOSE_QUIPS);
@@ -269,11 +275,10 @@ function resolveGame(userId, channel, gameMsg) {
     channel.send(buildGameMessage(game, 'done'));
   });
 
-  if (newStreak === 3) {
-    channel.send(`🔥 **<@${userId}> is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
-  }
+  if (newStreak >= 3) ws.announceStreak(channel, game.username, newStreak);
 
   if (newStreak > 0) {
+    jackpot.tryJackpot(userId, game.username, channel);
     ach.check(userId, game.username, 'bj_win', { balance: balances[userId], xp: xpGain > 0 ? xp[userId] : undefined, streak: newStreak, bet: game.bet, gameType: 'blackjack' }, channel);
   }
 }
@@ -366,6 +371,7 @@ module.exports = {
     // Deduct bet upfront
     balances[userId] = balance - bet;
     saveData(balancesPath, balances);
+    jackpot.addToJackpot(5);
 
     const deck = buildDeck();
     const playerHand = [deck.pop(), deck.pop()];
@@ -387,16 +393,19 @@ module.exports = {
         // Player blackjack wins 3:2
         const bjPayout = Math.floor(bet * 1.5);
         const newStreak = ws.recordWin(userId);
-        const multiplier = newStreak >= 3 ? 1.5 : 1;
-        const winnings = Math.floor(bjPayout * multiplier);
+        const hotMul = newStreak >= 3 ? 1.5 : 1;
+        const pm = prestige.getMultiplier(userId);
+        const winnings = Math.floor(bjPayout * hotMul * pm);
         balances[userId] = (balances[userId] || 0) + bet + winnings;
-        xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * multiplier);
+        xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * hotMul * pm);
         const xp = getData(xpPath);
         xp[userId] = (xp[userId] || 0) + xpGain;
         saveData(xpPath, xp);
         saveData(balancesPath, balances);
         quip = randQuip(BLACKJACK_QUIPS);
-        resultLine = `**Blackjack!** 3:2 payout — You win **${winnings} milk bucks**!${multiplier > 1 ? ' *(🔥 1.5x)*' : ''} Balance: **${balances[userId]}** 🥛`;
+        const bonusesBJ = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+        resultLine = `**Blackjack!** 3:2 payout — You win **${winnings} milk bucks**!${bonusesBJ ? ` *(${bonusesBJ})*` : ''} Balance: **${balances[userId]}** 🥛`;
+        jackpot.tryJackpot(userId, message.author.username, message.channel);
         ach.check(userId, message.author.username, 'blackjack_natural', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'blackjack' }, message.channel);
         ach.check(userId, message.author.username, 'bj_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, bet, gameType: 'blackjack' }, message.channel);
       }

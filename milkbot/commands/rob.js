@@ -7,6 +7,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -66,21 +68,25 @@ module.exports = {
     saveData(cooldownsPath, cooldowns);
 
     const success = Math.random() < SUCCESS_CHANCE;
+    jackpot.addToJackpot(5);
 
     if (success) {
       const newStreak = ws.recordWin(message.author.id);
-      const multiplier = newStreak >= 3 ? 1.5 : 1;
-      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * multiplier));
+      const hotMul = newStreak >= 3 ? 1.5 : 1;
+      const pm = prestige.getMultiplier(message.author.id);
+      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm));
 
       balances[message.author.id] = robberBalance + stolen;
       balances[target.id] = targetBalance - stolen;
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(50 * (state.doubleXp ? 2 : 1) * multiplier);
+      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm);
       saveData(xpPath, xp);
 
-      if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+      const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+      if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
+      jackpot.tryJackpot(message.author.id, message.author.username, message.channel);
 
       ach.check(message.author.id, message.author.username, 'rob_success', { balance: balances[message.author.id] }, message.channel);
       ach.check(target.id, target.username, 'rob_victim', { balance: balances[target.id] }, message.channel);
@@ -88,7 +94,7 @@ module.exports = {
       message.channel.send(
         `🕵️ **ROB SUCCESSFUL** 🕵️\n` +
         `${message.author.username} snuck into ${target.username}'s wallet and walked away with **${stolen} milk bucks**. Slick. 🥛` +
-        (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '')
+        (bonuses ? ` *(${bonuses})*` : '')
       );
     } else {
       const prevStreak = ws.resetStreak(message.author.id);

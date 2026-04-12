@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -144,26 +146,29 @@ function check(message) {
 
   if (answer === activeTrivia.answer) {
     const newStreak = ws.recordWin(message.author.id);
-    const multiplier = newStreak >= 3 ? 1.5 : 1;
-    const reward = Math.floor(REWARD * multiplier);
+    const hotMul = newStreak >= 3 ? 1.5 : 1;
+    const pm = prestige.getMultiplier(message.author.id);
+    const reward = Math.floor(REWARD * hotMul * pm);
 
     const balances = getData(balancesPath);
     balances[message.author.id] = (balances[message.author.id] || 0) + reward;
     saveData(balancesPath, balances);
 
     const xp = getData(xpPath);
-    xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(10 * (state.doubleXp ? 2 : 1) * multiplier);
+    xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(10 * (state.doubleXp ? 2 : 1) * hotMul * pm);
     saveData(xpPath, xp);
 
     clearTimeout(activeTrivia.timeout);
     activeTrivia = null;
 
-    if (newStreak === 3) message.channel.send(`🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+    const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
+    if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
+    jackpot.tryJackpot(message.author.id, message.author.username, message.channel);
 
     ach.check(message.author.id, message.author.username, 'trivia_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak, gameType: 'trivia' }, message.channel);
 
     message.channel.send(
-      `✅ **${message.author.username} got it!** +**${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+      `✅ **${message.author.username} got it!** +**${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
     );
     return true;
   }
@@ -199,6 +204,7 @@ module.exports = {
     }, ANSWER_TIME);
 
     activeTrivia = { question: q.q, answer: q.a, choices: q.choices, answered, timeout };
+    jackpot.addToJackpot(5);
 
     message.channel.send(
       `🥛 **MILK TRIVIA** 🥛\n\n` +

@@ -1,5 +1,87 @@
+const fs = require('fs');
+const path = require('path');
 const GUILD_ID = '562076997979865118';
 const state = require('./state');
+
+const balancesPath = path.join(__dirname, 'data/balances.json');
+
+const COMPANY_NAMES = {
+  MILK:  'MilkCorp Industries',
+  CREM:  'Creme Capital',
+  BUTR:  'ButterCo Holdings',
+  WHEY:  'Whey Street Group',
+  MOO:   'Moo Markets Inc',
+  CHUG:  'Chug Enterprises',
+  GOT:   'Got Milk Global',
+  SPOIL: 'Spoiled Rotten LLC',
+};
+
+function buildTipMessage(headline) {
+  if (headline.effects.length === 0) {
+    const msgs = [
+      `👀 heard something big is dropping in the market soon. no idea what. probably nothing. maybe everything.`,
+      `my contact at the dairy floor is acting sus. something's coming. i can't say what.`,
+      `🤫 just... keep an eye on the market today. that's all i'll say.`,
+    ];
+    return msgs[Math.floor(Math.random() * msgs.length)];
+  }
+
+  // Find most impactful effect
+  const tierWeight = { major_positive: 5, minor_positive: 4, none: 3, minor_negative: 2, major_negative: 1 };
+  const main = [...headline.effects].sort((a, b) => Math.abs(tierWeight[b.tier] - 3) - Math.abs(tierWeight[a.tier] - 3))[0];
+
+  const company = main.ticker === 'ALL' ? 'the whole market' : (COMPANY_NAMES[main.ticker] || main.ticker);
+
+  const lines = {
+    major_positive: [
+      `🔥 okay i really shouldn't be telling you this but ${company} is about to have a MASSIVE day. act accordingly. delete this DM.`,
+      `🤫 **insider tip:** something huge just broke for ${company}. the kind of news that moves numbers. you didn't hear it from me.`,
+      `my guy at the dairy floor just texted me. ${company}. big. that's all i got. 🥛`,
+    ],
+    minor_positive: [
+      `👀 heard whispers that ${company} is looking pretty good heading into the next tick. might be worth a peek.`,
+      `not financial advice but... ${company} has some good news coming. just saying. 🥛`,
+      `🤫 a little bird told me ${company} is trending up. could be worth knowing.`,
+    ],
+    none: [
+      `heard some chatter about ${company} today. honestly couldn't tell if it was good or bad. probably nothing.`,
+      `👀 my contact mentioned ${company}. sounded uncertain. take that however you want.`,
+      `🤷 rumor has it something's happening with ${company}. market could go either way tbh.`,
+    ],
+    minor_negative: [
+      `😬 don't panic but i'm hearing some not-great stuff about ${company}. might want to keep an eye on your holdings.`,
+      `🤫 heads up — ${company} might be in for a rough patch real soon. not great, not terrible.`,
+      `heard something concerning about ${company} from a reliable source. not saying anything, just... watch the ticker. 🥛`,
+    ],
+    major_negative: [
+      `⚠️ okay this is bad. someone who knows things just told me ${company} is about to get COOKED. act fast. or don't. your milk bucks, not mine.`,
+      `🚨 **WARNING:** insider info says ${company} is in serious trouble. the kind of trouble that tanks numbers. move accordingly.`,
+      `i probably shouldn't say this but ${company} is about to have a really, really bad day. you heard nothing from me. 🥛`,
+    ],
+  };
+
+  const pool = lines[main.tier] || lines.none;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+async function sendInsiderTip(client, headline) {
+  if (!fs.existsSync(balancesPath)) return;
+  const balances = JSON.parse(fs.readFileSync(balancesPath, 'utf8'));
+  const players = Object.keys(balances).filter(id => balances[id] > 0);
+  if (players.length === 0) return;
+
+  const userId = players[Math.floor(Math.random() * players.length)];
+  try {
+    const user = await client.users.fetch(userId);
+    await user.send(
+      `🕵️ **INSIDER TIP** 🕵️\n\n` +
+      buildTipMessage(headline) + `\n\n` +
+      `*— MilkBot's anonymous source. Moo News drops soon. 📰*`
+    );
+  } catch (_) {
+    // DMs disabled or user not found, silently skip
+  }
+}
 
 // Tier magnitude ranges [min, max] — sign already encoded
 const TIER = {
@@ -361,8 +443,7 @@ function applyEffects(effects) {
 
 // ─── SCHEDULER ────────────────────────────────────────────────────────────────
 
-async function dropNews(client) {
-  const headline = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
+async function dropNews(client, headline) {
   applyEffects(headline.effects);
 
   const guild = client.guilds.cache.get(GUILD_ID);
@@ -387,7 +468,15 @@ function scheduleNews(client) {
   const count = Math.floor(Math.random() * 4) + 6; // 6–9 drops
   for (let i = 0; i < count; i++) {
     const delay = Math.floor(Math.random() * msRemaining);
-    setTimeout(() => dropNews(client), delay);
+    const headline = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
+
+    // 30% chance to DM a random player an insider tip ~3 minutes before the news
+    if (Math.random() < 0.30) {
+      const tipDelay = Math.max(0, delay - 3 * 60 * 1000);
+      setTimeout(() => sendInsiderTip(client, headline), tipDelay);
+    }
+
+    setTimeout(() => dropNews(client, headline), delay);
   }
 
   setTimeout(() => scheduleNews(client), msRemaining);

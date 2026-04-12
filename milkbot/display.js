@@ -4,6 +4,7 @@ const path = require('path');
 const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
 const bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
+const prestige = require('./prestige');
 const GUILD_ID = '562076997979865118';
 
 function getData(filePath) {
@@ -39,6 +40,7 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 ━━━━━━━━━━━━━━━━━━━━━━
 \`!bal\` — how broke are you right now
 \`!xp\` — your XP, level, and rank
+\`!prestige\` — reset at level 25 for a permanent XP+milk multiplier
 \`!ach\` — view your achievements
 \`!da\` — grab your daily milk bucks (streaks pay up to 300)
 \`!cc\` — claim a crate drop before someone else does (500 milk bucks)
@@ -107,7 +109,9 @@ function buildLeaderboardText(guild) {
         const level = getLevel(totalXp);
         const rank = getRank(level);
         const medal = medals[i] ?? `${i + 1}.`;
-        return `${medal} **${name}** — Lvl ${level} ${rank} (${totalXp.toLocaleString()} XP)`;
+        const p = prestige.getPrestige(userId);
+        const pTag = p > 0 ? ` ✦P${p}` : '';
+        return `${medal} **${name}** — Lvl ${level} ${rank}${pTag} (${totalXp.toLocaleString()} XP)`;
       });
 
   // Biggest single trade

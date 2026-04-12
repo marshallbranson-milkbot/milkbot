@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -392,27 +394,28 @@ function check(message) {
   const userId = message.author.id;
   const username = message.author.username;
   const newStreak = ws.recordWin(userId);
-  const multiplier = newStreak >= 3 ? 1.5 : 1;
-  const reward = Math.floor(REWARD * multiplier);
+  const hotMul = newStreak >= 3 ? 1.5 : 1;
+  const pm = prestige.getMultiplier(userId);
+  const reward = Math.floor(REWARD * hotMul * pm);
 
   const balances = getData(balancesPath);
   balances[userId] = (balances[userId] || 0) + reward;
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);
-  xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * multiplier);
+  xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
   saveData(xpPath, xp);
 
+  const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
   channel.send(
     `✅ **${username}** got it! The answer was **${correct}**.\n` +
-    `They win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+    `They win **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
   );
 
   ach.check(userId, username, 'trivia_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'trivia' }, channel);
 
-  if (newStreak === 3) {
-    channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
-  }
+  if (newStreak >= 3) ws.announceStreak(channel, username, newStreak);
+  jackpot.tryJackpot(userId, username, channel);
 
   return true;
 }
@@ -464,6 +467,7 @@ module.exports = {
 
         game.timeout = timeout;
         activeGame = game;
+        jackpot.addToJackpot(5);
 
         spinMsg.edit(buildQuestionMsg(game)).catch(() => {});
       }, 3400);

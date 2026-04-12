@@ -35,4 +35,12 @@ function getStreak(userId) {
   return getData()[userId] || 0;
 }
 
-module.exports = { recordWin, resetStreak, getStreak };
+function announceStreak(channel, username, newStreak) {
+  if (newStreak === 3) {
+    channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+  } else if (newStreak > 3) {
+    channel.send(`🔥 **${username}** is cooking — **${newStreak} wins** in a row! 🥛`);
+  }
+}
+
+module.exports = { recordWin, resetStreak, getStreak, announceStreak };

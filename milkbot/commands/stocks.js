@@ -1,4 +1,5 @@
 const { getPrices, STOCK_DEFS } = require('../stockdata');
+const { getJackpot } = require('../jackpot');
 
 module.exports = {
   name: 'st',
@@ -15,10 +16,13 @@ module.exports = {
       return `${arrow} **${s.ticker}** — ${price} 🥛 (${sign}${pct}%) — ${s.name}`;
     });
 
+    const pot = getJackpot();
+
     message.reply(
       `**📊 MILK MARKET** 📊\n\n` +
       lines.join('\n') +
-      `\n\nUse \`!buy TICKER amount\` and \`!sell TICKER amount\` to trade. 🥛`
+      `\n\n🎰 **Server Jackpot Pot:** ${pot.toLocaleString()} milk bucks — win any game for a 1% chance to claim it all!\n\n` +
+      `Use \`!buy TICKER amount\` and \`!sell TICKER amount\` to trade. 🥛`
     ).then(reply => {
       setTimeout(() => reply.delete().catch(() => {}), 5 * 60 * 1000);
       setTimeout(() => message.delete().catch(() => {}), 5 * 60 * 1000);

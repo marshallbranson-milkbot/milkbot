@@ -6,6 +6,7 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -64,6 +65,7 @@ module.exports = {
     const [a, b, c] = reels;
 
     balances[userId] = balance - COST;
+    jackpot.addToJackpot(5);
 
     let winnings = 0;
     let resultLine = '';
@@ -83,15 +85,16 @@ module.exports = {
     }
 
     // Hot streak + win streak logic
-    let streakAnnouncement = null;
+    let hotStreak = 0;
+    let coldStreakMsg = null;
     let multiplier = 1;
     if (winnings > 0) {
       const newStreak = ws.recordWin(userId);
       multiplier = newStreak >= 3 ? 1.5 : 1;
-      if (newStreak === 3) streakAnnouncement = `🔥 **${message.author.username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`;
+      hotStreak = newStreak;
     } else {
       const prevStreak = ws.resetStreak(userId);
-      if (prevStreak >= 3) streakAnnouncement = `❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`;
+      if (prevStreak >= 3) coldStreakMsg = `❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`;
     }
 
     const actualWinnings = Math.floor(winnings * multiplier);
@@ -128,9 +131,11 @@ module.exports = {
           `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''})*`
         );
       }
-      if (streakAnnouncement) message.channel.send(streakAnnouncement);
+      if (hotStreak >= 3) ws.announceStreak(message.channel, message.author.username, hotStreak);
+      if (coldStreakMsg) message.channel.send(coldStreakMsg);
       ach.check(userId, message.author.username, 'slot_spin', {}, message.channel);
       if (winnings > 0) {
+        jackpot.tryJackpot(userId, message.author.username, message.channel);
         const isJackpotWin = a === b && b === c && a === '👑';
         ach.check(userId, message.author.username, isJackpotWin ? 'slots_jackpot' : 'game_win', { balance: balances[userId], streak: ws.getStreak(userId), gameType: 'slots' }, message.channel);
       } else {

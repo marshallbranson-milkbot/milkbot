@@ -6,6 +6,8 @@ const xpPath = path.join(__dirname, '../data/xp.json');
 const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
+const jackpot = require('../jackpot');
+const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -24,22 +26,24 @@ let activeGame = null;
 
 function awardWinner(userId, username, channel) {
   const newStreak = ws.recordWin(userId);
-  const multiplier = newStreak >= 3 ? 1.5 : 1;
-  const reward = Math.floor(REWARD * multiplier);
+  const hotMultiplier = newStreak >= 3 ? 1.5 : 1;
+  const pm = prestige.getMultiplier(userId);
+  const reward = Math.floor(REWARD * hotMultiplier * pm);
 
   const balances = getData(balancesPath);
   balances[userId] = (balances[userId] || 0) + reward;
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);
-  xp[userId] = (xp[userId] || 0) + Math.floor(20 * (state.doubleXp ? 2 : 1) * multiplier);
+  xp[userId] = (xp[userId] || 0) + Math.floor(20 * (state.doubleXp ? 2 : 1) * hotMultiplier * pm);
   saveData(xpPath, xp);
 
-  if (newStreak === 3) channel.send(`🔥 **${username} is on a HOT STREAK!** 3 wins in a row — 1.5x on everything! 🥛`);
+  if (newStreak >= 3) ws.announceStreak(channel, username, newStreak);
+  jackpot.tryJackpot(userId, username, channel);
 
   ach.check(userId, username, 'game_win', { balance: balances[userId], streak: newStreak, gameType: 'guess' }, channel);
 
-  return { reward, multiplier };
+  return { reward, hotMultiplier, pm };
 }
 
 function resolveGame(channel) {
@@ -63,10 +67,11 @@ function resolveGame(channel) {
       );
     }
 
-    const { reward, multiplier } = awardWinner(userId, username, channel);
+    const { reward, hotMultiplier, pm } = awardWinner(userId, username, channel);
+    const bonuses = [hotMultiplier > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
     channel.send(
       `🎯 The number was **${number}**! **${username}** guessed **${guess}** — close enough!\n` +
-      `They win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+      `They win **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
     );
     return;
   }
@@ -89,11 +94,12 @@ function resolveGame(channel) {
     if (userId !== winnerId) ws.resetStreak(userId);
   }
 
-  const { reward, multiplier } = awardWinner(winnerId, winnerEntry.username, channel);
+  const { reward, hotMultiplier, pm } = awardWinner(winnerId, winnerEntry.username, channel);
+  const bonuses = [hotMultiplier > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
   channel.send(
     `🎯 The number was **${number}**!\n` +
     `**${winnerEntry.username}** was closest with **${winnerEntry.guess}** (off by ${winnerDiff}) — ` +
-    `they win **${reward} milk bucks**!` + (multiplier > 1 ? ` *(🔥 1.5x hot streak)*` : '') + ` 🥛`
+    `they win **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
   );
 }
 
@@ -127,6 +133,7 @@ module.exports = {
 
     const timeout = setTimeout(() => resolveGame(message.channel), GAME_TIME);
     activeGame = { number, guesses, timeout };
+    jackpot.addToJackpot(5);
 
     message.channel.send(
       `🎯 **GUESS THE NUMBER** 🎯\n` +
