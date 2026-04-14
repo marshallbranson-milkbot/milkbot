@@ -65,7 +65,7 @@ module.exports = {
     const [a, b, c] = reels;
 
     balances[userId] = balance - COST;
-    jackpot.addToJackpot(5);
+    jackpot.addToJackpot(10);
 
     let winnings = 0;
     let resultLine = '';

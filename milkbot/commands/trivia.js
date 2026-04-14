@@ -471,7 +471,7 @@ module.exports = {
 
         game.timeout = timeout;
         activeGame = game;
-        jackpot.addToJackpot(5);
+        jackpot.addToJackpot(10);
 
         spinMsg.edit(buildQuestionMsg(game)).catch(() => {});
       }, 3400);

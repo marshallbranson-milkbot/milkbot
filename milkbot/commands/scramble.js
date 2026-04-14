@@ -155,7 +155,7 @@ const prestige = require('../prestige');
       }, isRare ? RARE_SCRAMBLE_TIME : SCRAMBLE_TIME);
 
       activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now() };
-      jackpot.addToJackpot(5);
+      jackpot.addToJackpot(10);
 
       message.channel.send(
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +

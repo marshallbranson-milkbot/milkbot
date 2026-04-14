@@ -159,7 +159,7 @@ module.exports = {
     }, GAME_TIME);
 
     activeGeo = { country, timeout };
-    jackpot.addToJackpot(5);
+    jackpot.addToJackpot(10);
 
     message.channel.send(
       `🚩 **WHAT COUNTRY IS THIS FLAG?** 🚩\n\n` +

@@ -77,7 +77,7 @@
         const loserName = challengerWins ? message.author.username : challenger?.username;
 
         const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
-        jackpot.addToJackpot(5);
+        jackpot.addToJackpot(bet);
         if (newStreak >= 3) ws.announceStreak(message.channel, winnerName, newStreak);
         if (prevLoserStreak >= 3) message.channel.send(`❄️ **${loserName}'s hot streak is OVER** after ${prevLoserStreak} wins. Back to normal. 🥛`);
         jackpot.tryJackpot(winnerId, winnerName, message.channel);

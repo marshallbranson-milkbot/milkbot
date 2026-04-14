@@ -68,7 +68,6 @@ module.exports = {
     saveData(cooldownsPath, cooldowns);
 
     const success = Math.random() < SUCCESS_CHANCE;
-    jackpot.addToJackpot(5);
 
     if (success) {
       const newStreak = ws.recordWin(message.author.id);
@@ -102,6 +101,7 @@ module.exports = {
       balances[message.author.id] = robberBalance - penalty;
       balances[target.id] = targetBalance + penalty;
       saveData(balancesPath, balances);
+      jackpot.addToJackpot(penalty);
 
       if (prevStreak >= 3) message.channel.send(`❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
 

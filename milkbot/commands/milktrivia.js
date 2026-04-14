@@ -204,7 +204,7 @@ module.exports = {
     }, ANSWER_TIME);
 
     activeTrivia = { question: q.q, answer: q.a, choices: q.choices, answered, timeout };
-    jackpot.addToJackpot(5);
+    jackpot.addToJackpot(10);
 
     message.channel.send(
       `🥛 **MILK TRIVIA** 🥛\n\n` +

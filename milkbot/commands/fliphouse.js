@@ -37,7 +37,6 @@
       }
 
       const playerWins = Math.random() < 0.5;
-      jackpot.addToJackpot(5);
 
       if (playerWins) {
         const newStreak = ws.recordWin(userId);
@@ -68,6 +67,7 @@
         const prevStreak = ws.resetStreak(userId);
         balances[userId] = balance - bet;
         saveData(balancesPath, balances);
+        jackpot.addToJackpot(bet);
 
         if (prevStreak >= 3) message.channel.send(`❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`);
 

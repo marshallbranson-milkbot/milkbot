@@ -133,7 +133,7 @@ module.exports = {
 
     const timeout = setTimeout(() => resolveGame(message.channel), GAME_TIME);
     activeGame = { number, guesses, timeout };
-    jackpot.addToJackpot(5);
+    jackpot.addToJackpot(10);
 
     message.channel.send(
       `🎯 **GUESS THE NUMBER** 🎯\n` +

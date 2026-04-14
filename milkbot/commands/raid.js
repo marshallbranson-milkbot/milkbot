@@ -117,7 +117,6 @@ module.exports = {
       const multiplier = getMultiplier(crewSize);
       const xpGain = getXp(crewSize);
       const success = Math.random() < odds;
-      jackpot.addToJackpot(5);
 
       const balances = getData(balancesPath);
       const xp = getData(xpPath);
@@ -153,6 +152,8 @@ module.exports = {
           ach.check(userId, username, 'raid_win', { balance: balances[userId], crewSize, gameType: 'raid' }, message.channel);
         }
       } else {
+        // leader + crew all lost their buy-in
+        jackpot.addToJackpot(activeRaid.buyIn * (crewSize + 1));
         const coldAnnouncements = [];
         for (const [userId, username] of finalCrew) {
           const prevStreak = ws.resetStreak(userId);

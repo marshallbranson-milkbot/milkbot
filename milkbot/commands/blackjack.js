@@ -229,6 +229,7 @@ function resolveGame(userId, channel, gameMsg) {
   if (dealerBJ && !isBlackjack(game.playerHand)) {
     // Dealer blackjack, player loses
     ws.resetStreak(userId);
+    jackpot.addToJackpot(game.bet);
     game.quip = randQuip(DEALER_BLACKJACK_QUIPS);
     resultLine = `You lose **${game.bet} milk bucks**. Balance: **${balances[userId] || 0}** 🥛`;
     ach.check(userId, game.username, 'game_loss', { gameType: 'blackjack', balance: balances[userId] || 0 }, channel);
@@ -257,6 +258,7 @@ function resolveGame(userId, channel, gameMsg) {
     resultLine = `You win **${winnings} milk bucks**!${bonusesWin ? ` *(${bonusesWin})*` : ''} Balance: **${balances[userId]}** 🥛`;
   } else if (dealerTotal > playerTotal) {
     ws.resetStreak(userId);
+    jackpot.addToJackpot(game.bet);
     game.quip = randQuip(LOSE_QUIPS);
     resultLine = `You lose **${game.bet} milk bucks**. Balance: **${balances[userId] || 0}** 🥛`;
     ach.check(userId, game.username, 'game_loss', { gameType: 'blackjack', balance: balances[userId] || 0 }, channel);
@@ -302,6 +304,7 @@ function check(message) {
       // Bust
       activeGames.delete(message.author.id);
       ws.resetStreak(message.author.id);
+      jackpot.addToJackpot(game.bet);
       game.quip = randQuip(BUST_QUIPS);
       const bustBalance = getData(balancesPath)[message.author.id] || 0;
       game.resultLine = `You lose **${game.bet} milk bucks**. Bust at **${total}**. Balance: **${bustBalance}** 🥛`;
@@ -328,6 +331,7 @@ function check(message) {
 
     game.timeout = setTimeout(() => {
       activeGames.delete(message.author.id);
+      jackpot.addToJackpot(game.bet);
       game.quip = `timed out. the dealer takes your milk bucks for the inactivity.`;
       game.resultLine = `You lose **${game.bet} milk bucks** (timeout). 🥛`;
       game.gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {});
@@ -371,7 +375,6 @@ module.exports = {
     // Deduct bet upfront
     balances[userId] = balance - bet;
     saveData(balancesPath, balances);
-    jackpot.addToJackpot(5);
 
     const deck = buildDeck();
     const playerHand = [deck.pop(), deck.pop()];
