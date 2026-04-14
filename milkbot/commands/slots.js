@@ -35,6 +35,8 @@ const PAYOUTS = {
   '👑': 2250,
 };
 
+const activeSpins = new Set();
+
 function spin() {
   const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
   return Array.from({ length: 3 }, () => {
@@ -53,6 +55,10 @@ module.exports = {
   description: 'Spin the slots for 10 milk bucks.',
   async execute(message) {
     const userId = message.author.id;
+
+    if (activeSpins.has(userId)) {
+      return message.reply(`Your reels are still spinning! Wait for the result. 🎰`);
+    }
 
     const balances = getData(balancesPath);
     const balance = balances[userId] || 0;
@@ -118,9 +124,11 @@ module.exports = {
     const isJackpot = a === b && b === c && a === '👑';
 
     // Send spinning message then edit with result after delay
+    activeSpins.add(userId);
     const spinMsg = await message.reply(`🎰 | ⬛ ⬛ ⬛ | 🎰\n*Spinning...*`);
 
     setTimeout(() => {
+      activeSpins.delete(userId);
       if (isJackpot) {
         spinMsg.edit(`🎰 | ${a} ${b} ${c} | 🎰\n` + resultLine);
         message.channel.send(`🚨 <@${userId}> HIT THE JACKPOT 🚨`);
