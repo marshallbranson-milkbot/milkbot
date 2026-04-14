@@ -148,30 +148,49 @@ const LOCATIONS = [
 
 // ─── WIKIPEDIA IMAGE FETCH ───────────────────────────────────────────────────
 
-function fetchWikiImage(articleTitle) {
+// Step 1: get the image URL from Wikipedia's REST API
+function fetchWikiImageUrl(articleTitle) {
   return new Promise((resolve) => {
     const encoded = encodeURIComponent(articleTitle.replace(/ /g, '_'));
-    const options = {
+    https.get({
       hostname: 'en.wikipedia.org',
       path: `/api/rest_v1/page/summary/${encoded}`,
-      headers: {
-        'User-Agent': 'MilkBot-Discord/1.0 (Discord bot; educational use)',
-        'Accept': 'application/json',
-      },
-    };
-    https.get(options, (res) => {
+      headers: { 'User-Agent': 'MilkBot-Discord/1.0', 'Accept': 'application/json' },
+    }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          // Always use thumbnail (has /thumb/ CDN path) bumped to 800px.
-          // originalimage is full-res (no /thumb/) — too large for Discord embeds.
           const thumb = json.thumbnail?.source;
           if (!thumb) { resolve(null); return; }
           resolve(thumb.replace(/\/\d+px-/, '/800px-'));
         } catch { resolve(null); }
       });
+    }).on('error', () => resolve(null));
+  });
+}
+
+// Step 2: download the image bytes so we can upload directly to Discord.
+// This bypasses Wikimedia's hotlink rate-limiting entirely.
+function downloadImage(url, redirects = 0) {
+  return new Promise((resolve) => {
+    if (redirects > 5) { resolve(null); return; }
+    const parsed = new URL(url);
+    https.get({
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      headers: { 'User-Agent': 'MilkBot-Discord/1.0' },
+    }, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307) {
+        res.resume();
+        downloadImage(res.headers.location, redirects + 1).then(resolve);
+        return;
+      }
+      if (res.statusCode !== 200) { res.resume(); resolve(null); return; }
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
     }).on('error', () => resolve(null));
   });
 }
@@ -187,7 +206,8 @@ function isCorrect(guess, loc) {
   return false;
 }
 
-function buildEmbed(loc, imageUrl, { hint = false, timedOut = false, winner = null, bonuses = '' } = {}) {
+// cdnUrl = Discord CDN URL captured after first send (used for edits)
+function buildEmbed(loc, cdnUrl, { hint = false, timedOut = false, winner = null, bonuses = '', initial = false } = {}) {
   let description = `Type the **country name** in chat. First correct answer wins **${REWARD} milk bucks**! 🥛`;
 
   if (hint) {
@@ -209,7 +229,12 @@ function buildEmbed(loc, imageUrl, { hint = false, timedOut = false, winner = nu
     .setColor(color)
     .setFooter({ text: footer });
 
-  if (imageUrl) embed.setImage(imageUrl);
+  // On initial send we reference the attachment; on edits we use the Discord CDN URL
+  if (initial) {
+    embed.setImage('attachment://geo.jpg');
+  } else if (cdnUrl) {
+    embed.setImage(cdnUrl);
+  }
 
   return embed;
 }
@@ -227,7 +252,7 @@ function check(message) {
   const username = message.author.username;
   clearTimeout(activeGeo.timeout);
   clearTimeout(activeGeo.hintTimeout);
-  const { loc, imageUrl, gameMsg } = activeGeo;
+  const { loc, cdnUrl, gameMsg } = activeGeo;
   activeGeo = null;
 
   const newStreak = ws.recordWin(userId);
@@ -246,7 +271,7 @@ function check(message) {
 
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
 
-  const winEmbed = buildEmbed(loc, imageUrl, { winner: username, bonuses });
+  const winEmbed = buildEmbed(loc, cdnUrl, { winner: username, bonuses });
   if (gameMsg) gameMsg.edit({ embeds: [winEmbed] }).catch(() => {});
 
   if (newStreak >= 3) ws.announceStreak(message.channel, username, newStreak);
@@ -270,28 +295,40 @@ module.exports = {
 
     jackpot.addToJackpot(10);
 
-    // Fetch image from Wikipedia API
-    const imageUrl = await fetchWikiImage(loc.article);
+    // Get Wikipedia image URL, then download the bytes so we can upload
+    // directly to Discord — bypasses Wikimedia's hotlink rate-limiting.
+    const imageUrl = await fetchWikiImageUrl(loc.article);
     if (!imageUrl) {
       return message.reply(`couldn't load an image right now. try again in a sec. 🌍`);
     }
+    const imageBuffer = await downloadImage(imageUrl);
+    if (!imageBuffer) {
+      return message.reply(`couldn't load an image right now. try again in a sec. 🌍`);
+    }
 
-    const initEmbed = buildEmbed(loc, imageUrl);
-    const gameMsg = await message.channel.send({ embeds: [initEmbed] }).catch(console.error);
+    // Send with image attached; capture Discord's CDN URL for later edits
+    const initEmbed = buildEmbed(loc, null, { initial: true });
+    const gameMsg = await message.channel.send({
+      embeds: [initEmbed],
+      files: [{ attachment: imageBuffer, name: 'geo.jpg' }],
+    }).catch(console.error);
+
+    // Discord CDN URL — stable for the lifetime of the message
+    const cdnUrl = gameMsg?.attachments?.first()?.url || null;
 
     const hintTimeout = setTimeout(() => {
       if (!activeGeo) return;
-      const hintEmbed = buildEmbed(loc, imageUrl, { hint: true });
+      const hintEmbed = buildEmbed(loc, cdnUrl, { hint: true });
       if (gameMsg) gameMsg.edit({ embeds: [hintEmbed] }).catch(() => {});
     }, HINT_TIME);
 
     const timeout = setTimeout(() => {
       if (!activeGeo) return;
       activeGeo = null;
-      const timeoutEmbed = buildEmbed(loc, imageUrl, { timedOut: true });
+      const timeoutEmbed = buildEmbed(loc, cdnUrl, { timedOut: true });
       if (gameMsg) gameMsg.edit({ embeds: [timeoutEmbed] }).catch(() => {});
     }, GAME_TIME);
 
-    activeGeo = { loc, imageUrl, timeout, hintTimeout, gameMsg };
+    activeGeo = { loc, cdnUrl, timeout, hintTimeout, gameMsg };
   },
 };
