@@ -63,16 +63,25 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     const commandName = args.shift().toLowerCase();
 
     const command = commands[commandName];
-    if (!command) return;
+    if (!command) {
+      message.delete().catch(() => {});
+      return;
+    }
+
+    const autoDelete = (reply) => {
+      setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
+    };
 
     const channelName = message.channel.name;
     if (STOCKS_COMMANDS.has(commandName)) {
       if (channelName !== 'milkbot-stocks') {
-        return message.reply('📈 Stock commands go in **#milkbot-stocks**!');
+        message.reply('📈 Stock commands go in **#milkbot-stocks**!').then(autoDelete);
+        return;
       }
     } else if (!BOTH_CHANNELS.has(commandName)) {
       if (channelName !== 'milkbot-games') {
-        return message.reply('🎮 Game and currency commands go in **#milkbot-games**!');
+        message.reply('🎮 Game and currency commands go in **#milkbot-games**!').then(autoDelete);
+        return;
       }
     }
 
