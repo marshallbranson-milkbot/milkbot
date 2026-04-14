@@ -21,11 +21,19 @@ module.exports = {
   description: 'Claim an active milk crate drop.',
   execute(message) {
     if (!state.activeCrate) {
-      return message.reply(`No crate active right now. Keep an eye on the channel. 🥛`);
+      message.delete().catch(() => {});
+      message.reply(`No crate active right now. Keep an eye on the channel. 🥛`)
+        .then(m => setTimeout(() => m.delete().catch(() => {}), 8000))
+        .catch(() => {});
+      return;
     }
 
+    const crateMsg = state.activeCrate.msg;
     clearTimeout(state.activeCrate.expireTimeout);
     state.activeCrate = null;
+
+    if (crateMsg) crateMsg.delete().catch(() => {});
+    message.delete().catch(() => {});
 
     const balances = getData(balancesPath);
     balances[message.author.id] = (balances[message.author.id] || 0) + REWARD;

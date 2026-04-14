@@ -150,26 +150,30 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     setTimeout(() => scheduleCrateDrops(client), msRemaining);
   }
 
-  function dropCrate(client) {
+  async function dropCrate(client) {
     if (state.activeCrate) return;
 
     const guild = client.guilds.cache.get('562076997979865118');
     const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
     if (!channel) return;
 
+    const crateMsg = await channel.send(
+      `📦 **A MILK CRATE JUST DROPPED!** 📦\n` +
+      `First to type \`!cc\` claims **500 milk bucks**! You have 30 minutes. ⏳`
+    ).catch(() => null);
+
     const expireTimeout = setTimeout(() => {
       if (state.activeCrate) {
+        const msg = state.activeCrate.msg;
         state.activeCrate = null;
-        channel.send(`📦 The milk crate expired unclaimed. Nobody wanted free milk bucks? 🥛`);
+        if (msg) msg.delete().catch(() => {});
+        channel.send(`📦 The milk crate expired unclaimed. Nobody wanted free milk bucks? 🥛`)
+          .then(m => setTimeout(() => m.delete().catch(() => {}), 10000))
+          .catch(() => {});
       }
     }, 30 * 60 * 1000);
 
-    state.activeCrate = { expireTimeout };
-
-    channel.send(
-      `📦 **A MILK CRATE JUST DROPPED!** 📦\n` +
-      `First to type \`!cc\` claims **500 milk bucks**! You have 30 minutes. ⏳`
-    );
+    state.activeCrate = { expireTimeout, msg: crateMsg };
   }
 
   function scheduleMilkLord() {
