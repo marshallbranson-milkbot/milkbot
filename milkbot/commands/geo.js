@@ -162,12 +162,17 @@ function fetchWikiImageUrl(articleTitle) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
+          // Use thumbnail URL exactly as returned — don't resize, avoids on-demand generation
           const thumb = json.thumbnail?.source;
-          if (!thumb) { resolve(null); return; }
-          resolve(thumb.replace(/\/\d+px-/, '/800px-'));
-        } catch { resolve(null); }
+          if (!thumb) {
+            console.log(`[geo] no thumbnail for article: ${articleTitle}`);
+            resolve(null); return;
+          }
+          console.log(`[geo] image URL for "${articleTitle}": ${thumb}`);
+          resolve(thumb);
+        } catch (e) { console.log('[geo] fetchWikiImageUrl parse error:', e.message); resolve(null); }
       });
-    }).on('error', () => resolve(null));
+    }).on('error', (e) => { console.log('[geo] fetchWikiImageUrl request error:', e.message); resolve(null); });
   });
 }
 
@@ -176,12 +181,8 @@ function fetchWikiImageUrl(articleTitle) {
 function downloadImage(url, redirects = 0) {
   return new Promise((resolve) => {
     if (redirects > 5) { resolve(null); return; }
-    const parsed = new URL(url);
-    https.get({
-      hostname: parsed.hostname,
-      path: parsed.pathname + parsed.search,
-      headers: { 'User-Agent': 'MilkBot-Discord/1.0' },
-    }, (res) => {
+    https.get(url, { headers: { 'User-Agent': 'MilkBot-Discord/1.0' } }, (res) => {
+      console.log(`[geo] download status: ${res.statusCode} (redirects: ${redirects})`);
       if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307) {
         res.resume();
         downloadImage(res.headers.location, redirects + 1).then(resolve);
@@ -190,8 +191,12 @@ function downloadImage(url, redirects = 0) {
       if (res.statusCode !== 200) { res.resume(); resolve(null); return; }
       const chunks = [];
       res.on('data', c => chunks.push(c));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-    }).on('error', () => resolve(null));
+      res.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        console.log(`[geo] downloaded ${buf.length} bytes`);
+        resolve(buf);
+      });
+    }).on('error', (e) => { console.log('[geo] downloadImage error:', e.message); resolve(null); });
   });
 }
 
