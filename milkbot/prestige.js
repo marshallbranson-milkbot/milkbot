@@ -5,6 +5,7 @@ const prestigePath   = path.join(__dirname, 'data/prestige.json');
 const xpPath         = path.join(__dirname, 'data/xp.json');
 const achPath        = path.join(__dirname, 'data/achievements.json');
 const balancesPath   = path.join(__dirname, 'data/balances.json');
+const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
 
 function getPrestige(userId) {
   if (!fs.existsSync(prestigePath)) return 0;
@@ -38,6 +39,13 @@ function doPrestige(userId) {
     : {};
   balances[userId] = 0;
   fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
+
+  // Reset stock portfolio
+  if (fs.existsSync(portfoliosPath)) {
+    const portfolios = JSON.parse(fs.readFileSync(portfoliosPath, 'utf8'));
+    delete portfolios[userId];
+    fs.writeFileSync(portfoliosPath, JSON.stringify(portfolios, null, 2));
+  }
 
   // Reset stored level in achievements so level-up DMs fire again from level 1
   if (fs.existsSync(achPath)) {
