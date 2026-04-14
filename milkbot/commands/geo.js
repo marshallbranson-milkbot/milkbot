@@ -165,12 +165,11 @@ function fetchWikiImage(articleTitle) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          // Prefer original full image; fall back to thumbnail. Bump thumbnail to 800px.
-          let url = json.originalimage?.source || json.thumbnail?.source;
-          if (url && json.thumbnail?.source && !json.originalimage) {
-            url = json.thumbnail.source.replace(/\/\d+px-/, '/800px-');
-          }
-          resolve(url || null);
+          // Always use thumbnail (has /thumb/ CDN path) bumped to 800px.
+          // originalimage is full-res (no /thumb/) — too large for Discord embeds.
+          const thumb = json.thumbnail?.source;
+          if (!thumb) { resolve(null); return; }
+          resolve(thumb.replace(/\/\d+px-/, '/800px-'));
         } catch { resolve(null); }
       });
     }).on('error', () => resolve(null));
