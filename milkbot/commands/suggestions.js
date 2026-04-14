@@ -21,6 +21,9 @@ module.exports = {
     const text = message.content.trim();
     if (!text) return false;
 
+    console.log(`[suggestions] received suggestion from ${message.author.username}: "${text}"`);
+    message.channel.sendTyping().catch(() => {});
+
     (async () => {
       try {
         const response = await anthropic.messages.create({
@@ -33,6 +36,7 @@ module.exports = {
         if (reply) message.reply(reply).catch(console.error);
       } catch (err) {
         console.error('[suggestions] Claude API error:', err.message);
+        message.reply(`got your suggestion, but my brain just glitched. try again later 🥛`).catch(() => {});
       }
     })();
 
