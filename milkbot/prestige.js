@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const prestigePath = path.join(__dirname, 'data/prestige.json');
-const xpPath      = path.join(__dirname, 'data/xp.json');
-const achPath     = path.join(__dirname, 'data/achievements.json');
+const prestigePath   = path.join(__dirname, 'data/prestige.json');
+const xpPath         = path.join(__dirname, 'data/xp.json');
+const achPath        = path.join(__dirname, 'data/achievements.json');
+const balancesPath   = path.join(__dirname, 'data/balances.json');
 
 function getPrestige(userId) {
   if (!fs.existsSync(prestigePath)) return 0;
@@ -30,6 +31,13 @@ function doPrestige(userId) {
     : {};
   xpData[userId] = 0;
   fs.writeFileSync(xpPath, JSON.stringify(xpData, null, 2));
+
+  // Reset milk bucks balance
+  const balances = fs.existsSync(balancesPath)
+    ? JSON.parse(fs.readFileSync(balancesPath, 'utf8'))
+    : {};
+  balances[userId] = 0;
+  fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
 
   // Reset stored level in achievements so level-up DMs fire again from level 1
   if (fs.existsSync(achPath)) {

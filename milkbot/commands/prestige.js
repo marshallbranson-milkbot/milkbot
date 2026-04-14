@@ -42,12 +42,12 @@ module.exports = {
       `🌟 **${message.author.username} HAS PRESTIGED!** 🌟\n\n` +
       `They've reached **Prestige ${newPrestige}** — ` +
       `all game XP and milk buck gains are permanently **${newMultiplier}x**.\n` +
-      `XP reset to zero. The grind restarts. Can they do it again? 🥛`
+      `XP and milk bucks reset to zero. The grind restarts. Can they do it again? 🥛`
     );
 
     message.reply(
       `✅ You are now **Prestige ${newPrestige}** — **${newMultiplier}x** on all game earnings and XP.\n` +
-      `Your XP has been wiped. Level up again for even more. 🌟`
+      `Your XP and milk bucks have been wiped. Level up again for even more. 🌟`
     );
   }
 };
