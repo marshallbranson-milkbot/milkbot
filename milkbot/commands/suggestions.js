@@ -1,7 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-const anthropic = new Anthropic(); // reads ANTHROPIC_API_KEY from env
-
 const SYSTEM_PROMPT = `You are MilkBot, a snarky, goofy Discord bot for a small friend server of 8-10 people. You run games, manage a currency called milk bucks, and keep things entertaining.
 
 A user has just posted a suggestion for improving MilkBot. Evaluate it and reply in character:
@@ -26,6 +24,7 @@ module.exports = {
 
     (async () => {
       try {
+        const anthropic = new Anthropic();
         const response = await anthropic.messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 150,
