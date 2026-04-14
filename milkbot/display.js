@@ -5,6 +5,7 @@ const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
 const bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
 const prestige = require('./prestige');
+const { STOCK_DEFS, getPrices, getStats } = require('./stockdata');
 const GUILD_ID = '562076997979865118';
 
 function getData(filePath) {
@@ -64,21 +65,49 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 ━━━━━━━━━━━━━━━━━━━━━━
 📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
 ━━━━━━━━━━━━━━━━━━━━━━
-\`!st\` — check current prices
+📊 Live prices + 7-day stats → **#milkbot-stocks-info**
 \`!b TICKER shares\` — buy shares
 \`!s TICKER shares|all\` — dump shares
 \`!port\` — view your portfolio
 
-\`MILK\` MilkCorp Industries — Stable ±2-5%
-\`CREM\` Creme Capital — Stable ±2-5%
-\`BUTR\` ButterCo Holdings — Medium ±5-10%
-\`WHEY\` Whey Street Group — Medium ±5-10%
-\`MOO\` Moo Markets Inc — Medium ±5-10%
-\`CHUG\` Chug Enterprises — Volatile ±10-20%
-\`GOT\` Got Milk Global — Volatile ±10-20%
-\`SPOIL\` Spoiled Rotten LLC — Chaotic ±5-30%
-
 *milk bucks. 🥛*`;
+
+function buildStockBoardText() {
+  const prices = getPrices();
+
+  const now = new Date().toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const lines = [
+    '📊 **MILK STOCK MARKET** — live prices + 7-day stats',
+    '📈 Buy/sell in **#milkbot-stocks** with `!b` `!s` `!port`',
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+  ];
+
+  for (const s of STOCK_DEFS) {
+    const { price, lastChange } = prices[s.ticker] || { price: 0, lastChange: 0 };
+    const pct = (lastChange * 100).toFixed(1);
+    const arrow = lastChange >= 0 ? '🟢' : '🔴';
+    const sign = lastChange >= 0 ? '+' : '';
+    const stats = getStats(s.ticker);
+    const statsText = stats
+      ? `High **${stats.high}** • Low **${stats.low}** • Avg **${stats.avg}**`
+      : '*not enough data yet*';
+
+    lines.push(`${arrow} **${s.ticker}** — ${s.name}`);
+    lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  |  7-day: ${statsText}`);
+    lines.push('');
+  }
+
+  lines.push(`*refreshed: ${now} EST 🥛*`);
+  return lines.join('\n');
+}
 
 function buildLeaderboardText(guild) {
   const balances = getData(balancesPath);
@@ -181,6 +210,7 @@ function buildLeaderboardText(guild) {
 
 let lbMessage = null;
 let helpMessage = null;
+let sbMessage = null;
 
 async function findBotMessage(channel, client) {
   const fetched = await channel.messages.fetch({ limit: 20 });
@@ -219,6 +249,21 @@ async function initDisplays(client) {
       console.log('[display] Leaderboard posted');
     }
   }
+
+  const sbChannel = guild.channels.cache.find(c => c.name === 'milkbot-stocks-info');
+  if (!sbChannel) {
+    console.log('[display] milkbot-stocks-info channel not found');
+  } else {
+    const sbText = buildStockBoardText();
+    const existing = await findBotMessage(sbChannel, client);
+    if (existing) {
+      sbMessage = await existing.edit(sbText).catch(console.error);
+      console.log('[display] Stock board updated');
+    } else {
+      sbMessage = await sbChannel.send(sbText).catch(console.error);
+      console.log('[display] Stock board posted');
+    }
+  }
 }
 
 async function refreshHelp(client) {
@@ -246,4 +291,17 @@ async function refreshLeaderboard(client) {
   lbMessage = await lbChannel.send(lbText).catch(console.error);
 }
 
-module.exports = { initDisplays, refreshHelp, refreshLeaderboard, HELP_TEXT };
+async function refreshStockBoard(client) {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return;
+  const sbChannel = guild.channels.cache.find(c => c.name === 'milkbot-stocks-info');
+  if (!sbChannel) return;
+  const sbText = buildStockBoardText();
+  if (sbMessage) {
+    const updated = await sbMessage.edit(sbText).catch(() => null);
+    if (updated) return;
+  }
+  sbMessage = await sbChannel.send(sbText).catch(console.error);
+}
+
+module.exports = { initDisplays, refreshHelp, refreshLeaderboard, refreshStockBoard, HELP_TEXT };

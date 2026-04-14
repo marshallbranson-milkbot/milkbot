@@ -4,10 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const state = require('./state');
 const { updatePrices } = require('./stockdata');
-const { initDisplays, refreshLeaderboard } = require('./display');
+const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./display');
 const { scheduleNews } = require('./moosnews');
 
-const STOCKS_COMMANDS = new Set(['st', 'b', 'buy', 's', 'sell', 'port']);
+const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
   // Ensure data directory exists (important for Railway volume on first run)
@@ -94,8 +94,8 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     // Schedule random crate drops
     scheduleCrateDrops(client);
 
-    // Update stock prices every 5 minutes
-    setInterval(() => updatePrices(), 5 * 60 * 1000);
+    // Update stock prices every 5 minutes, then refresh the stock board
+    setInterval(() => { updatePrices(); refreshStockBoard(client); }, 5 * 60 * 1000);
 
     // Refresh leaderboard every 5 minutes
     setInterval(() => refreshLeaderboard(client), 5 * 60 * 1000);

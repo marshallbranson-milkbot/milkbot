@@ -19,6 +19,7 @@ const prestige = require('../prestige');
   }
 
   const SCRAMBLE_TIME = 15000;
+  const RARE_SCRAMBLE_TIME = 25000;
 
   const normalWords = [
     'discord', 'server', 'gaming', 'winner', 'chicken', 'laptop',
@@ -151,7 +152,7 @@ const prestige = require('../prestige');
   🥛`);
           activeScramble = null;
         }
-      }, SCRAMBLE_TIME);
+      }, isRare ? RARE_SCRAMBLE_TIME : SCRAMBLE_TIME);
 
       activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now() };
       jackpot.addToJackpot(5);
@@ -160,7 +161,7 @@ const prestige = require('../prestige');
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +
         `Unscramble this word: **${scrambled.toLowerCase()}**\n` +
         `Just type your answer in chat. First correct answer wins **${reward} milk bucks**!\n` +
-        `You have **15 seconds**. ⏳`
+        `You have **${isRare ? '25' : '15'} seconds**. ⏳`
       );
     }
   };

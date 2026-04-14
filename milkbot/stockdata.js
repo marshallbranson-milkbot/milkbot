@@ -4,6 +4,9 @@ const { pendingModifiers } = require('./moosnews');
 
 const stocksPath = path.join(__dirname, 'data/stocks.json');
 const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
+const historyPath = path.join(__dirname, 'data/pricehistory.json');
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const STOCK_DEFS = [
   { ticker: 'MILK', name: 'MilkCorp Industries',   volatility: [0.02, 0.05], minPrice: 25 },
@@ -45,6 +48,35 @@ function savePortfolios(data) {
   fs.writeFileSync(portfoliosPath, JSON.stringify(data, null, 2));
 }
 
+function appendHistory(prices) {
+  let history = {};
+  if (fs.existsSync(historyPath)) {
+    try { history = JSON.parse(fs.readFileSync(historyPath, 'utf8')); } catch {}
+  }
+  const now = Date.now();
+  const cutoff = now - SEVEN_DAYS_MS;
+  for (const ticker of Object.keys(prices)) {
+    if (!history[ticker]) history[ticker] = [];
+    history[ticker].push({ ts: now, price: prices[ticker].price });
+    history[ticker] = history[ticker].filter(e => e.ts >= cutoff);
+  }
+  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
+}
+
+function getStats(ticker) {
+  if (!fs.existsSync(historyPath)) return null;
+  let history = {};
+  try { history = JSON.parse(fs.readFileSync(historyPath, 'utf8')); } catch { return null; }
+  const entries = history[ticker] || [];
+  if (!entries.length) return null;
+  const prices = entries.map(e => e.price);
+  return {
+    high: Math.max(...prices),
+    low: Math.min(...prices),
+    avg: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
+  };
+}
+
 function updatePrices() {
   const prices = getPrices();
   for (const s of STOCK_DEFS) {
@@ -69,7 +101,8 @@ function updatePrices() {
   }
   delete pendingModifiers['ALL'];
   savePrices(prices);
+  appendHistory(prices);
   return prices;
 }
 
-module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices };
+module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices, getStats };
