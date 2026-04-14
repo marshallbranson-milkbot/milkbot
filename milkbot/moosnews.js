@@ -447,14 +447,16 @@ async function dropNews(client, headline) {
   applyEffects(headline.effects);
 
   const guild = client.guilds.cache.get(GUILD_ID);
-  const channel = guild?.channels.cache.find(c => c.name === 'milkbot-stocks');
+  const channel = guild?.channels.cache.find(c => c.name === 'milkbot-stocks-info');
   if (!channel) return;
 
-  await channel.send(
+  const msg = await channel.send(
     `📰 **MOO NEWS** 📰\n\n` +
     `*${headline.text}*\n\n` +
     `*— Moo News, your trusted source for dairy market intelligence* 🥛`
   ).catch(console.error);
+
+  if (msg) setTimeout(() => msg.delete().catch(() => {}), 24 * 60 * 60 * 1000);
 
   state.lastNewsAt = Date.now();
 }
