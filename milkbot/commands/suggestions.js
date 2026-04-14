@@ -13,10 +13,6 @@ Rules:
 - Never break character or mention being an AI.
 - Sign off with 🥛 occasionally.`;
 
-// Rolling conversation history for the suggestions channel (in-memory)
-const history = [];
-const MAX_HISTORY = 20; // 10 exchanges
-
 module.exports = {
   name: 'suggestions',
   check(message) {
@@ -31,24 +27,36 @@ module.exports = {
       try {
         const anthropic = new Anthropic();
 
-        // Add this message to history
-        history.push({ role: 'user', content: `${message.author.username}: ${text}` });
-        if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+        // Fetch recent channel messages to build conversation context
+        const fetched = await message.channel.messages.fetch({ limit: 20 });
+        const sorted = [...fetched.values()].reverse(); // oldest first
+
+        // Build alternating user/assistant turns for Claude
+        const messages = [];
+        for (const msg of sorted) {
+          const role = msg.author.bot ? 'assistant' : 'user';
+          const content = msg.author.bot ? msg.content : `${msg.author.username}: ${msg.content}`;
+          // Merge consecutive messages of the same role
+          if (messages.length > 0 && messages[messages.length - 1].role === role) {
+            messages[messages.length - 1].content += `\n${content}`;
+          } else {
+            messages.push({ role, content });
+          }
+        }
+
+        // Anthropic requires the array to start with a user message
+        while (messages.length > 0 && messages[0].role !== 'user') messages.shift();
+        if (messages.length === 0) messages.push({ role: 'user', content: `${message.author.username}: ${text}` });
 
         const response = await anthropic.messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 150,
           system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-          messages: history,
+          messages,
         });
 
         const reply = response.content[0]?.text?.trim();
-        if (reply) {
-          // Add bot reply to history
-          history.push({ role: 'assistant', content: reply });
-          if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
-          message.reply(reply).catch(console.error);
-        }
+        if (reply) message.reply(reply).catch(console.error);
       } catch (err) {
         console.error('[suggestions] Claude API error:', err.message);
         message.reply(`got your suggestion, but my brain just glitched. try again later 🥛`).catch(() => {});
