@@ -4,6 +4,16 @@ const GUILD_ID = '562076997979865118';
 const state = require('./state');
 
 const balancesPath = path.join(__dirname, 'data/balances.json');
+const mooNewsMsgPath = path.join(__dirname, 'data/moo_news_msg.json');
+
+function getMooNewsMsgId() {
+  if (!fs.existsSync(mooNewsMsgPath)) return null;
+  try { return JSON.parse(fs.readFileSync(mooNewsMsgPath, 'utf8')).msgId || null; } catch { return null; }
+}
+
+function saveMooNewsMsgId(msgId) {
+  fs.writeFileSync(mooNewsMsgPath, JSON.stringify({ msgId }));
+}
 
 const COMPANY_NAMES = {
   MILK:  'MilkCorp Industries',
@@ -450,14 +460,25 @@ async function dropNews(client, headline) {
   const channel = guild?.channels.cache.find(c => c.name === 'milkbot-stocks-info');
   if (!channel) return;
 
-  const msg = await channel.send(
+  const newsText =
     `📰 **MOO NEWS** 📰\n\n` +
     `*${headline.text}*\n\n` +
-    `*— Moo News, your trusted source for dairy market intelligence* 🥛`
-  ).catch(console.error);
+    `*— Moo News, your trusted source for dairy market intelligence* 🥛`;
 
-  if (msg) setTimeout(() => msg.delete().catch(() => {}), 24 * 60 * 60 * 1000);
+  const savedId = getMooNewsMsgId();
+  if (savedId) {
+    try {
+      const existing = await channel.messages.fetch(savedId);
+      await existing.edit(newsText);
+      state.lastNewsAt = Date.now();
+      return;
+    } catch {
+      // Message was deleted — fall through to send a new one
+    }
+  }
 
+  const msg = await channel.send(newsText).catch(console.error);
+  if (msg) saveMooNewsMsgId(msg.id);
   state.lastNewsAt = Date.now();
 }
 
