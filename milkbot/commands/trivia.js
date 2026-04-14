@@ -381,6 +381,10 @@ function check(message) {
   if (!['A', 'B', 'C', 'D'].includes(ans)) return false;
 
   const { q, channel, timeout } = activeGame;
+
+  if (activeGame.answered.has(message.author.id)) return true;
+  activeGame.answered.add(message.author.id);
+
   const correct = q.ans.toUpperCase();
 
   if (ans !== correct) {
@@ -455,7 +459,7 @@ module.exports = {
 
       // Show question at 3400ms
       setTimeout(() => {
-        const game = { category, q, channel: message.channel, timeout: null };
+        const game = { category, q, channel: message.channel, timeout: null, answered: new Set() };
 
         const timeout = setTimeout(() => {
           if (!activeGame) return;
