@@ -6,6 +6,7 @@ const xpPath = path.join(__dirname, 'data/xp.json');
 const bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
 const prestige = require('./prestige');
 const { STOCK_DEFS, getPrices, getStats } = require('./stockdata');
+const jackpot = require('./jackpot');
 const GUILD_ID = '562076997979865118';
 
 function getData(filePath) {
@@ -105,6 +106,9 @@ function buildStockBoardText() {
     lines.push('');
   }
 
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`🎰 **SERVER JACKPOT: ${jackpot.getJackpot().toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all`);
+  lines.push('');
   lines.push(`*refreshed: ${now} EST 🥛*`);
   return lines.join('\n');
 }
