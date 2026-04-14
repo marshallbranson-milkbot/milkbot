@@ -6,6 +6,7 @@ const state = require('./state');
 const { updatePrices } = require('./stockdata');
 const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./display');
 const { scheduleNews } = require('./moosnews');
+const { postUpdates } = require('./updates');
 
 const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
@@ -96,6 +97,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
     // Schedule daily Moo News drops
     scheduleNews(client);
+    postUpdates(client);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
