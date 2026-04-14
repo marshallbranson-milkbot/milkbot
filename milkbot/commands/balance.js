@@ -18,6 +18,8 @@ const fs = require('fs');
     description: 'Check your milk bucks balance.',
     execute(message) {
       const balance = getBalance(message.author.id);
-      message.reply(`Your balance is **${balance} milk bucks** 🥛`);
+      message.reply(`Your balance is **${balance} milk bucks** 🥛`).then(reply => {
+        setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
+      });
     }
   };

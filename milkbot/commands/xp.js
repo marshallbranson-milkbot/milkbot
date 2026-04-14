@@ -51,6 +51,8 @@ module.exports = {
       `**Rank:** ${rank}\n` +
       `**Level:** ${level}\n` +
       `**XP:** ${xpIntoLevel} / ${xpForNext} (${totalXp} total)`
-    );
+    ).then(reply => {
+      setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
+    });
   }
 };
