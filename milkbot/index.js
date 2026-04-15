@@ -34,6 +34,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
   const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
 
   let milkLordCommand = null;
+  const initCallbacks = [];
 
   for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -43,6 +44,9 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     }
     if (command.check) {
       gameChecks.push(command.check);
+    }
+    if (command.init) {
+      initCallbacks.push(command.init);
     }
     if (command.name === 'milklord') {
       milkLordCommand = command;
@@ -91,6 +95,11 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
   client.once('ready', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
+
+    // Run any command module init functions (e.g. suggestions ban restoration)
+    for (const initFn of initCallbacks) {
+      await initFn(client).catch(console.error);
+    }
 
     // Post/update help and leaderboard display messages
     await initDisplays(client);
