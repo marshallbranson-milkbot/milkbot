@@ -3,8 +3,9 @@ const path = require('path');
 const GUILD_ID = '562076997979865118';
 const state = require('./state');
 
-const balancesPath = path.join(__dirname, 'data/balances.json');
-const mooNewsMsgPath = path.join(__dirname, 'data/moo_news_msg.json');
+const balancesPath    = path.join(__dirname, 'data/balances.json');
+const mooNewsMsgPath  = path.join(__dirname, 'data/moo_news_msg.json');
+const schedPath       = path.join(__dirname, 'data/moo_news_schedule.json');
 
 function getMooNewsMsgId() {
   if (!fs.existsSync(mooNewsMsgPath)) return null;
@@ -24,6 +25,12 @@ const COMPANY_NAMES = {
   CHUG:  'Chug Enterprises',
   GOT:   'Got Milk Global',
   SPOIL: 'Spoiled Rotten LLC',
+  SKIM:  'Skim Street Capital',
+  LACT:  'Lactose Capital',
+  CURDS: 'CurdCo Ventures',
+  FETA:  'Feta Financial',
+  MOLD:  'Moldy Money LLC',
+  FROTH: 'Frothy Futures LLC',
 };
 
 function buildTipMessage(headline) {
@@ -293,6 +300,138 @@ const HEADLINES = [
   { text: "SPOIL entire product line recalled simultaneously after Dairy Bureau inspection determines the facility 'should not exist under current regulations'", effects: [{ ticker: 'SPOIL', tier: 'major_negative' }] },
   { text: "Spoiled Rotten LLC revealed to have no registered employees, no verifiable physical address, and a CEO whose public records list him as deceased since 2011", effects: [{ ticker: 'SPOIL', tier: 'major_negative' }] },
 
+  // ── SKIM ──────────────────────────────────────────────────────────────────
+  { text: "Skim Street Capital posts historic annual returns driven by what CEO describes as 'the simple power of cutting out all the fat'", effects: [{ ticker: 'SKIM', tier: 'major_positive' }] },
+  { text: "SKIM named safest dairy investment vehicle in the Pasture Region for the fifth consecutive year — rivals mutter under breath", effects: [{ ticker: 'SKIM', tier: 'major_positive' }] },
+  { text: "Skim Street Capital completes landmark acquisition of regional dairy bond portfolio valued at 900 million milk bucks — deal described as 'prudent and correct'", effects: [{ ticker: 'SKIM', tier: 'major_positive' }] },
+  { text: "SKIM Q2 earnings meet projections exactly — CFO describes it as 'precisely what we planned, and no, we're not boring, stop calling us boring'", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "Skim Street Capital expands portfolio offerings with new low-risk dairy-adjacent asset class targeting cautious institutional investors", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "SKIM named preferred holding for conservative dairy investors in Moo News annual stability survey", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "Skim Street Capital opens new client services center in the Western Pasture District, first expansion in three years", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "SKIM dividend maintained for 18th consecutive quarter — shareholders describe the feeling as 'predictable, in the best way'", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "Skim Street Capital Q4 pipeline review receives highest analyst confidence rating of any stable dairy vehicle this year", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "SKIM brand recognition among institutional buyers reaches all-time high following successful 'Low Risk, High Return' national campaign", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }] },
+  { text: "SKIM Q1 earnings technically miss projections by 0.4% — CFO insists this is 'within acceptable parameters' and visibly means it", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "Skim Street Capital loses mid-tier client portfolio to LACT following what insiders describe as 'a very polite but intense meeting'", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "SKIM faces mild regulatory review over asset classification practices — company says review is 'routine and entirely anticipated'", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "Skim Street Capital CFO resigns citing desire to 'pursue a more volatile career path' — board accepts resignation with visible confusion", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "SKIM brand perception among younger investors slips in latest Moo News survey — described by analysts as 'probably fine, but noted'", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "Skim Street Capital Q3 report reveals slight compression in net margins attributed to 'the normal friction of being responsible'", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "SKIM loses one of its most stable institutional accounts to a competing vehicle offering marginally better yield on a minor fund segment", effects: [{ ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "Skim Street Capital's flagship fund revealed to have been secretly levered 40x against short-term dairy futures for three years — 'stable' now in quotes", effects: [{ ticker: 'SKIM', tier: 'major_negative' }] },
+  { text: "SKIM CEO arrested after investigation discovers he has been skimming — literally — management fees from every client account for a decade", effects: [{ ticker: 'SKIM', tier: 'major_negative' }] },
+  { text: "Entire Skim Street Capital senior team resigns simultaneously — exit memos all cite 'a single meeting that changed everything, permanently'", effects: [{ ticker: 'SKIM', tier: 'major_negative' }] },
+
+  // ── LACT ──────────────────────────────────────────────────────────────────
+  { text: "Lactose Capital posts record annual dividend — board describes the achievement as 'the natural result of decades of sensible decisions'", effects: [{ ticker: 'LACT', tier: 'major_positive' }] },
+  { text: "LACT wins Dairy Financial Authority Investor Trust Award for the third consecutive year — acceptance speech was exactly what you'd expect", effects: [{ ticker: 'LACT', tier: 'major_positive' }] },
+  { text: "Lactose Capital completes landmark acquisition of regional dairy bond portfolio valued at 1.2 billion milk bucks — deal described as 'appropriately prudent'", effects: [{ ticker: 'LACT', tier: 'major_positive' }] },
+  { text: "LACT Q2 earnings steady and predictable — CFO uses the word 'consistent' eleven times in the earnings call, seemingly without irony", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "Lactose Capital expands into three new conservative dairy investment categories, describing each as 'low risk and appropriately boring'", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "LACT raises dividend for seventh consecutive year — CEO celebrates by issuing a measured, well-formatted press release", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "Lactose Capital named top stable holding for institutional dairy investors in annual Moo News financial review", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "LACT partners with Dairy UN pension fund on new capital preservation vehicle — two most cautious organizations in dairy history join forces", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "Lactose Capital Q1 results in line with guidance — attending analyst describes the earnings call as 'the most calming 45 minutes of my career'", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "LACT quietly posts best total return of any stable dairy vehicle this quarter — no fanfare issued, none expected", effects: [{ ticker: 'LACT', tier: 'minor_positive' }] },
+  { text: "Lactose Capital Q3 results miss conservative guidance by the smallest margin recorded in Moo News financial history", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "LACT faces criticism from activist investors who describe the company's strategy as 'conservative to the point of somnolence'", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "Lactose Capital loses junior analyst team to SKIM — sources describe the rivalry as 'heated, in a very calm way'", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "LACT brand seen as outdated by younger dairy investors in quarterly sentiment survey — board acknowledges feedback and does nothing", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "Lactose Capital's new digital investment platform described by early users as 'functional and deeply uninspiring'", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "LACT Q4 earnings call interrupted when CFO accidentally mutes himself for 12 minutes — company issues formal apology letter", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "Lactose Capital board rejects aggressive expansion proposal for the second consecutive year, citing 'our fundamental commitment to not doing that'", effects: [{ ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "Lactose Capital's three-decade perfect dividend record broken after board miscalculates payout formula — conservative dairy investor community shaken", effects: [{ ticker: 'LACT', tier: 'major_negative' }] },
+  { text: "LACT CEO resigns after admitting to secret side investment in SPOIL — board describes the betrayal as 'the least Lactose Capital thing imaginable'", effects: [{ ticker: 'LACT', tier: 'major_negative' }] },
+  { text: "Lactose Capital loses institutional flagship account after 22-year partnership, citing 'a philosophical divergence on the nature of capital preservation'", effects: [{ ticker: 'LACT', tier: 'major_negative' }] },
+
+  // ── CURDS ─────────────────────────────────────────────────────────────────
+  { text: "CurdCo Ventures closes the largest Series C funding round in dairy venture history at 2.1 billion milk bucks — called 'the curd of the century'", effects: [{ ticker: 'CURDS', tier: 'major_positive' }] },
+  { text: "CURDS portfolio company WheyStarter exits at 14x return — CurdCo Ventures CEO celebrates by immediately calling it 'just the beginning'", effects: [{ ticker: 'CURDS', tier: 'major_positive' }] },
+  { text: "CurdCo Ventures announces exclusive partnership with Dairy UN Innovation Fund, securing first access to all emerging dairy market technologies", effects: [{ ticker: 'CURDS', tier: 'major_positive' }] },
+  { text: "CURDS Q2 portfolio performance beats benchmark — four of six venture holdings reported ahead of initial projections for the first time", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CurdCo Ventures launches new early-stage dairy accelerator program — applications described as 'overwhelming in volume and ambition'", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CURDS announces successful exit from CheeseStartup Holdings at a reported 3.2x return — modest but validated", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CurdCo Ventures adds three former MILK executives to advisory board, significantly bolstering institutional credibility", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CURDS named top dairy venture vehicle by Moo News Emerging Sector Report for the second consecutive year", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CurdCo Ventures portfolio diversification strategy pays off as three separate holdings show simultaneous growth in Q3", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CURDS secures follow-on funding for flagship portfolio company MooTech Labs — investors described as 'cautiously excited and writing checks'", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }] },
+  { text: "CurdCo Ventures Q1 results mixed — two portfolio exits below projection, one write-down acknowledged with 'lessons were definitely learned'", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CURDS loses lead partner to FETA Financial in what insiders describe as 'an extremely uncomfortable departure dinner that went long'", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures' highest-profile portfolio company NovaMilk stumbles in product launch, drawing down fund returns for the quarter", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CURDS Q3 report flags increased due diligence costs following string of underperforming early-stage investments", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures misses annual return target by 2.1% — board calls it 'a known risk of the venture model, which we all knew about going in'", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CURDS faces growing investor skepticism after three consecutive portfolio companies miss commercialization milestones in the same quarter", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures loses seed-stage deal to competing fund, marking the fourth such loss this quarter and the third to FETA specifically", effects: [{ ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures flagship fund revealed to have 40% of capital locked in a single startup that has produced no product in four years", effects: [{ ticker: 'CURDS', tier: 'major_negative' }] },
+  { text: "CURDS managing partner indicted for alleged fraudulent valuation of portfolio companies in official fund offering documents", effects: [{ ticker: 'CURDS', tier: 'major_negative' }] },
+  { text: "CurdCo Ventures entire venture portfolio simultaneously declared non-performing — auditors describe findings as 'extremely curdled'", effects: [{ ticker: 'CURDS', tier: 'major_negative' }] },
+
+  // ── FETA ──────────────────────────────────────────────────────────────────
+  { text: "Feta Financial posts extraordinary quarterly gains after contrarian Mediterranean dairy derivatives position pays off beyond all reasonable expectation", effects: [{ ticker: 'FETA', tier: 'major_positive' }] },
+  { text: "FETA closes massive short position on the spreadable fats sector at the exact peak — CEO says it was obvious, nobody else thought it was obvious", effects: [{ ticker: 'FETA', tier: 'major_positive' }] },
+  { text: "Feta Financial lands anchor investor worth 800 million milk bucks following breakout performance in volatile dairy sector report", effects: [{ ticker: 'FETA', tier: 'major_positive' }] },
+  { text: "FETA Q2 results above expectations — CFO describes strategy as 'zigging when others zag and also when others zig'", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "Feta Financial's contrarian dairy derivatives fund posts best single-month return in company history", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "FETA hires three top analysts from WHEY following Whey's compensation restructure — immediate market reaction broadly positive", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "Feta Financial expands into Eastern Pasture short-selling market — early positions described internally as 'appropriately spicy'", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "FETA named most unpredictably profitable dairy vehicle in Moo News volatility index for third quarter running", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "Feta Financial releases investor letter described by recipients as 'aggressively confident and, annoyingly, correct'", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "FETA Q4 results strong — CFO attributes success to 'trusting the process and having absolutely no chill whatsoever'", effects: [{ ticker: 'FETA', tier: 'minor_positive' }] },
+  { text: "Feta Financial loses major derivatives position after market moves contrary to the fund's core thesis for three consecutive days", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "FETA Q1 results below forecast — CFO describes it as 'a temporary disagreement with reality that reality will lose'", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "Feta Financial loses two senior partners who leave to start their own firm — company says it will 'serve as motivation'", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "FETA faces margin call on leveraged dairy futures position after unexpected sector-wide price compression triggers risk limits", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "Feta Financial Q3 investor letter longer than usual, more defensive in tone, contains notably less of its trademark confidence", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "FETA loses anchor institutional client after volatile quarter triggers mandatory risk-off clause buried in investment agreement", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "Feta Financial position in SPOIL derivatives described by regulators as 'creative, possibly legal, and definitely worth a closer look'", effects: [{ ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "Feta Financial's entire leveraged derivatives book unwound overnight after catastrophic correlation event — CEO calls it 'the trade that will make us stronger'", effects: [{ ticker: 'FETA', tier: 'major_negative' }] },
+  { text: "FETA CEO detained at border with hard drives containing what authorities describe as 'an unusual quantity of dairy financial models'", effects: [{ ticker: 'FETA', tier: 'major_negative' }] },
+  { text: "Feta Financial regulatory filing reveals fund has been operating with negative net asset value for six months — auditors describe findings as 'salty'", effects: [{ ticker: 'FETA', tier: 'major_negative' }] },
+
+  // ── MOLD ──────────────────────────────────────────────────────────────────
+  { text: "Moldy Money LLC posts inexplicable 340% quarterly return — company releases no statement, no investor letter, and no explanation of any kind", effects: [{ ticker: 'MOLD', tier: 'major_positive' }] },
+  { text: "MOLD secures undisclosed funding from an unnamed international source described only as 'substantial and committed to the mission'", effects: [{ ticker: 'MOLD', tier: 'major_positive' }] },
+  { text: "Moldy Money LLC wins landmark arbitration against Dairy Bureau resulting in historic payout and permanent injunction on further investigations", effects: [{ ticker: 'MOLD', tier: 'major_positive' }] },
+  { text: "MOLD Q2 results better than anyone expected, including apparently Moldy Money LLC itself — no forecast had been issued or was requested", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "Moldy Money LLC announces new product line described in the press release only as 'aged, distinctive, and an acquired taste'", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "MOLD quietly accumulates significant position in three Pasture Region dairy futures — analysts describe move as 'mysterious but tactically interesting'", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "Moldy Money LLC retains fiercely loyal investor base despite everything, for reasons no independent analyst has fully explained", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "MOLD reports strong Q1 revenue from what the annual filing describes only as 'fermentation-adjacent activities'", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "Moldy Money LLC CEO surfaces publicly for first time in six months, says only 'we're fine' and immediately leaves the building", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "MOLD posts positive quarterly numbers — filing cites 'favorable conditions in the non-standard dairy derivatives market'", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }] },
+  { text: "Moldy Money LLC loses three institutional accounts citing 'a general sense of unease that we cannot fully articulate'", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "MOLD Q3 earnings miss — company releases statement consisting of a single sentence reading only 'this is temporary'", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "Moldy Money LLC offices visited by Dairy Financial Authority for the fourth time this year — agents decline comment on exit", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "MOLD faces growing investor skepticism after CFO cannot be reached for three consecutive scheduled calls", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "Moldy Money LLC Q4 report contains 14 footnotes that regulatory reviewers have described as 'deliberately difficult to interpret'", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "MOLD loses distribution partner after partner cites in formal termination letter 'a smell we can no longer professionally ignore'", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "Moldy Money LLC auditor submits formal disclaimer distancing themselves from any conclusions drawn from the financial statements", effects: [{ ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "Moldy Money LLC CEO arrested in connection with what Dairy Bureau describes as 'the most elaborate dairy financial instrument fraud we have ever encountered'", effects: [{ ticker: 'MOLD', tier: 'major_negative' }] },
+  { text: "MOLD revealed to have been operating out of a single storage unit in the Outer Pasture Region with three servers and one employee for four years", effects: [{ ticker: 'MOLD', tier: 'major_negative' }] },
+  { text: "Moldy Money LLC collapses after whistleblower reveals the company's core asset was a single aging block of cheese — 'literally moldy money', auditors confirm", effects: [{ ticker: 'MOLD', tier: 'major_negative' }] },
+
+  // ── FROTH ─────────────────────────────────────────────────────────────────
+  { text: "Frothy Futures LLC posts historic quarter driven entirely by viral social media campaign that nobody at the company claims to have started", effects: [{ ticker: 'FROTH', tier: 'major_positive' }] },
+  { text: "FROTH short squeeze drives the largest single-day rally in dairy market history — retail investors described as 'gleefully, concerningly unhinged'", effects: [{ ticker: 'FROTH', tier: 'major_positive' }] },
+  { text: "Frothy Futures LLC secures surprise institutional backing worth 1.1 billion milk bucks from fund described only as 'high-risk-tolerant'", effects: [{ ticker: 'FROTH', tier: 'major_positive' }] },
+  { text: "FROTH Q2 results beat expectations — CFO attributes success to 'keeping the energy up and the logic appropriately loose'", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "Frothy Futures LLC gains significant retail investor following overnight following viral post describing FROTH as 'dairy's wildest ride'", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "FROTH announces new speculative dairy futures instrument — immediate pre-sale demand described as 'frenzied and possibly unprecedented'", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "Frothy Futures LLC Q3 report shows strong speculative returns on positions most institutional analysts had written off entirely", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "FROTH retail investor base surges 40% in one week following favorable Moo News mention in the 'Speculative Picks' section", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "Frothy Futures LLC posts positive returns for the month — analysts describe this outcome as 'technically possible and somehow real'", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "FROTH accumulates notable position in volatile dairy index derivatives — action described by market observers as 'extremely on brand'", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "Frothy Futures LLC Q1 results volatile even by FROTH standards — official investor update describes the quarter as 'a journey we survived'", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "FROTH retail investor sentiment cools after social media momentum fades following competing viral dairy story", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "Frothy Futures LLC loses two speculative positions in one afternoon — fund manager releases voice note saying only 'we hold'", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "FROTH Q4 earnings call derailed after retail investors flood question line with the same question 1,400 consecutive times", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "Frothy Futures LLC core speculative thesis on dairy market inefficiency fails to materialize for the second straight quarter", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "FROTH loses significant retail confidence after CFO is caught on camera saying 'I honestly don't know' during investor day presentation", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "Frothy Futures LLC posts negative monthly return — online dairy investor community responds with coordinated 'we hold' post", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "Frothy Futures LLC margin call cascade wipes out 70% of fund value in a single afternoon — company's official response is a gif of a frothing milk carton", effects: [{ ticker: 'FROTH', tier: 'major_negative' }] },
+  { text: "FROTH regulatory investigation opens after Dairy Financial Authority identifies 'coordinated artificial price inflation across multiple dairy derivatives instruments'", effects: [{ ticker: 'FROTH', tier: 'major_negative' }] },
+  { text: "Frothy Futures LLC collapses spectacularly after founder admits fund strategy was 'vibes-based since inception and never anything else'", effects: [{ ticker: 'FROTH', tier: 'major_negative' }] },
+
   // ── RIVALRY / MULTI-STOCK ─────────────────────────────────────────────────
   { text: "MilkCorp Industries poaches Creme Capital's top three analysts in a single afternoon, calls it 'a free market'", effects: [{ ticker: 'MILK', tier: 'minor_positive' }, { ticker: 'CREM', tier: 'minor_negative' }] },
   { text: "Creme Capital wins disputed government contract that MilkCorp had held for seven consecutive years", effects: [{ ticker: 'CREM', tier: 'minor_positive' }, { ticker: 'MILK', tier: 'minor_negative' }] },
@@ -369,6 +508,19 @@ const HEADLINES = [
   { text: "Energy beverage sector report declares highest growth of any dairy-adjacent category — traditional investment vehicles lag", effects: [{ ticker: 'CHUG', tier: 'minor_positive' }, { ticker: 'CREM', tier: 'minor_negative' }] },
   { text: "First-time retail investors strongly prefer market index products over commodity-backed holdings per Moo News quarterly survey", effects: [{ ticker: 'MOO', tier: 'minor_positive' }, { ticker: 'BUTR', tier: 'minor_negative' }] },
   { text: "Got Milk Global's aggressive brand cleanup campaign wins consumer trust that Spoiled Rotten LLC will never have", effects: [{ ticker: 'GOT', tier: 'minor_positive' }, { ticker: 'SPOIL', tier: 'minor_negative' }] },
+
+  { text: "Skim Street Capital poaches Lactose Capital's three most experienced relationship managers in a single afternoon — LACT board convenes emergency session", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }, { ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "Lactose Capital wins cornerstone institutional account that Skim Street Capital had held for nine consecutive years", effects: [{ ticker: 'LACT', tier: 'minor_positive' }, { ticker: 'SKIM', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures acquires startup FETA Financial had been in exclusive talks with for six months — FETA declines to comment publicly", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }, { ticker: 'FETA', tier: 'minor_negative' }] },
+  { text: "Feta Financial takes leveraged contrarian position against CurdCo Ventures' flagship portfolio — analysts describe move as 'bold and possibly personal'", effects: [{ ticker: 'FETA', tier: 'minor_positive' }, { ticker: 'CURDS', tier: 'minor_negative' }] },
+  { text: "Both MOLD and FROTH somehow profit simultaneously from the same sector chaos event — market analysts request additional time to process this", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }, { ticker: 'FROTH', tier: 'minor_positive' }] },
+  { text: "Moldy Money LLC quietly opens significant short position against FROTH — Frothy Futures retail community takes this personally", effects: [{ ticker: 'MOLD', tier: 'minor_positive' }, { ticker: 'FROTH', tier: 'minor_negative' }] },
+  { text: "Frothy Futures retail army coordinates buying surge against MOLD positions — Moldy Money LLC responds with a single period as official statement", effects: [{ ticker: 'FROTH', tier: 'minor_positive' }, { ticker: 'MOLD', tier: 'minor_negative' }] },
+  { text: "Skim Street Capital wins favor from MilkCorp-aligned institutional accounts following MILK's latest quality assurance certification", effects: [{ ticker: 'SKIM', tier: 'minor_positive' }, { ticker: 'MILK', tier: 'minor_positive' }] },
+  { text: "Feta Financial's aggressive volatility strategy draws investment away from Chug Enterprises — both fighting for the same high-risk appetite capital", effects: [{ ticker: 'FETA', tier: 'minor_positive' }, { ticker: 'CHUG', tier: 'minor_negative' }] },
+  { text: "Frothy Futures and Spoiled Rotten LLC are named in the same Dairy Bureau warning letter — for completely different but equally concerning reasons", effects: [{ ticker: 'FROTH', tier: 'minor_negative' }, { ticker: 'SPOIL', tier: 'minor_negative' }] },
+  { text: "Conservative dairy capital rotates from Lactose Capital into MilkCorp following LACT's Q4 dividend calculation error", effects: [{ ticker: 'MILK', tier: 'minor_positive' }, { ticker: 'LACT', tier: 'minor_negative' }] },
+  { text: "CurdCo Ventures and Whey Street Group announce co-investment vehicle targeting early-stage dairy protein innovation companies", effects: [{ ticker: 'CURDS', tier: 'minor_positive' }, { ticker: 'WHEY', tier: 'minor_positive' }] },
 
   // ── SECTOR / MARKET-WIDE ──────────────────────────────────────────────────
   { text: "Dairy UN announces global 'Drink More Milk' initiative backed by 47 member states — entire sector expected to benefit", effects: [{ ticker: 'ALL', tier: 'major_positive' }] },
@@ -482,15 +634,44 @@ async function dropNews(client, headline) {
   state.lastNewsAt = Date.now();
 }
 
-function scheduleNews(client) {
-  const now = new Date();
-  const midnight = new Date();
-  midnight.setHours(24, 0, 0, 0);
-  const msRemaining = midnight - now;
+function todayDateStr() {
+  return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+}
 
-  const count = Math.floor(Math.random() * 4) + 6; // 6–9 drops
-  for (let i = 0; i < count; i++) {
-    const delay = Math.floor(Math.random() * msRemaining);
+function loadSchedule() {
+  try {
+    if (fs.existsSync(schedPath)) return JSON.parse(fs.readFileSync(schedPath, 'utf8'));
+  } catch {}
+  return null;
+}
+
+function saveSchedule(date, drops) {
+  fs.writeFileSync(schedPath, JSON.stringify({ date, drops }));
+}
+
+function scheduleNews(client) {
+  const now      = Date.now();
+  const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+  const msRemaining = midnight - now;
+  const today = todayDateStr();
+
+  const saved = loadSchedule();
+  let dropTimes;
+
+  if (saved && saved.date === today && Array.isArray(saved.drops)) {
+    // Restore saved schedule — only fire drops that haven't happened yet
+    dropTimes = saved.drops.filter(ts => ts > now);
+    console.log(`[moosnews] restored ${dropTimes.length} pending drops from saved schedule`);
+  } else {
+    // Generate fresh random schedule for today and persist it
+    const count = Math.floor(Math.random() * 4) + 6; // 6–9 drops
+    dropTimes = Array.from({ length: count }, () => now + Math.floor(Math.random() * msRemaining));
+    saveSchedule(today, dropTimes);
+    console.log(`[moosnews] generated ${count} new drops for today`);
+  }
+
+  for (const ts of dropTimes) {
+    const delay = ts - now;
     const headline = HEADLINES[Math.floor(Math.random() * HEADLINES.length)];
 
     // 30% chance to DM a random player an insider tip ~3 minutes before the news
@@ -502,7 +683,11 @@ function scheduleNews(client) {
     setTimeout(() => dropNews(client, headline), delay);
   }
 
-  setTimeout(() => scheduleNews(client), msRemaining);
+  // At midnight: clear saved schedule and reschedule for the new day
+  setTimeout(() => {
+    try { fs.unlinkSync(schedPath); } catch {}
+    scheduleNews(client);
+  }, msRemaining);
 }
 
 module.exports = { scheduleNews, pendingModifiers };

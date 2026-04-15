@@ -100,6 +100,29 @@ const UPDATES = [
       `\`!geo\` is now a real image-based geography game. Bot posts a photo of a real-world location — type the country name to win 50 milk bucks. Continent hint drops at 15 seconds. 100 locations across every continent.`,
     ].join('\n'),
   },
+  {
+    id: 'v10-stocks-games-cleanup',
+    text: [
+      `📈 **6 new stocks + 2 new games**`,
+      ``,
+      `**New stocks on the market:**`,
+      `• \`SKIM\` — Skim Street Capital *(stable)*`,
+      `• \`LACT\` — Lactose Capital *(stable)*`,
+      `• \`CURDS\` — CurdCo Ventures *(medium)*`,
+      `• \`FETA\` — Feta Financial *(volatile)*`,
+      `• \`MOLD\` — Moldy Money LLC *(chaotic)*`,
+      `• \`FROTH\` — Frothy Futures LLC *(chaotic)*`,
+      `All 14 stocks now live in \`#milkbot-stocks-info\` with their own Moo News headlines.`,
+      ``,
+      `**New games in \`#milkbot-games\`:**`,
+      `• \`!rou <amount> <red|black|0-36>\` — Roulette. Colors pay 2x, numbers pay 35x. Min 10 milk bucks.`,
+      `• \`!lt <tickets>\` — Daily Lottery. 10 milk bucks per ticket, no cap. One winner drawn at midnight. Pot rolls over from every ticket sold.`,
+      ``,
+      `**Removed:** \`!g\` (guess the number) — nobody played it, into the trash it goes 🗑️`,
+      ``,
+      `**Fixed:** Moo News drops no longer vanish when the bot restarts — schedule is now saved and survives redeploys. 🥛`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────

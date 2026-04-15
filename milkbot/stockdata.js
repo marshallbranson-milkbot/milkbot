@@ -16,7 +16,13 @@ const STOCK_DEFS = [
   { ticker: 'MOO',  name: 'Moo Markets Inc',        volatility: [0.05, 0.10], minPrice: 15 },
   { ticker: 'CHUG', name: 'Chug Enterprises',       volatility: [0.10, 0.20], minPrice: 10 },
   { ticker: 'GOT',  name: 'Got Milk Global',        volatility: [0.10, 0.20], minPrice: 10 },
-  { ticker: 'SPOIL',name: 'Spoiled Rotten LLC',     volatility: [0.05, 0.30], minPrice:  5 },
+  { ticker: 'SPOIL', name: 'Spoiled Rotten LLC',     volatility: [0.05, 0.30], minPrice:  5 },
+  { ticker: 'SKIM',  name: 'Skim Street Capital',   volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'LACT',  name: 'Lactose Capital',       volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'CURDS', name: 'CurdCo Ventures',       volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'FETA',  name: 'Feta Financial',        volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'MOLD',  name: 'Moldy Money LLC',       volatility: [0.05, 0.30], minPrice:  5 },
+  { ticker: 'FROTH', name: 'Frothy Futures LLC',    volatility: [0.05, 0.30], minPrice:  5 },
 ];
 
 const BASE_PRICE = 100;

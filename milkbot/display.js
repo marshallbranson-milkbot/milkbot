@@ -53,7 +53,6 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!cf @user amount\` — challenge someone to a coinflip
 \`!a\` / \`!d\` — accept or decline a coinflip
 \`!fh amount\` — flip against MilkBot directly (good luck)
-\`!g\` — guess 1-100, closest in 15s wins 5 milk bucks (solo: must be within 10)
 \`!sc\` — unscramble the word (3/letter, rare words 10/letter)
 \`!sl\` — spin the slots for 10 milk bucks
 \`!mt\` — milk trivia, A/B/C, first right answer wins · 15 milk bucks
@@ -62,6 +61,8 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!bl amount\` — blackjack vs MilkBot (min 25 · blackjack pays 3:2)
 \`!ra amount\` — start a raid, crew joins with \`!j\`
 \`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
+\`!rou amount red/black/number\` — roulette. colors pay 2x, numbers pay 35x
+\`!lt tickets\` — buy lottery tickets (10 🥛 each). midnight drawing. one winner takes it all.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
