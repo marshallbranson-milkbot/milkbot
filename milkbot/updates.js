@@ -101,26 +101,24 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v10-stocks-games-cleanup',
+    id: 'v14-new-stocks',
     text: [
-      `📈 **6 new stocks + 2 new games**`,
-      ``,
-      `**New stocks on the market:**`,
-      `• \`SKIM\` — Skim Street Capital *(stable)*`,
-      `• \`LACT\` — Lactose Capital *(stable)*`,
-      `• \`CURDS\` — CurdCo Ventures *(medium)*`,
-      `• \`FETA\` — Feta Financial *(volatile)*`,
-      `• \`MOLD\` — Moldy Money LLC *(chaotic)*`,
-      `• \`FROTH\` — Frothy Futures LLC *(chaotic)*`,
-      `All 14 stocks now live in \`#milkbot-stocks-info\` with their own Moo News headlines.`,
-      ``,
-      `**New games in \`#milkbot-games\`:**`,
-      `• \`!rou <amount> <red|black|0-36>\` — Roulette. Colors pay 2x, numbers pay 35x. Min 10 milk bucks.`,
-      `• \`!lt <tickets>\` — Daily Lottery. 10 milk bucks per ticket, no cap. One winner drawn at midnight. Pot rolls over from every ticket sold.`,
-      ``,
-      `**Removed:** \`!g\` (guess the number) — nobody played it, into the trash it goes 🗑️`,
-      ``,
-      `**Fixed:** Moo News drops no longer vanish when the bot restarts — schedule is now saved and survives redeploys. 🥛`,
+      `📈 **6 new stocks**`,
+      `The market just got bigger. SKIM (Skim Street Capital), LACT (Lactose Capital), CURDS (CurdCo Ventures), FETA (Feta Financial), MOLD (Moldy Money LLC), and FROTH (Frothy Futures LLC) are now live. 14 stocks total. All with their own Moo News headlines. \`#milkbot-stocks-info\` has been updated.`,
+    ].join('\n'),
+  },
+  {
+    id: 'v15-roulette',
+    text: [
+      `🎡 **Roulette**`,
+      `\`!rou <amount> <red|black|0-36>\` — spin the wheel. Bet on red or black to double your money, or pick a specific number for a 35x payout. Min 10 milk bucks. Hot streak and prestige multipliers apply.`,
+    ].join('\n'),
+  },
+  {
+    id: 'v16-lottery',
+    text: [
+      `🎟️ **Daily Lottery**`,
+      `\`!lt <tickets>\` — buy as many tickets as you want at 10 milk bucks each. One winner drawn at midnight. Every ticket in the pot goes straight to the prize. More tickets, better odds. Nobody buys in? The pot sits there judging everyone.`,
     ].join('\n'),
   },
 ];
