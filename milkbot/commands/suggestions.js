@@ -31,7 +31,13 @@ async function liftBan(channel, userId) {
     console.error('[suggestions] failed to remove ban overwrite:', e.message);
   }
 
-  // Delete all their messages in the channel
+  // Clear their record
+  const mod = getMod();
+  delete mod[userId];
+  saveMod(mod);
+}
+
+async function deleteAllMessages(channel, userId) {
   try {
     const fetched = await channel.messages.fetch({ limit: 100 });
     const toDelete = [...fetched.values()].filter(m => m.author.id === userId);
@@ -40,13 +46,8 @@ async function liftBan(channel, userId) {
     }
     console.log(`[suggestions] deleted ${toDelete.length} messages from ${userId}`);
   } catch (e) {
-    console.error('[suggestions] failed to delete messages on ban lift:', e.message);
+    console.error('[suggestions] failed to delete messages:', e.message);
   }
-
-  // Clear their record
-  const mod = getMod();
-  delete mod[userId];
-  saveMod(mod);
 }
 
 // Called on bot startup — restores timers for any bans that survived a restart
@@ -208,8 +209,10 @@ module.exports = {
               console.error('[suggestions] failed to apply ban overwrite:', e.message);
             }
 
+            await deleteAllMessages(channel, userId);
+
             await channel.send(
-              `🚫 **${username}** has been banned from this channel for **24 hours**. messages deleted on return. see ya tomorrow. 🥛`
+              `🚫 **${username}** has been banned from this channel for **24 hours**. see ya tomorrow. 🥛`
             ).catch(console.error);
 
             setTimeout(() => liftBan(channel, userId), BAN_DURATION);
