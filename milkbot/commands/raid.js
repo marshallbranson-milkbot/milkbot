@@ -46,12 +46,17 @@ function getXp(size) {
 
 let activeRaid = null;
 
+const bjt = require('./bjt');
+
 module.exports = {
   name: 'ra',
   aliases: ['raid', 'j'],
   description: 'Start a raid. Usage: !ra amount',
   execute(message, args) {
-    // --- JOIN ---
+    // --- JOIN (tournament takes priority over raid) ---
+    if (message.content.startsWith('!j') && bjt.tryJoin(message)) return;
+
+    // --- JOIN RAID ---
     if (message.content.startsWith('!j')) {
       if (!activeRaid) {
         return message.reply(`No raid is active right now. Start one with \`!ra amount\`. 🥛`);

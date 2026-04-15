@@ -121,6 +121,34 @@ const UPDATES = [
       `\`!lt <tickets>\` — buy as many tickets as you want at 10 milk bucks each. One winner drawn at midnight. Every ticket in the pot goes straight to the prize. More tickets, better odds. Nobody buys in? The pot sits there judging everyone.`,
     ].join('\n'),
   },
+  {
+    id: 'v17-give',
+    text: [
+      `💸 **!give**`,
+      `\`!give @user amount\` — send milk bucks directly to another player. No fees, no catches. Use it for kindness, bribes, or deeply suspicious generosity.`,
+    ].join('\n'),
+  },
+  {
+    id: 'v18-dividends',
+    text: [
+      `💰 **Dividends**`,
+      `Holding stocks now pays out. Every 5 minutes, stable stocks (MILK, CREM, SKIM, LACT) pay 5%/day, mid-tier stocks pay 3%/day, and volatile ones pay 1%/day. Passive income, silent and automatic. Check \`!bal\` to see it building up.`,
+    ].join('\n'),
+  },
+  {
+    id: 'v19-plinko',
+    text: [
+      `🪣 **Plinko**`,
+      `\`!pl <amount>\` — drop the ball through 6 rows. It ends up in one of 7 slots: 10x on the edges, 3x one in, 1x breakeven, and 0.3x in the middle. The board animates live. Min 10 milk bucks.`,
+    ].join('\n'),
+  },
+  {
+    id: 'v20-bjt',
+    text: [
+      `🃏 **Blackjack Tournament**`,
+      `\`!bjt <buy-in>\` — host a blackjack tournament. Everyone has 30 seconds to join with \`!j\`. Once it kicks off, each player is dealt a hand and plays against the dealer one at a time (20 seconds per turn). Beat the dealer, win 2x your buy-in. Min 50 milk bucks.`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────

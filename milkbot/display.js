@@ -63,6 +63,9 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 \`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
 \`!rou amount red/black/number\` — roulette. colors pay 2x, numbers pay 35x
 \`!lt tickets\` — buy lottery tickets (10 🥛 each). midnight drawing. one winner takes it all.
+\`!give @user amount\` — send milk bucks to another player
+\`!pl amount\` — plinko. drop the ball. 10x edges, 0.3x middle. (min 10)
+\`!bjt buy-in\` — blackjack tournament. 30s join window, everyone vs dealer, winners take 2x. (min 50)
 
 ━━━━━━━━━━━━━━━━━━━━━━
 📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
