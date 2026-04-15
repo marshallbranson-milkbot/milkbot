@@ -142,15 +142,16 @@ module.exports = {
         const raw = response.content[0]?.text?.trim();
         if (!raw) return;
 
-        // Parse JSON — fall back to treating as plain "ok" if Claude misbehaves
+        // Parse JSON — extract the first {...} block in case Claude wrapped it in markdown
         let type = 'ok';
         let reply = raw;
         try {
-          const parsed = JSON.parse(raw);
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
           type  = ['ok', 'bad', 'inappropriate'].includes(parsed.type) ? parsed.type : 'ok';
           reply = parsed.reply || raw;
         } catch {
-          console.log('[suggestions] Claude response was not valid JSON, treating as ok');
+          console.log('[suggestions] Claude response was not valid JSON, treating as ok:', raw);
         }
 
         const channel  = message.channel;
