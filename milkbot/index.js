@@ -133,6 +133,15 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
   client.once('ready', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
 
+    // One-time jackpot reset to 10,000
+    const jackpotResetPath = path.join(__dirname, 'data/jackpot_reset_done.json');
+    if (!fs.existsSync(jackpotResetPath)) {
+      const jackpotFilePath = path.join(__dirname, 'data/jackpot.json');
+      fs.writeFileSync(jackpotFilePath, JSON.stringify({ amount: 10000 }, null, 2));
+      fs.writeFileSync(jackpotResetPath, JSON.stringify({ done: true }));
+      console.log('[jackpot] reset to 10,000');
+    }
+
     // Run any command module init functions (e.g. suggestions ban restoration)
     for (const initFn of initCallbacks) {
       await initFn(client).catch(console.error);
