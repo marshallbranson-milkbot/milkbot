@@ -322,7 +322,8 @@ function resolveAllHands(userId, channel, gameMsg) {
   clearTimeout(game.timeout);
   activeGames.delete(userId);
 
-  while (handTotal(game.dealerHand) < 17) {
+  const dealerThreshold = game.dealerThreshold || 17;
+  while (handTotal(game.dealerHand) < dealerThreshold) {
     game.dealerHand.push(game.deck.pop());
   }
 
@@ -664,6 +665,7 @@ module.exports = {
       timeout: null,
       resultLine: null,
       username: message.author.username,
+      dealerThreshold: 15 + Math.floor(Math.random() * 4), // 15, 16, 17, or 18
     };
 
     const timeout = setTimeout(() => {
@@ -676,7 +678,8 @@ module.exports = {
 
       game.quip = `you went ghost. dealer keeps your milk bucks. 👻`;
       game.resultLine = `You lose **${bet} milk bucks** (timeout). 🥛`;
-      while (handTotal(game.dealerHand) < 17) {
+      const threshold = game.dealerThreshold || 17;
+      while (handTotal(game.dealerHand) < threshold) {
         game.dealerHand.push(game.deck.pop());
       }
       if (game.gameMsg) {

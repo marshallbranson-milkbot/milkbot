@@ -137,10 +137,11 @@ function check(message) {
   const answer = message.content.trim().toLowerCase();
   if (!['a', 'b', 'c'].includes(answer)) return false;
 
-  if (activeTrivia.answered.has(message.author.id)) {
-    message.reply(`You already answered this one. 🥛`);
-    return true;
-  }
+  // Delete every answer attempt immediately
+  message.delete().catch(() => {});
+
+  // Already answered — silently consumed
+  if (activeTrivia.answered.has(message.author.id)) return true;
 
   activeTrivia.answered.add(message.author.id);
 
@@ -159,7 +160,10 @@ function check(message) {
     saveData(xpPath, xp);
 
     clearTimeout(activeTrivia.timeout);
+    const questionMsg = activeTrivia.questionMsg;
     activeTrivia = null;
+
+    if (questionMsg) setTimeout(() => questionMsg.delete().catch(() => {}), 6000);
 
     const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
     if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
@@ -167,14 +171,14 @@ function check(message) {
 
     ach.check(message.author.id, message.author.username, 'trivia_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak, gameType: 'trivia' }, message.channel);
 
-    message.channel.send(
+    const winMsg = message.channel.send(
       `✅ **${message.author.username} got it!** +**${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
     );
+    winMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
     return true;
   }
 
   ws.resetStreak(message.author.id);
-  message.reply(`Wrong answer. One guess per person. 🥛`);
   return true;
 }
 
@@ -183,34 +187,31 @@ module.exports = {
   aliases: ['milktrivia'],
   description: 'Milk trivia — answer A, B, or C. First correct answer wins 15 milk bucks.',
   check,
-  execute(message) {
-    if (activeTrivia) {
-      return message.reply(
-        `A trivia question is already active!\n\n` +
-        `**${activeTrivia.question}**\n${activeTrivia.choices.join('\n')}`
-      );
-    }
+  async execute(message) {
+    if (activeTrivia) return; // already active, silently ignore
 
     const q = questions[Math.floor(Math.random() * questions.length)];
     const answered = new Set();
 
     const timeout = setTimeout(() => {
-      if (activeTrivia) {
-        message.channel.send(
-          `⏰ Time's up! Nobody got it. The answer was **${activeTrivia.answer.toUpperCase()}**. 🥛`
-        );
-        activeTrivia = null;
-      }
+      if (!activeTrivia) return;
+      const qMsg = activeTrivia.questionMsg;
+      activeTrivia = null;
+      const timeoutMsg = message.channel.send(
+        `⏰ Time's up! Nobody got it. The answer was **${q.a.toUpperCase()}**. 🥛`
+      );
+      timeoutMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
+      if (qMsg) setTimeout(() => qMsg.delete().catch(() => {}), 6000);
     }, ANSWER_TIME);
 
-    activeTrivia = { question: q.q, answer: q.a, choices: q.choices, answered, timeout };
+    activeTrivia = { question: q.q, answer: q.a, choices: q.choices, answered, timeout, questionMsg: null };
     jackpot.addToJackpot(10);
 
-    message.channel.send(
+    activeTrivia.questionMsg = await message.channel.send(
       `🥛 **MILK TRIVIA** 🥛\n\n` +
       `**${q.q}**\n` +
       `${q.choices.join('\n')}\n\n` +
       `Type **A**, **B**, or **C**. First correct answer wins **${REWARD} milk bucks**! You have 30 seconds. ⏳`
-    );
+    ).catch(() => null);
   }
 };

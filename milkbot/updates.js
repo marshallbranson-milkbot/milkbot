@@ -191,6 +191,31 @@ const UPDATES = [
       `7 rotating bosses. 🥛`,
     ].join('\n'),
   },
+  {
+    id: 'v24-overhaul',
+    text: [
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `🥛 **MILKBOT PATCH — BIG ONE** 🥛`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      `🕹️ **SLASH COMMANDS** — Everything works with \`/\` now. \`/g\`, \`/b\`, \`/s\`, \`/ba\`, \`/port\`, \`/bal\`, \`/h\` — type \`/\` and Discord autocompletes it. The \`!\` prefix still works too.`,
+      ``,
+      `👁 **PRIVATE MENUS** — \`/g\` now shows only to you. Nobody else sees your menu, your bet prompts, or your results. Fully invisible. Solo games stay between you and the bot. Use \`!g\` if you want the old public version.`,
+      ``,
+      `⭐ **LEVEL CAP: 100** — The cap has been raised from 25 to 100. New rank titles unlock every 10 levels:`,
+      `\`Milk Baby → Milk Drinker → Milk Fiend → Milk Hustler → Milk Dealer → Milk Baron → Milk Legend → Milk Overlord → Milk God → Milk Eternal → THE ONE TRUE MOO\``,
+      `Prestige 5 removes the cap entirely. Prestige now requires **level 100**.`,
+      ``,
+      `🐄 **RAID BOSS UPGRADE** — Boss art is now a full figure. Clicking **Boss** in the Social menu posts the full attack interface directly to the channel — no more scrolling up to find it.`,
+      ``,
+      `🧠 **CLEAN CO-OP GAMES** — Trivia, Scramble, Geo, and Trivia Crack now delete all answer messages instantly. No more 50 wrong guesses clogging the channel. Questions stay up for the full timer. Results auto-clean when the game ends.`,
+      ``,
+      `🃏 **BLACKJACK REBALANCED** — Dealer behavior is now randomized. The house edge is gone. Could go either way now.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `*— MilkBot Management. the dairy evolves. 🥛*`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────

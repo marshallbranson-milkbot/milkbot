@@ -84,10 +84,11 @@ const prestige = require('../prestige');
     const guess = message.content.trim().toLowerCase();
     if (!guess) return false;
 
-    if (activeScramble.guessed.has(message.author.id)) {
-      message.reply("You already guessed this round. One shot per person. 🥛");
-      return true;
-    }
+    // Delete every guess attempt immediately
+    message.delete().catch(() => {});
+
+    // Already guessed — silently consumed
+    if (activeScramble.guessed.has(message.author.id)) return true;
 
     activeScramble.guessed.add(message.author.id);
 
@@ -109,7 +110,10 @@ const prestige = require('../prestige');
       saveData(xpPath, xp);
 
       clearTimeout(activeScramble.timeout);
+      const questionMsg = activeScramble.questionMsg;
       activeScramble = null;
+
+      if (questionMsg) setTimeout(() => questionMsg.delete().catch(() => {}), 6000);
 
       if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
       jackpot.tryJackpot(message.author.id, message.author.username, message.channel);
@@ -117,15 +121,15 @@ const prestige = require('../prestige');
       ach.check(message.author.id, message.author.username, 'scramble_win', { balance: balances[message.author.id], xp: xp[message.author.id], streak: newStreak, responseMs, isRare: rare, gameType: 'scramble' }, message.channel);
 
       const bonuses = [hotMultiplier > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
-      message.channel.send(
+      const winMsg = message.channel.send(
         `${rare ? '💎 **RARE WORD!**' : '✅'} **${message.author.username} got it!** The word was **${guess}**.\n` +
         `They earned **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
       );
+      winMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
       return true;
     }
 
     ws.resetStreak(message.author.id);
-    message.reply(`Nope. One guess per round — you're out. 🥛`);
     return true;
   }
 
@@ -133,11 +137,8 @@ const prestige = require('../prestige');
     name: 'sc',
     description: 'Unscramble the word to win milk bucks.',
     check,
-    execute(message) {
-      if (activeScramble) {
-        return message.reply(`A scramble is already active! The word is:
-  **${activeScramble.scrambled.toLowerCase()}**`);
-      }
+    async execute(message) {
+      if (activeScramble) return; // already active, silently ignore
 
       const isRare = Math.random() < 0.10;
       const wordPool = isRare ? rareWords : normalWords;
@@ -147,21 +148,22 @@ const prestige = require('../prestige');
       const guessed = new Set();
 
       const timeout = setTimeout(() => {
-        if (activeScramble) {
-          message.channel.send(`⏰ Time's up! The word was **${activeScramble.word.toLowerCase()}**. Nobody got it.
-  🥛`);
-          activeScramble = null;
-        }
+        if (!activeScramble) return;
+        const qMsg = activeScramble.questionMsg;
+        activeScramble = null;
+        const timeoutMsg = message.channel.send(`⏰ Time's up! The word was **${word.toLowerCase()}**. Nobody got it. 🥛`);
+        timeoutMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
+        if (qMsg) setTimeout(() => qMsg.delete().catch(() => {}), 6000);
       }, isRare ? RARE_SCRAMBLE_TIME : SCRAMBLE_TIME);
 
-      activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now() };
+      activeScramble = { word, scrambled, reward, rare: isRare, guessed, timeout, startedAt: Date.now(), questionMsg: null };
       jackpot.addToJackpot(10);
 
-      message.channel.send(
+      activeScramble.questionMsg = await message.channel.send(
         `${isRare ? '💎 **RARE WORD — BIG PAYOUT!**' : '🔤 **SCRAMBLE**'} 🔤\n` +
         `Unscramble this word: **${scrambled.toLowerCase()}**\n` +
         `Just type your answer in chat. First correct answer wins **${reward} milk bucks**!\n` +
         `You have **${isRare ? '25' : '15'} seconds**. ⏳`
-      );
+      ).catch(() => null);
     }
   };

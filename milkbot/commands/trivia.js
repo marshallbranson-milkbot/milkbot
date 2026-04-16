@@ -380,20 +380,24 @@ function check(message) {
   const ans = message.content.trim().toUpperCase();
   if (!['A', 'B', 'C', 'D'].includes(ans)) return false;
 
+  // Delete every answer attempt immediately
+  message.delete().catch(() => {});
+
   const { q, channel, timeout } = activeGame;
 
+  // Already answered — silently consumed
   if (activeGame.answered.has(message.author.id)) return true;
   activeGame.answered.add(message.author.id);
 
   const correct = q.ans.toUpperCase();
 
-  if (ans !== correct) {
-    message.reply(`❌ Nope. 🥛`);
-    return true;
-  }
+  if (ans !== correct) return true; // wrong — silently consumed and deleted
 
   clearTimeout(timeout);
+  const spinMsg = activeGame.spinMsg;
   activeGame = null;
+
+  if (spinMsg) setTimeout(() => spinMsg.delete().catch(() => {}), 6000);
 
   const userId = message.author.id;
   const username = message.author.username;
@@ -411,10 +415,11 @@ function check(message) {
   saveData(xpPath, xp);
 
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
-  channel.send(
+  const winMsg = channel.send(
     `✅ **${username}** got it! The answer was **${correct}**.\n` +
     `They win **${reward} milk bucks**!` + (bonuses ? ` *(${bonuses})*` : '') + ` 🥛`
   );
+  winMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
 
   ach.check(userId, username, 'trivia_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'trivia' }, channel);
 
@@ -430,16 +435,13 @@ module.exports = {
   description: 'Trivia Crack — spin for a category, first to answer wins 20 milk bucks.',
   check,
   execute(message) {
-    if (activeGame) {
-      return message.reply(`A trivia question is already going! Type A, B, C, or D. ⏳`);
-    }
+    if (activeGame) return; // already active, silently ignore
 
     const catIndex = Math.floor(Math.random() * CATEGORIES.length);
     const category = CATEGORIES[catIndex];
     const pool = QUESTIONS[category.key];
     const q = pool[Math.floor(Math.random() * pool.length)];
 
-    // Spin through 5 frames then land on final category
     const spins = [
       (catIndex + 3) % CATEGORIES.length,
       (catIndex + 5) % CATEGORIES.length,
@@ -449,24 +451,23 @@ module.exports = {
     ];
 
     message.channel.send(buildSpinFrame(spins[0])).then(spinMsg => {
-      // Cycle through intermediate frames
       spins.slice(1).forEach((pos, i) => {
         setTimeout(() => spinMsg.edit(buildSpinFrame(pos)).catch(() => {}), 600 * (i + 1));
       });
-
-      // Land on final category at 2400ms
       setTimeout(() => spinMsg.edit(buildSpinFrame(catIndex)).catch(() => {}), 2400);
 
-      // Show question at 3400ms
       setTimeout(() => {
-        const game = { category, q, channel: message.channel, timeout: null, answered: new Set() };
+        const game = { category, q, channel: message.channel, timeout: null, answered: new Set(), spinMsg };
 
         const timeout = setTimeout(() => {
           if (!activeGame) return;
+          const sm = activeGame.spinMsg;
           activeGame = null;
-          message.channel.send(
+          const timeoutMsg = message.channel.send(
             `⏰ Time's up! Nobody got it. The answer was **${q.ans.toUpperCase()}** — ${q[q.ans]}. 🥛`
           );
+          timeoutMsg.then(m => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
+          if (sm) setTimeout(() => sm.delete().catch(() => {}), 6000);
         }, GAME_TIME);
 
         game.timeout = timeout;

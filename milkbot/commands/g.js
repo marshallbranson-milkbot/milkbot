@@ -105,10 +105,26 @@ function autoDelete(promise) {
   return promise.then(m => { setTimeout(() => m?.delete().catch(() => {}), 10000); return m; });
 }
 
-function makeFakeMessage(interaction) {
+// Returns true if the button was clicked on an ephemeral message (i.e. /g slash)
+function isEphemeralContext(interaction) {
+  return !!(interaction.message?.flags?.bitfield & 64);
+}
+
+// mode: 'ephemeral' | 'channel' | 'autodelete'
+function makeFakeMessage(interaction, mode = 'autodelete') {
+  const sendFn =
+    mode === 'ephemeral'
+      ? async (content) => {
+          const payload = typeof content === 'string' ? { content } : content;
+          return interaction.followUp({ ...payload, ephemeral: true }).catch(() => null);
+        }
+      : mode === 'channel'
+        ? (content) => interaction.channel.send(content)
+        : (content) => autoDelete(interaction.channel.send(content));
+
   const channelProxy = new Proxy(interaction.channel, {
     get(target, prop) {
-      if (prop === 'send') return (content) => autoDelete(target.send(content));
+      if (prop === 'send') return sendFn;
       const val = target[prop];
       return typeof val === 'function' ? val.bind(target) : val;
     },
@@ -119,7 +135,7 @@ function makeFakeMessage(interaction) {
     channel: channelProxy,
     guild: interaction.guild,
     content: '',
-    reply: (content) => autoDelete(interaction.channel.send(content)),
+    reply: sendFn,
     delete: () => Promise.resolve(),
     mentions: { users: { first: () => null, size: 0 } },
   };
@@ -142,9 +158,14 @@ async function collect(interaction, prompt, userId) {
   return msg;
 }
 
+// Co-op games always post publicly; solo games go ephemeral when triggered from /g
+const COOP_GAMES = new Set(['scramble', 'trivia', 'triviacrack', 'geo']);
+
 // ── Game dispatcher ────────────────────────────────────────────────────────────
 async function handleGame(interaction, game, userId) {
-  const fakeMsg = makeFakeMessage(interaction);
+  const isSlash = isEphemeralContext(interaction);
+  const mode = COOP_GAMES.has(game) ? 'channel' : (isSlash ? 'ephemeral' : 'autodelete');
+  const fakeMsg = makeFakeMessage(interaction, mode);
 
   // One-click games (no input needed)
   const oneClick = {
@@ -161,7 +182,12 @@ async function handleGame(interaction, game, userId) {
     crate:      () => require('./crate').execute(fakeMsg),
     jackpot:    () => {
       const amt = require('../jackpot').getJackpot();
-      interaction.channel.send(`🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`);
+      const content = `🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`;
+      if (mode === 'ephemeral') {
+        interaction.followUp({ content, ephemeral: true }).catch(() => {});
+      } else {
+        autoDelete(interaction.channel.send(content));
+      }
     },
     bossstatus: async () => {
       const s = require('../state');

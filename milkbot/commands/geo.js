@@ -245,7 +245,11 @@ function check(message) {
 
   const guess = message.content.trim();
   if (!guess || guess.length > 60) return false;
-  if (!isCorrect(guess, activeGeo.loc)) return false;
+
+  // Delete every guess attempt during an active geo game
+  message.delete().catch(() => {});
+
+  if (!isCorrect(guess, activeGeo.loc)) return true; // wrong — consumed and deleted
 
   // Correct!
   const userId   = message.author.id;
@@ -272,7 +276,10 @@ function check(message) {
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
 
   const winEmbed = buildEmbed(loc, cdnUrl, { winner: username, bonuses });
-  if (gameMsg) gameMsg.edit({ embeds: [winEmbed] }).catch(() => {});
+  if (gameMsg) {
+    gameMsg.edit({ embeds: [winEmbed] }).catch(() => {});
+    setTimeout(() => gameMsg.delete().catch(() => {}), 8000);
+  }
 
   if (newStreak >= 3) ws.announceStreak(message.channel, username, newStreak);
   jackpot.tryJackpot(userId, username, message.channel);
@@ -287,9 +294,7 @@ module.exports = {
   description: 'Guess the country from a real-world photo. First correct answer wins 50 milk bucks.',
   check,
   async execute(message) {
-    if (activeGeo) {
-      return message.reply(`A geo round is already active! Guess the country. 🌍`);
-    }
+    if (activeGeo) return; // already active, silently ignore
 
     const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
 
@@ -326,7 +331,10 @@ module.exports = {
       if (!activeGeo) return;
       activeGeo = null;
       const timeoutEmbed = buildEmbed(loc, cdnUrl, { timedOut: true });
-      if (gameMsg) gameMsg.edit({ embeds: [timeoutEmbed] }).catch(() => {});
+      if (gameMsg) {
+        gameMsg.edit({ embeds: [timeoutEmbed] }).catch(() => {});
+        setTimeout(() => gameMsg.delete().catch(() => {}), 8000);
+      }
     }, GAME_TIME);
 
     activeGeo = { loc, cdnUrl, timeout, hintTimeout, gameMsg };
