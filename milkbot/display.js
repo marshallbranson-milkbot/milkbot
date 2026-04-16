@@ -8,6 +8,8 @@ const prestige = require('./prestige');
 const { STOCK_DEFS, getPrices, getStats } = require('./stockdata');
 const jackpot = require('./jackpot');
 const GUILD_ID = '562076997979865118';
+const STOCK_MAP = Object.fromEntries(STOCK_DEFS.map(s => [s.ticker, s]));
+const { getMilkLordId } = require('./commands/milklord');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -87,7 +89,6 @@ const STOCK_TIERS = [
 
 function buildStockBoardText() {
   const prices = getPrices();
-  const stockMap = Object.fromEntries(STOCK_DEFS.map(s => [s.ticker, s]));
 
   const now = new Date().toLocaleString('en-US', {
     timeZone: 'America/New_York',
@@ -108,7 +109,7 @@ function buildStockBoardText() {
     lines.push(`${tier.label}  *${tier.range}*`);
     lines.push('');
     for (const ticker of tier.tickers) {
-      const s = stockMap[ticker];
+      const s = STOCK_MAP[ticker];
       if (!s) continue;
       const { price, lastChange } = prices[ticker] || { price: 0, lastChange: 0 };
       const pct = (lastChange * 100).toFixed(1);
@@ -142,9 +143,7 @@ function buildLeaderboardText(guild) {
   const prices = getPrices();
   const portfolios = getPortfolios();
 
-  const MILK_LORD_ROLE_ID = '1491509290001764526';
-  const milkLordMember = guild.members.cache.find(m => m.roles.cache.has(MILK_LORD_ROLE_ID));
-  const milkLordId = milkLordMember?.id || null;
+  const milkLordId = getMilkLordId(guild);
 
   const mbSorted = Object.entries(balances).sort(([, a], [, b]) => b - a).slice(0, 10);
   const mbLines = mbSorted.length === 0

@@ -100,7 +100,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('bj_') && blackjackCommand) {
         blackjackCommand.handleInteraction(interaction).catch(console.error);
-      } else if (interaction.customId.startsWith('port_buy_') || interaction.customId.startsWith('port_sell_') || interaction.customId.startsWith('port_buyall_')) {
+      } else if (interaction.customId.startsWith('port_buyall_') || interaction.customId.startsWith('port_sellall_')) {
         if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
       }
     } else if (interaction.isStringSelectMenu()) {
