@@ -121,6 +121,8 @@ function buildHelpEmbed(userId = 'public') {
     .setColor(0xffffff)
     .setFooter({ text: 'milk bucks. everything here costs milk bucks. 🥛' });
 
+  if (isPublic) return { embeds: [embed] };
+
   const menu = new StringSelectMenuBuilder()
     .setCustomId(`help_cat_${userId}`)
     .setPlaceholder('browse commands...')
