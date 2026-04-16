@@ -105,8 +105,10 @@ function buildHelpEmbed(userId = 'public') {
     .setDescription(
       isPublic
         ? `> *get rich or go broke.*\n\n` +
-          `🎮 \`!g\` — game menu *(#milkbot-games)*\n` +
-          `📈 \`!port\` — stock portfolio *(#milkbot-stocks)*\n\n` +
+          `**🎮 GAMES** — \`#milkbot-games\`\n` +
+          `\`!g\` — game menu\n\n` +
+          `**📈 STOCKS** — \`#milkbot-stocks\`\n` +
+          `\`!port\` — portfolio\n\n` +
           `*type \`!h\` for all commands 🥛*`
         : `> *get rich or go broke.*\n\n` +
           `select a category below to see all commands:`
@@ -114,7 +116,7 @@ function buildHelpEmbed(userId = 'public') {
     .setColor(0xffffff)
     .setFooter({ text: 'milk bucks. everything here costs milk bucks. 🥛' });
 
-  if (isPublic) return { embeds: [embed] };
+  if (isPublic) return { embeds: [embed], components: [] };
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId(`help_cat_${userId}`)

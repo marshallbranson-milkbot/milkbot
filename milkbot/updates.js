@@ -181,14 +181,14 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v23-raidboss',
+    id: 'v23-raidboss-2',
     text: [
       `🐄 **NIGHTLY RAID BOSS**`,
-      `Every night at midnight EST, a milk-themed monster appears in **#milkbot-games** with **4,000 HP**.`,
-      `Click **⚔️ Attack** on the boss message. Once per hour. Risk: 15% chance you lose some milk bucks on attack.`,
-      `If the server defeats it before the next midnight — rewards scale with how many attacks you landed (**60 🥛 per hit**, prestige multiplied).`,
-      `If it escapes — consolation payout at 20 🥛 per hit. No prestige multiplier.`,
-      `7 rotating bosses. Tonight's raid starts at midnight. 🥛`,
+      `Every night at midnight EST, a milk-themed monster appears in **#milkbot-games** with **5,000 HP**.`,
+      `Click **⚔️ Attack** on the boss message. Once per hour. Damage scales with your level. Risk: 15% chance you lose some milk bucks per attack.`,
+      `If the server defeats it before the next midnight — **60 🥛 per attack**, multiplied by your prestige level.`,
+      `If it escapes — **20 🥛 per attack**, no multiplier.`,
+      `7 rotating bosses. 🥛`,
     ].join('\n'),
   },
 ];
