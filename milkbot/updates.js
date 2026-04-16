@@ -154,7 +154,7 @@ const UPDATES = [
     text: [`🥛 **MILKBOT REWORK — PATCH NOTES** 🥛`].join('\n'),
   },
   {
-    id: 'v22-game-menu',
+    id: 'v22-game-menu-2',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `🎮 **THE MILKBOT OVERHAUL** 🎮`,
