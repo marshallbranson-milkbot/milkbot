@@ -10,6 +10,8 @@ const { postUpdates } = require('./updates');
 
 const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
+// Commands allowed as text in milkbot-games (everything else → use !g)
+const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
   // Ensure data directory exists (important for Railway volume on first run)
   const dataDir = path.join(__dirname, 'data');
@@ -37,6 +39,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
   let blackjackCommand = null;
   let portfolioCommand = null;
   let helpCommand = null;
+  let gCommand = null;
   const initCallbacks = [];
 
   for (const file of commandFiles) {
@@ -55,6 +58,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     if (command.name === 'bl') blackjackCommand = command;
     if (command.name === 'port') portfolioCommand = command;
     if (command.name === 'h') helpCommand = command;
+    if (command.name === 'g') gCommand = command;
   }
 
   // Listen for messages
@@ -92,6 +96,11 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
         message.reply('🎮 Game and currency commands go in **#milkbot-games**!').then(autoDelete);
         return;
       }
+      // In milkbot-games, only !g and join/accept/decline commands work as text
+      if (channelName === 'milkbot-games' && !GAMES_MENU_PASSTHROUGH.has(commandName)) {
+        message.reply('use `!g` to play 🥛').then(autoDelete);
+        return;
+      }
     }
 
     command.execute(message, args, client);
@@ -109,6 +118,8 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
         interaction.customId.startsWith('port_sellamt_')
       ) {
         if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if (interaction.customId.startsWith('g_') && gCommand) {
+        gCommand.handleButtonInteraction(interaction).catch(console.error);
       }
     } else if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith('port_select_') && portfolioCommand) {
