@@ -174,8 +174,6 @@ const UPDATES = [
       ``,
       `📊 **PORTFOLIO UPGRADE** — \`!port\` → select a stock → **4 buttons**: Buy All · Sell All · Buy Amount · Sell Amount.`,
       ``,
-      `🃏 **BLACKJACK BUTTONS** — Hit, Stand, Double, Split are all clickable. No more typing moves.`,
-      ``,
       `👑 **MILK LORD** — The richest player now gets crowned everywhere. Win a game as Milk Lord and everyone knows it.`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
