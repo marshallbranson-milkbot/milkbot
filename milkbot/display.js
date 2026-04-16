@@ -104,17 +104,10 @@ function buildHelpEmbed(userId = 'public') {
     .setTitle('🥛  M I L K B O T')
     .setDescription(
       isPublic
-        ? `> *get rich or go broke. everything costs milk bucks.*\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `🎮 **GAMES** — \`#milkbot-games\`\n` +
-          `\`!g\` — open the full game menu\n` +
-          `Casino · Cards · Social · Wallet · Raid Boss\n\n` +
-          `📈 **STOCKS** — \`#milkbot-stocks\`\n` +
-          `\`!b\` buy · \`!s\` sell · \`!ba\` buy max · \`!port\` portfolio\n\n` +
-          `💰 **WALLET** — via \`!g\` → Wallet\n` +
-          `Balance · XP · Daily · Achievements · Prestige · Give · Crate\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*type \`!h\` for the full command list (only you see it) 🥛*`
+        ? `> *get rich or go broke.*\n\n` +
+          `🎮 \`!g\` — game menu *(#milkbot-games)*\n` +
+          `📈 \`!port\` — stock portfolio *(#milkbot-stocks)*\n\n` +
+          `*type \`!h\` for all commands 🥛*`
         : `> *get rich or go broke.*\n\n` +
           `select a category below to see all commands:`
     )
