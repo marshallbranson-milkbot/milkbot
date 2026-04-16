@@ -98,13 +98,25 @@ function buildWallet(userId) {
 const CAT_BUILDERS = { casino: buildCasino, cards: buildCards, social: buildSocial, wallet: buildWallet };
 
 // ── Fake message for games that don't need real mentions ───────────────────────
+function autoDelete(promise) {
+  return promise.then(m => { setTimeout(() => m?.delete().catch(() => {}), 10000); return m; });
+}
+
 function makeFakeMessage(interaction) {
+  const channelProxy = new Proxy(interaction.channel, {
+    get(target, prop) {
+      if (prop === 'send') return (content) => autoDelete(target.send(content));
+      const val = target[prop];
+      return typeof val === 'function' ? val.bind(target) : val;
+    },
+  });
+
   return {
     author: { id: interaction.user.id, username: interaction.user.username },
-    channel: interaction.channel,
+    channel: channelProxy,
     guild: interaction.guild,
     content: '',
-    reply: (content) => interaction.channel.send(content),
+    reply: (content) => autoDelete(interaction.channel.send(content)),
     delete: () => Promise.resolve(),
     mentions: { users: { first: () => null, size: 0 } },
   };

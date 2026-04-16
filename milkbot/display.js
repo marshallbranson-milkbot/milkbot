@@ -99,21 +99,19 @@ const HELP_CATEGORIES = {
 };
 
 function buildHelpEmbed(userId = 'public') {
+  const isPublic = userId === 'public';
   const embed = new EmbedBuilder()
     .setTitle('🥛  M I L K B O T')
     .setDescription(
-      `> *get rich or go broke.*\n\n` +
-      `**type \`!g\` in #milkbot-games** to open the game menu.\n` +
-      `**type \`!port\` in #milkbot-stocks** to manage your portfolio.\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `**quick commands:**\n` +
-      `\`!g\` — game menu (casino · cards · social · wallet)\n` +
-      `\`!port\` — your stock portfolio\n` +
-      `\`!b TICKER amount\` — buy stock\n` +
-      `\`!s TICKER amount\` — sell stock\n` +
-      `\`!ba TICKER\` — buy max shares\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `select a category below to see all commands:`
+      isPublic
+        ? `> *get rich or go broke.*\n\n` +
+          `**\`!g\`** — open the game menu *(#milkbot-games)*\n` +
+          `**\`!h\`** — browse all commands *(only you see it)*\n` +
+          `**\`!port\`** — your stock portfolio *(#milkbot-stocks)*\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*that's it. type \`!h\` for the full list. 🥛*`
+        : `> *get rich or go broke.*\n\n` +
+          `select a category below to see all commands:`
     )
     .setColor(0xffffff)
     .setFooter({ text: 'milk bucks. everything here costs milk bucks. 🥛' });
