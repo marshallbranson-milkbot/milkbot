@@ -166,6 +166,13 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     if (rbCommand) {
       await rbCommand.restoreOnStartup(client).catch(console.error);
       scheduleRaidBoss(client);
+
+      // One-time immediate spawn so the first boss doesn't wait until midnight
+      const firstSpawnFlagPath = path.join(__dirname, 'data/raidboss_firstspawn_done.json');
+      if (!fs.existsSync(firstSpawnFlagPath) && !state.activeRaidBoss) {
+        fs.writeFileSync(firstSpawnFlagPath, JSON.stringify({ done: true }));
+        await rbCommand.spawnBoss(client).catch(console.error);
+      }
     }
 
     // One-time grinder reset at 6 AM EST
