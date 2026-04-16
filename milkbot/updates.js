@@ -180,6 +180,17 @@ const UPDATES = [
       `*— MilkBot Management. type \`!g\` and get to work. 🥛*`,
     ].join('\n'),
   },
+  {
+    id: 'v23-raidboss',
+    text: [
+      `🐄 **NIGHTLY RAID BOSS**`,
+      `Every night at midnight EST, a milk-themed monster appears in **#milkbot-games** with **4,000 HP**.`,
+      `Click **⚔️ Attack** on the boss message. Once per hour. Risk: 15% chance you lose some milk bucks on attack.`,
+      `If the server defeats it before the next midnight — rewards scale with how many attacks you landed (**60 🥛 per hit**, prestige multiplied).`,
+      `If it escapes — consolation payout at 20 🥛 per hit. No prestige multiplier.`,
+      `7 rotating bosses. Tonight's raid starts at midnight. 🥛`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────

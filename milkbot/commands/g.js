@@ -55,8 +55,10 @@ function buildCards(userId) {
 }
 
 function buildSocial(userId) {
+  const state = require('../state');
+  const bossActive = !!state.activeRaidBoss;
   return {
-    content: '⚔️ **SOCIAL** — raid · rob · scramble · trivia · geo · trivia crack',
+    content: '⚔️ **SOCIAL** — raid · rob · scramble · trivia · geo · trivia crack · boss',
     components: [
       new ActionRowBuilder().addComponents(
         btn(`g_play_raid_${userId}`,        '⚔️ Raid',         ButtonStyle.Danger),
@@ -66,9 +68,10 @@ function buildSocial(userId) {
         btn(`g_play_geo_${userId}`,         '🌍 Geo',          ButtonStyle.Primary),
       ),
       new ActionRowBuilder().addComponents(
-        btn(`g_play_triviacrack_${userId}`, '📚 Trivia Crack', ButtonStyle.Primary),
-        btn(`g_play_coinflip_${userId}`,    '🤝 Coinflip',     ButtonStyle.Primary),
-        btn(`g_back_${userId}`,             '⬅️ Back',         ButtonStyle.Secondary),
+        btn(`g_play_triviacrack_${userId}`, '📚 Trivia Crack',                                   ButtonStyle.Primary),
+        btn(`g_play_coinflip_${userId}`,    '🤝 Coinflip',                                       ButtonStyle.Primary),
+        btn(`g_play_bossstatus_${userId}`,  bossActive ? '🐄 Boss [ACTIVE]' : '🐄 Boss',         bossActive ? ButtonStyle.Danger : ButtonStyle.Secondary),
+        btn(`g_back_${userId}`,             '⬅️ Back',                                           ButtonStyle.Secondary),
       ),
     ],
   };
@@ -159,6 +162,19 @@ async function handleGame(interaction, game, userId) {
     jackpot:    () => {
       const amt = require('../jackpot').getJackpot();
       interaction.channel.send(`🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`);
+    },
+    bossstatus: () => {
+      const s = require('../state');
+      if (!s.activeRaidBoss) {
+        interaction.followUp({ content: `🐄 No raid boss tonight. Check back at midnight EST. 🥛`, ephemeral: true }).catch(() => {});
+      } else {
+        const { name, currentHp, maxHp } = s.activeRaidBoss;
+        const pct = Math.round((currentHp / maxHp) * 100);
+        interaction.followUp({
+          content: `🐄 **${name}** is active!\n❤️ HP: **${currentHp.toLocaleString()} / ${maxHp.toLocaleString()}** (${pct}%)\n\nHead to **#milkbot-games** and click the ⚔️ Attack button on the boss message. 🥛`,
+          ephemeral: true,
+        }).catch(() => {});
+      }
     },
   };
 

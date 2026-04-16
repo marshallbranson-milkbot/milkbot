@@ -118,6 +118,9 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         interaction.customId.startsWith('port_sellamt_')
       ) {
         if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if (interaction.customId === 'rb_attack') {
+        const rbCommand = commands['rb'];
+        if (rbCommand) rbCommand.handleInteraction(interaction).catch(console.error);
       } else if (interaction.customId.startsWith('g_') && gCommand) {
         gCommand.handleButtonInteraction(interaction).catch(console.error);
       }
@@ -157,6 +160,13 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
+
+    // Raid boss — restore if bot restarted mid-day, then schedule nightly spawns
+    const rbCommand = commands['rb'];
+    if (rbCommand) {
+      await rbCommand.restoreOnStartup(client).catch(console.error);
+      scheduleRaidBoss(client);
+    }
 
     // One-time grinder reset at 6 AM EST
     scheduleGrinderReset(client);
@@ -247,6 +257,22 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       if (milkLordCommand) milkLordCommand.assignMilkLord(client);
       setInterval(() => {
         if (milkLordCommand) milkLordCommand.assignMilkLord(client);
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+  }
+
+  function scheduleRaidBoss(client) {
+    const now = new Date();
+    const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const midnight = new Date(estNow);
+    midnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = midnight - estNow;
+
+    setTimeout(async () => {
+      const rb = commands['rb'];
+      if (rb) await rb.spawnBoss(client).catch(console.error);
+      setInterval(async () => {
+        if (rb) await rb.spawnBoss(client).catch(console.error);
       }, 24 * 60 * 60 * 1000);
     }, msUntilMidnight);
   }
