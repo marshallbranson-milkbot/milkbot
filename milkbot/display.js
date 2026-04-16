@@ -300,8 +300,24 @@ let helpMessage = null;
 let sbMessage = null;
 
 async function findBotMessage(channel, client) {
-  const fetched = await channel.messages.fetch({ limit: 20 });
+  const fetched = await channel.messages.fetch({ limit: 50 });
   return fetched.find(m => m.author.id === client.user.id) ?? null;
+}
+
+async function updateOrPost(channel, client, payload, label) {
+  const existing = await findBotMessage(channel, client);
+  if (existing) {
+    const updated = await existing.edit(payload).catch(() => null);
+    if (updated) {
+      console.log(`[display] ${label} updated`);
+      return updated;
+    }
+    await existing.delete().catch(() => {});
+    console.log(`[display] ${label} reposting (edit failed)`);
+  }
+  const sent = await channel.send(payload).catch(console.error);
+  console.log(`[display] ${label} posted`);
+  return sent;
 }
 
 async function initDisplays(client) {
@@ -312,45 +328,21 @@ async function initDisplays(client) {
   if (!helpChannel) {
     console.log('[display] milkbot-commands channel not found');
   } else {
-    const helpPayload = buildHelpEmbed('public');
-    const existing = await findBotMessage(helpChannel, client);
-    if (existing) {
-      helpMessage = await existing.edit(helpPayload).catch(console.error);
-      console.log('[display] Help message updated');
-    } else {
-      helpMessage = await helpChannel.send(helpPayload).catch(console.error);
-      console.log('[display] Help message posted');
-    }
+    helpMessage = await updateOrPost(helpChannel, client, buildHelpEmbed('public'), 'Help message');
   }
 
   const lbChannel = guild.channels.cache.find(c => c.name === 'milkbot-leaderboard');
   if (!lbChannel) {
     console.log('[display] milkbot-leaderboard channel not found');
   } else {
-    const lbText = buildLeaderboardText(guild);
-    const existing = await findBotMessage(lbChannel, client);
-    if (existing) {
-      lbMessage = await existing.edit(lbText).catch(console.error);
-      console.log('[display] Leaderboard updated');
-    } else {
-      lbMessage = await lbChannel.send(lbText).catch(console.error);
-      console.log('[display] Leaderboard posted');
-    }
+    lbMessage = await updateOrPost(lbChannel, client, buildLeaderboardText(guild), 'Leaderboard');
   }
 
   const sbChannel = guild.channels.cache.find(c => c.name === 'milkbot-stocks-info');
   if (!sbChannel) {
     console.log('[display] milkbot-stocks-info channel not found');
   } else {
-    const sbText = buildStockBoardText();
-    const existing = await findBotMessage(sbChannel, client);
-    if (existing) {
-      sbMessage = await existing.edit(sbText).catch(console.error);
-      console.log('[display] Stock board updated');
-    } else {
-      sbMessage = await sbChannel.send(sbText).catch(console.error);
-      console.log('[display] Stock board posted');
-    }
+    sbMessage = await updateOrPost(sbChannel, client, buildStockBoardText(), 'Stock board');
   }
 }
 
