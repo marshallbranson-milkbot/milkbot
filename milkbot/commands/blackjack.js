@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { milkLordTag } = require('./milklord');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
@@ -198,14 +200,41 @@ function getActions(game) {
   return actions;
 }
 
+function buildActionRow(game, disabled = false) {
+  const actions = disabled ? [] : getActions(game);
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`bj_hit_${game.userId}`)
+      .setLabel('Hit')
+      .setStyle(disabled ? ButtonStyle.Secondary : ButtonStyle.Primary)
+      .setDisabled(disabled),
+    new ButtonBuilder()
+      .setCustomId(`bj_stand_${game.userId}`)
+      .setLabel('Stand')
+      .setStyle(disabled ? ButtonStyle.Secondary : ButtonStyle.Success)
+      .setDisabled(disabled),
+    new ButtonBuilder()
+      .setCustomId(`bj_double_${game.userId}`)
+      .setLabel('Double')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(disabled || !actions.includes('double')),
+    new ButtonBuilder()
+      .setCustomId(`bj_split_${game.userId}`)
+      .setLabel('Split')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(disabled || !actions.includes('split')),
+  );
+}
+
 function buildGameMessage(game, status = 'playing') {
+  const isDone = status !== 'playing';
   const isSplit = game.hands.length > 1;
   const totalBet = game.hands.reduce((s, h) => s + h.bet, 0);
   const dealerTotal = handTotal(game.dealerHand);
 
-  const dealerDisplay = status === 'playing'
-    ? `${cardStr(game.dealerHand[0])} \`??\``
-    : `${handStr(game.dealerHand)} *(${dealerTotal})*`;
+  const dealerDisplay = isDone
+    ? `${handStr(game.dealerHand)} *(${dealerTotal})*`
+    : `${cardStr(game.dealerHand[0])} \`??\``;
 
   const lines = [
     `🃏 **BLACKJACK** | Bet: **${totalBet} milk bucks**`,
@@ -223,7 +252,7 @@ function buildGameMessage(game, status = 'playing') {
     for (let i = 0; i < game.hands.length; i++) {
       const hand = game.hands[i];
       const total = handTotal(hand.cards);
-      const isActive = status === 'playing' && i === game.currentHandIndex && !hand.done;
+      const isActive = !isDone && i === game.currentHandIndex && !hand.done;
       const arrow = isActive ? '▶' : '\u00a0\u00a0';
       const ddStr = hand.doubledDown ? ' *[2x]*' : '';
       const resultStr = hand.result ? ` — **${hand.result}**` : '';
@@ -234,16 +263,12 @@ function buildGameMessage(game, status = 'playing') {
   lines.push(``);
   lines.push(`*${game.quip}*`);
 
-  if (status === 'playing') {
-    lines.push(``);
-    const actions = getActions(game);
-    lines.push(`Type ${actions.map(a => `\`${a}\``).join(' / ')} *(30s to act)*`);
-  } else if (game.resultLine) {
+  if (isDone && game.resultLine) {
     lines.push(``);
     lines.push(game.resultLine);
   }
 
-  return lines.join('\n');
+  return { content: lines.join('\n'), components: [buildActionRow(game, isDone)] };
 }
 
 function resetHandTimeout(userId, channel, game) {
@@ -275,7 +300,6 @@ function advanceOrResolve(userId, channel, gameMsg, game) {
     game.currentHandIndex = nextIdx;
     const nextHand = game.hands[nextIdx];
 
-    // Auto-stand if the newly-active hand is already 21
     if (handTotal(nextHand.cards) === 21) {
       nextHand.done = true;
       game.quip = `hand ${nextIdx + 1} is 21 — automatic stand!`;
@@ -298,7 +322,6 @@ function resolveAllHands(userId, channel, gameMsg) {
   clearTimeout(game.timeout);
   activeGames.delete(userId);
 
-  // Dealer plays out
   while (handTotal(game.dealerHand) < 17) {
     game.dealerHand.push(game.deck.pop());
   }
@@ -310,7 +333,6 @@ function resolveAllHands(userId, channel, gameMsg) {
   const xp = getData(xpPath);
   const pm = prestige.getMultiplier(userId);
 
-  // Categorize each hand result
   const handResults = game.hands.map(hand => {
     const pt = handTotal(hand.cards);
     if (pt > 21) return 'bust';
@@ -325,7 +347,6 @@ function resolveAllHands(userId, channel, gameMsg) {
   const handsLost = handResults.filter(r => r === 'bust' || r === 'dealer_bj' || r === 'loss').length;
   const handsPushed = handResults.filter(r => r === 'push').length;
 
-  // Determine streak direction
   let newStreak = 0;
   if (handsWon > 0) {
     newStreak = ws.recordWin(userId);
@@ -365,7 +386,6 @@ function resolveAllHands(userId, channel, gameMsg) {
       hand.result = `loss`;
       totalNetWin -= hand.bet;
     } else {
-      // push
       balances[userId] = (balances[userId] || 0) + hand.bet;
       hand.result = `push`;
     }
@@ -377,13 +397,14 @@ function resolveAllHands(userId, channel, gameMsg) {
   const finalBalance = balances[userId] || 0;
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
   const isSplit = game.hands.length > 1;
+  const lordTag = milkLordTag(userId, channel.guild);
 
   let quip, resultLine;
 
   if (isSplit) {
     if (totalNetWin > 0) {
       quip = randQuip(WIN_QUIPS);
-      resultLine = `Split net: **+${totalNetWin} milk bucks**${bonuses ? ` *(${bonuses})*` : ''}! Balance: **${finalBalance}** 🥛`;
+      resultLine = `**${game.username}**${lordTag} — Split net: **+${totalNetWin} milk bucks**${bonuses ? ` *(${bonuses})*` : ''}! Balance: **${finalBalance}** 🥛`;
     } else if (totalNetWin < 0) {
       quip = randQuip(LOSE_QUIPS);
       resultLine = `Split net: **-${Math.abs(totalNetWin)} milk bucks**. Balance: **${finalBalance}** 🥛`;
@@ -404,10 +425,10 @@ function resolveAllHands(userId, channel, gameMsg) {
       resultLine = `You lose **${hand.bet} milk bucks**. Balance: **${finalBalance}** 🥛`;
     } else if (result === 'dealer_bust') {
       quip = `dealer busts at ${dealerTotal}! 💥 ` + randQuip(WIN_QUIPS);
-      resultLine = `You win **${totalNetWin} milk bucks**!${bonuses ? ` *(${bonuses})*` : ''} Balance: **${finalBalance}** 🥛`;
+      resultLine = `**${game.username}**${lordTag} wins **${totalNetWin} milk bucks**!${bonuses ? ` *(${bonuses})*` : ''} Balance: **${finalBalance}** 🥛`;
     } else if (result === 'win') {
       quip = randQuip(WIN_QUIPS);
-      resultLine = `You win **${totalNetWin} milk bucks**!${bonuses ? ` *(${bonuses})*` : ''} Balance: **${finalBalance}** 🥛`;
+      resultLine = `**${game.username}**${lordTag} wins **${totalNetWin} milk bucks**!${bonuses ? ` *(${bonuses})*` : ''} Balance: **${finalBalance}** 🥛`;
     } else if (result === 'loss') {
       quip = randQuip(LOSE_QUIPS);
       resultLine = `You lose **${hand.bet} milk bucks**. Balance: **${finalBalance}** 🥛`;
@@ -442,20 +463,28 @@ function resolveAllHands(userId, channel, gameMsg) {
   }
 }
 
-function check(message) {
-  if (message.author.bot) return false;
-  const game = activeGames.get(message.author.id);
-  if (!game) return false;
+async function handleInteraction(interaction) {
+  const parts = interaction.customId.split('_'); // ['bj', 'action', 'userId']
+  const action = parts[1];
+  const ownerId = parts[2];
 
-  const content = message.content.trim().toLowerCase();
-  if (!['hit', 'stand', 'double', 'split'].includes(content)) return false;
+  if (interaction.user.id !== ownerId) {
+    return interaction.reply({ content: `that's not your game chief 🥛`, ephemeral: true });
+  }
 
+  const game = activeGames.get(ownerId);
+  if (!game) {
+    return interaction.reply({ content: `that game is already over 🥛`, ephemeral: true });
+  }
+
+  await interaction.deferUpdate();
   clearTimeout(game.timeout);
 
-  const userId = message.author.id;
+  const userId = ownerId;
+  const channel = interaction.channel;
   const hand = game.hands[game.currentHandIndex];
 
-  if (content === 'hit') {
+  if (action === 'hit') {
     hand.cards.push(game.deck.pop());
     const total = handTotal(hand.cards);
 
@@ -463,8 +492,8 @@ function check(message) {
       hand.done = true;
       game.quip = randQuip(BUST_QUIPS);
       game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
-      setTimeout(() => advanceOrResolve(userId, message.channel, game.gameMsg, game), 1200);
-      return true;
+      setTimeout(() => advanceOrResolve(userId, channel, game.gameMsg, game), 1200);
+      return;
     }
 
     if (total === 21) {
@@ -473,42 +502,37 @@ function check(message) {
         ? `hand ${game.currentHandIndex + 1} hits 21 — auto stand!`
         : `hit 21! now let's see the dealer...`;
       game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
-      setTimeout(() => advanceOrResolve(userId, message.channel, game.gameMsg, game), 1200);
-      return true;
+      setTimeout(() => advanceOrResolve(userId, channel, game.gameMsg, game), 1200);
+      return;
     }
 
     game.quip = randQuip(HIT_QUIPS);
-    resetHandTimeout(userId, message.channel, game);
+    resetHandTimeout(userId, channel, game);
     game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
 
-  } else if (content === 'stand') {
+  } else if (action === 'stand') {
     hand.done = true;
     game.quip = randQuip(STAND_QUIPS);
     game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
-    setTimeout(() => advanceOrResolve(userId, message.channel, game.gameMsg, game), 1200);
+    setTimeout(() => advanceOrResolve(userId, channel, game.gameMsg, game), 1200);
 
-  } else if (content === 'double') {
-    // Double only available on first action (2 cards)
+  } else if (action === 'double') {
     if (hand.cards.length !== 2) {
-      resetHandTimeout(userId, message.channel, game);
-      return true;
+      resetHandTimeout(userId, channel, game);
+      return;
     }
 
     const balances = getData(balancesPath);
     const bal = balances[userId] || 0;
     if (bal < hand.bet) {
-      message.reply(`Not enough milk bucks to double! You need **${hand.bet}** more. 🥛`);
-      resetHandTimeout(userId, message.channel, game);
-      return true;
+      resetHandTimeout(userId, channel, game);
+      return;
     }
 
-    // Deduct extra bet
     balances[userId] = bal - hand.bet;
     saveData(balancesPath, balances);
     hand.bet *= 2;
     hand.doubledDown = true;
-
-    // One card only, then auto-stand
     hand.cards.push(game.deck.pop());
     hand.done = true;
 
@@ -518,64 +542,57 @@ function check(message) {
       : randQuip(DOUBLE_QUIPS);
 
     game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
-    setTimeout(() => advanceOrResolve(userId, message.channel, game.gameMsg, game), 1200);
+    setTimeout(() => advanceOrResolve(userId, channel, game.gameMsg, game), 1200);
 
-  } else if (content === 'split') {
-    // Only allowed on first hand, matching card values, not already split
+  } else if (action === 'split') {
     if (game.hands.length > 1 || !canSplit(hand.cards)) {
-      resetHandTimeout(userId, message.channel, game);
-      return true;
+      resetHandTimeout(userId, channel, game);
+      return;
     }
 
     const balances = getData(balancesPath);
     const bal = balances[userId] || 0;
     if (bal < hand.bet) {
-      message.reply(`Not enough milk bucks to split! You need **${hand.bet}** more. 🥛`);
-      resetHandTimeout(userId, message.channel, game);
-      return true;
+      resetHandTimeout(userId, channel, game);
+      return;
     }
 
-    // Deduct second hand bet
     balances[userId] = bal - hand.bet;
     saveData(balancesPath, balances);
 
     const originalBet = hand.bet;
     const [card1, card2] = hand.cards;
 
-    // Each split hand: original card + one fresh card
     game.hands = [
       { cards: [card1, game.deck.pop()], bet: originalBet, doubledDown: false, done: false, result: null },
       { cards: [card2, game.deck.pop()], bet: originalBet, doubledDown: false, done: false, result: null },
     ];
     game.currentHandIndex = 0;
 
-    // Auto-stand if hand 1 hit 21 on the deal
     if (handTotal(game.hands[0].cards) === 21) {
       game.hands[0].done = true;
       game.quip = randQuip(SPLIT_QUIPS) + ` hand 1 hits 21 instantly!`;
-      resetHandTimeout(userId, message.channel, game);
+      resetHandTimeout(userId, channel, game);
       game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
-      setTimeout(() => advanceOrResolve(userId, message.channel, game.gameMsg, game), 1200);
+      setTimeout(() => advanceOrResolve(userId, channel, game.gameMsg, game), 1200);
     } else {
       game.quip = randQuip(SPLIT_QUIPS);
-      resetHandTimeout(userId, message.channel, game);
+      resetHandTimeout(userId, channel, game);
       game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
     }
   }
-
-  return true;
 }
 
 module.exports = {
   name: 'bl',
   aliases: ['blackjack'],
   description: 'Play blackjack against MilkBot. Min bet 25 milk bucks.',
-  check,
+  handleInteraction,
   execute(message, args) {
     const userId = message.author.id;
 
     if (activeGames.has(userId)) {
-      return message.reply(`You're already in a game! Type \`hit\`, \`stand\`, \`double\`, or \`split\`. 🃏`);
+      return message.reply(`You're already in a game! Use the buttons to play. 🃏`);
     }
 
     const bet = parseInt(args[0]);
@@ -589,7 +606,6 @@ module.exports = {
       return message.reply(`You need **${bet} milk bucks** to bet that. You've got **${balance}**. 🥛`);
     }
 
-    // Deduct bet upfront
     balances[userId] = balance - bet;
     saveData(balancesPath, balances);
 
@@ -623,14 +639,15 @@ module.exports = {
         saveData(balancesPath, balances);
         quip = randQuip(BLACKJACK_QUIPS);
         const bonusesBJ = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
-        resultLine = `**Blackjack!** 3:2 payout — You win **${winnings} milk bucks**!${bonusesBJ ? ` *(${bonusesBJ})*` : ''} Balance: **${balances[userId]}** 🥛`;
+        const bjLordTag = milkLordTag(userId, message.guild);
+        resultLine = `**${message.author.username}**${bjLordTag} — **Blackjack!** 3:2 payout — wins **${winnings} milk bucks**!${bonusesBJ ? ` *(${bonusesBJ})*` : ''} Balance: **${balances[userId]}** 🥛`;
         if (newStreak >= 3) ws.announceStreak(message.channel, message.author.username, newStreak);
         jackpot.tryJackpot(userId, message.author.username, message.channel);
         ach.check(userId, message.author.username, 'blackjack_natural', { balance: balances[userId], xp: xp[userId], streak: newStreak, gameType: 'blackjack' }, message.channel);
         ach.check(userId, message.author.username, 'bj_win', { balance: balances[userId], xp: xp[userId], streak: newStreak, bet, gameType: 'blackjack' }, message.channel);
       }
 
-      const instantGame = { hands, dealerHand, quip, resultLine, deck };
+      const instantGame = { userId, hands, dealerHand, quip, resultLine, deck };
       message.channel.send(buildGameMessage(instantGame, 'done'));
       return;
     }

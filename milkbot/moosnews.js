@@ -605,12 +605,46 @@ function applyEffects(effects) {
 
 // ─── SCHEDULER ────────────────────────────────────────────────────────────────
 
+async function initMooNewsMessage(client) {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  const channel = guild?.channels.cache.find(c => c.name === 'milkbot-stocks-info');
+  if (!channel) {
+    console.log('[moosnews] milkbot-stocks-info channel not found — skipping init');
+    return;
+  }
+
+  const savedId = getMooNewsMsgId();
+  if (savedId) {
+    try {
+      await channel.messages.fetch(savedId);
+      console.log('[moosnews] Moo News message found, keeping existing');
+      return;
+    } catch {
+      // Message gone — fall through to post a new placeholder
+    }
+  }
+
+  const placeholder =
+    `📰 **MOO NEWS** 📰\n\n` +
+    `*Standing by for the next dairy market update... 🥛*\n\n` +
+    `*— Moo News, your trusted source for dairy market intelligence* 🥛`;
+
+  const msg = await channel.send(placeholder).catch(console.error);
+  if (msg) {
+    saveMooNewsMsgId(msg.id);
+    console.log('[moosnews] Moo News placeholder message posted');
+  }
+}
+
 async function dropNews(client, headline) {
   applyEffects(headline.effects);
 
   const guild = client.guilds.cache.get(GUILD_ID);
   const channel = guild?.channels.cache.find(c => c.name === 'milkbot-stocks-info');
-  if (!channel) return;
+  if (!channel) {
+    console.error('[moosnews] dropNews: milkbot-stocks-info channel not found');
+    return;
+  }
 
   const newsText =
     `📰 **MOO NEWS** 📰\n\n` +
@@ -623,13 +657,15 @@ async function dropNews(client, headline) {
       const existing = await channel.messages.fetch(savedId);
       await existing.edit(newsText);
       state.lastNewsAt = Date.now();
+      console.log('[moosnews] Moo News message updated');
       return;
-    } catch {
+    } catch (err) {
+      console.error('[moosnews] dropNews: failed to edit saved message:', err.message);
       // Message was deleted — fall through to send a new one
     }
   }
 
-  const msg = await channel.send(newsText).catch(console.error);
+  const msg = await channel.send(newsText).catch(e => { console.error('[moosnews] dropNews: failed to send:', e.message); return null; });
   if (msg) saveMooNewsMsgId(msg.id);
   state.lastNewsAt = Date.now();
 }
@@ -690,4 +726,4 @@ function scheduleNews(client) {
   }, msRemaining);
 }
 
-module.exports = { scheduleNews, pendingModifiers };
+module.exports = { scheduleNews, initMooNewsMessage, pendingModifiers };

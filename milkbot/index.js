@@ -5,10 +5,10 @@ const path = require('path');
 const state = require('./state');
 const { updatePrices, processDividends } = require('./stockdata');
 const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./display');
-const { scheduleNews } = require('./moosnews');
+const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
 
-const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port']);
+const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
   // Ensure data directory exists (important for Railway volume on first run)
@@ -34,6 +34,8 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
   const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
 
   let milkLordCommand = null;
+  let blackjackCommand = null;
+  let portfolioCommand = null;
   const initCallbacks = [];
 
   for (const file of commandFiles) {
@@ -48,9 +50,9 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     if (command.init) {
       initCallbacks.push(command.init);
     }
-    if (command.name === 'milklord') {
-      milkLordCommand = command;
-    }
+    if (command.name === 'milklord') milkLordCommand = command;
+    if (command.name === 'bl') blackjackCommand = command;
+    if (command.name === 'port') portfolioCommand = command;
   }
 
   // Listen for messages
@@ -93,6 +95,21 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     command.execute(message, args, client);
   });
 
+  // Handle button and select menu interactions
+  client.on('interactionCreate', async (interaction) => {
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith('bj_') && blackjackCommand) {
+        blackjackCommand.handleInteraction(interaction).catch(console.error);
+      } else if (interaction.customId.startsWith('port_buy_') || interaction.customId.startsWith('port_sell_') || interaction.customId.startsWith('port_buyall_')) {
+        if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
+      }
+    } else if (interaction.isStringSelectMenu()) {
+      if (interaction.customId.startsWith('port_select_') && portfolioCommand) {
+        portfolioCommand.handleSelectMenu(interaction).catch(console.error);
+      }
+    }
+  });
+
   client.once('ready', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
 
@@ -104,7 +121,8 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     // Post/update help and leaderboard display messages
     await initDisplays(client);
 
-    // Schedule daily Moo News drops
+    // Initialize persistent Moo News message, then schedule daily drops
+    await initMooNewsMessage(client);
     scheduleNews(client);
     postUpdates(client);
 

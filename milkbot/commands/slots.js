@@ -7,6 +7,7 @@ const state = require('../state');
 const ws = require('../winstreak');
 const ach = require('../achievements');
 const jackpot = require('../jackpot');
+const { milkLordTag } = require('./milklord');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -129,12 +130,14 @@ module.exports = {
 
     setTimeout(() => {
       activeSpins.delete(userId);
+      const lordTag = milkLordTag(userId, message.guild);
       if (isJackpot) {
         spinMsg.edit(`🎰 | ${a} ${b} ${c} | 🎰\n` + resultLine);
-        message.channel.send(`🚨 <@${userId}> HIT THE JACKPOT 🚨`);
+        message.channel.send(`🚨 <@${userId}>${lordTag} **HIT THE JACKPOT** 🚨`);
       } else {
         spinMsg.edit(
           `🎰 | ${a} ${b} ${c} | 🎰\n` +
+          (lordTag && winnings > 0 ? `👑 **MilkLord** spins...\n` : '') +
           `${resultLine}\n` +
           `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''})*`
         );

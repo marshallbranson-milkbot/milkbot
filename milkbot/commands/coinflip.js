@@ -8,6 +8,7 @@
   const ach = require('../achievements');
   const jackpot = require('../jackpot');
   const prestige = require('../prestige');
+  const { milkLordTag } = require('./milklord');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -88,7 +89,7 @@
         return message.channel.send(
           `🪙 **COINFLIP** 🪙\n` +
           `**${bet} milk bucks** on the line!\n\n` +
-          `**${winnerName} wins!** 🎉 ${loserName} just got cleaned out. 🥛` +
+          `**${winnerName}**${milkLordTag(winnerId, message.guild)} **wins!** 🎉 ${loserName} just got cleaned out. 🥛` +
           (bonuses ? ` *(${bonuses} — won ${bet + bonus})*` : '')
         );
       }

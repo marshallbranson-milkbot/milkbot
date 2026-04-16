@@ -72,13 +72,22 @@ const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
 ━━━━━━━━━━━━━━━━━━━━━━
 📊 Live prices + 7-day stats → **#milkbot-stocks-info**
 \`!b TICKER shares\` — buy shares
+\`!ba TICKER\` — buy as many shares as you can afford
 \`!s TICKER shares|all\` — dump shares
-\`!port\` — view your portfolio
+\`!port\` — view your portfolio (tap a stock to buy all or sell all)
 
 *milk bucks. 🥛*`;
 
+const STOCK_TIERS = [
+  { label: '📗 STABLE',  range: '±2–5%/tick',   tickers: ['MILK', 'CREM', 'SKIM', 'LACT'] },
+  { label: '📙 MEDIUM',  range: '±5–10%/tick',  tickers: ['BUTR', 'WHEY', 'MOO', 'CURDS'] },
+  { label: '📕 HIGH',    range: '±10–20%/tick', tickers: ['CHUG', 'GOT', 'FETA'] },
+  { label: '💀 CHAOTIC', range: '±5–30%/tick',  tickers: ['SPOIL', 'MOLD', 'FROTH'] },
+];
+
 function buildStockBoardText() {
   const prices = getPrices();
+  const stockMap = Object.fromEntries(STOCK_DEFS.map(s => [s.ticker, s]));
 
   const now = new Date().toLocaleString('en-US', {
     timeZone: 'America/New_York',
@@ -92,22 +101,28 @@ function buildStockBoardText() {
     '📊 **MILK STOCK MARKET** — live prices + 7-day stats',
     '📈 Buy/sell in **#milkbot-stocks** with `!b` `!s` `!port`',
     '',
-    '━━━━━━━━━━━━━━━━━━━━━━',
   ];
 
-  for (const s of STOCK_DEFS) {
-    const { price, lastChange } = prices[s.ticker] || { price: 0, lastChange: 0 };
-    const pct = (lastChange * 100).toFixed(1);
-    const arrow = lastChange >= 0 ? '🟢' : '🔴';
-    const sign = lastChange >= 0 ? '+' : '';
-    const stats = getStats(s.ticker);
-    const statsText = stats
-      ? `High **${stats.high}** • Low **${stats.low}** • Avg **${stats.avg}**`
-      : '*not enough data yet*';
-
-    lines.push(`${arrow} **${s.ticker}** — ${s.name}`);
-    lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  |  7-day: ${statsText}`);
+  for (const tier of STOCK_TIERS) {
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`${tier.label}  *${tier.range}*`);
     lines.push('');
+    for (const ticker of tier.tickers) {
+      const s = stockMap[ticker];
+      if (!s) continue;
+      const { price, lastChange } = prices[ticker] || { price: 0, lastChange: 0 };
+      const pct = (lastChange * 100).toFixed(1);
+      const arrow = lastChange >= 0 ? '🟢' : '🔴';
+      const sign = lastChange >= 0 ? '+' : '';
+      const stats = getStats(ticker);
+      const statsText = stats
+        ? `High **${stats.high}** • Low **${stats.low}** • Avg **${stats.avg}**`
+        : '*not enough data yet*';
+
+      lines.push(`${arrow} **${ticker}** — ${s.name}`);
+      lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  |  7-day: ${statsText}`);
+      lines.push('');
+    }
   }
 
   lines.push('━━━━━━━━━━━━━━━━━━━━━━');
@@ -127,6 +142,10 @@ function buildLeaderboardText(guild) {
   const prices = getPrices();
   const portfolios = getPortfolios();
 
+  const MILK_LORD_ROLE_ID = '1491509290001764526';
+  const milkLordMember = guild.members.cache.find(m => m.roles.cache.has(MILK_LORD_ROLE_ID));
+  const milkLordId = milkLordMember?.id || null;
+
   const mbSorted = Object.entries(balances).sort(([, a], [, b]) => b - a).slice(0, 10);
   const mbLines = mbSorted.length === 0
     ? ['No milk bucks earned yet.']
@@ -134,7 +153,8 @@ function buildLeaderboardText(guild) {
         const member = guild.members.cache.get(userId);
         const name = member ? member.displayName : 'Unknown';
         const medal = medals[i] ?? `${i + 1}.`;
-        return `${medal} **${name}** — ${balance.toLocaleString()} milk bucks`;
+        const lordTag = userId === milkLordId ? ' 👑 **MilkLord**' : '';
+        return `${medal} **${name}**${lordTag} — ${balance.toLocaleString()} milk bucks`;
       });
 
   const xpSorted = Object.entries(xpData).sort(([, a], [, b]) => b - a).slice(0, 10);
