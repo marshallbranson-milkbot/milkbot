@@ -100,14 +100,27 @@ const HELP_CATEGORIES = {
 
 function buildHelpEmbed(userId = 'public') {
   const embed = new EmbedBuilder()
-    .setTitle('🥛 MilkBot — get rich or go broke')
-    .setDescription('Select a category below to see commands.\n\nAll games → **#milkbot-games** · Stocks → **#milkbot-stocks**')
+    .setTitle('🥛  M I L K B O T')
+    .setDescription(
+      `> *get rich or go broke.*\n\n` +
+      `**type \`!g\` in #milkbot-games** to open the game menu.\n` +
+      `**type \`!port\` in #milkbot-stocks** to manage your portfolio.\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `**quick commands:**\n` +
+      `\`!g\` — game menu (casino · cards · social · wallet)\n` +
+      `\`!port\` — your stock portfolio\n` +
+      `\`!b TICKER amount\` — buy stock\n` +
+      `\`!s TICKER amount\` — sell stock\n` +
+      `\`!ba TICKER\` — buy max shares\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `select a category below to see all commands:`
+    )
     .setColor(0xffffff)
-    .setFooter({ text: 'milk bucks. 🥛' });
+    .setFooter({ text: 'milk bucks. everything here costs milk bucks. 🥛' });
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId(`help_cat_${userId}`)
-    .setPlaceholder('Pick a category...')
+    .setPlaceholder('browse commands...')
     .addOptions(
       Object.entries(HELP_CATEGORIES).map(([value, { label, description }]) =>
         new StringSelectMenuOptionBuilder().setLabel(label).setValue(value).setDescription(description)
@@ -173,8 +186,6 @@ function buildStockBoardText() {
   }
 
   lines.push('━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push(`🎰 **SERVER JACKPOT: ${jackpot.getJackpot().toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all`);
-  lines.push('');
   lines.push(`*refreshed: ${now} EST 🥛*`);
   return lines.join('\n');
 }
@@ -254,30 +265,33 @@ function buildLeaderboardText(guild) {
     minute: '2-digit'
   });
 
+  const jackpotAmt = jackpot.getJackpot().toLocaleString();
+
   return [
-    '🥛 **who\'s got the most milk bucks. updated live.**',
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    '💰 **MILK BUCKS STANDINGS**',
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    `🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛`,
+    ``,
+    `# 🏆 MILK MONEY LEADERBOARD`,
+    `*the dairy economy is ruthless. updated every 5 minutes.*`,
+    ``,
+    `🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛`,
+    ``,
+    `## 💰 RICHEST PLAYERS`,
     mbLines.join('\n'),
     '',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    '⭐ **XP & RANK STANDINGS**',
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    `## ⭐ XP & RANK`,
     xpLines.join('\n'),
     '',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    '📊 **BIGGEST SINGLE TRADE**',
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    `## 📊 BIGGEST SINGLE TRADE`,
     bigTradeLines.join('\n'),
     '',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    '📈 **MOST IN THE MARKET**',
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    `## 📈 MOST IN THE MARKET`,
     marketLines.join('\n'),
     '',
-    `*refreshed: ${now} EST — play games to climb. 🥛*`
+    `🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛🥛`,
+    ``,
+    `🎰 **SERVER JACKPOT: ${jackpotAmt} milk bucks** — 0.1% chance on every win`,
+    ``,
+    `*${now} EST · type \`!g\` in #milkbot-games to play · get rich or go broke 🥛*`,
   ].join('\n');
 }
 

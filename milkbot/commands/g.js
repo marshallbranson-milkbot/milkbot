@@ -86,9 +86,10 @@ function buildWallet(userId) {
         btn(`g_play_prestige_${userId}`, '🌟 Prestige',     ButtonStyle.Primary),
       ),
       new ActionRowBuilder().addComponents(
-        btn(`g_play_give_${userId}`,     '💸 Give',         ButtonStyle.Primary),
-        btn(`g_play_crate_${userId}`,    '📦 Claim Crate',  ButtonStyle.Success),
-        btn(`g_back_${userId}`,          '⬅️ Back',         ButtonStyle.Secondary),
+        btn(`g_play_give_${userId}`,     '💸 Give',          ButtonStyle.Primary),
+        btn(`g_play_crate_${userId}`,    '📦 Claim Crate',   ButtonStyle.Success),
+        btn(`g_play_jackpot_${userId}`,  '🎰 Jackpot',       ButtonStyle.Secondary),
+        btn(`g_back_${userId}`,          '⬅️ Back',          ButtonStyle.Secondary),
       ),
     ],
   };
@@ -143,6 +144,10 @@ async function handleGame(interaction, game, userId) {
     ach:        () => require('./ach').execute(fakeMsg),
     prestige:   () => require('./prestige').execute(fakeMsg),
     crate:      () => require('./crate').execute(fakeMsg),
+    jackpot:    () => {
+      const amt = require('../jackpot').getJackpot();
+      interaction.channel.send(`🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`);
+    },
   };
 
   if (oneClick[game]) {

@@ -3,10 +3,13 @@ const { buildHelpEmbed, buildCategoryReply, refreshHelp } = require('../display'
 module.exports = {
   name: 'h',
   description: 'Shows all available commands.',
-  execute(message, args, client) {
+  async execute(message, args, client) {
     const payload = buildHelpEmbed(message.author.id);
-    message.reply(payload).then(reply => {
-      setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 120000);
+    message.delete().catch(() => {});
+    await message.author.send(payload).catch(async () => {
+      // DMs closed — send in channel and delete after 60s
+      const reply = await message.channel.send(payload).catch(() => null);
+      if (reply) setTimeout(() => reply.delete().catch(() => {}), 60000);
     });
     refreshHelp(client);
   },
