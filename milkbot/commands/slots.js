@@ -116,7 +116,8 @@ module.exports = {
     }
     if (xpGain > 0) {
       const xp = getData(xpPath);
-      xp[userId] = (xp[userId] || 0) + Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier);
+      const gain = Math.min(200, Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier));
+      xp[userId] = Math.min(30000, (xp[userId] || 0) + gain);
       saveData(xpPath, xp);
     }
 

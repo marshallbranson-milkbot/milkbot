@@ -149,6 +149,26 @@ const UPDATES = [
       `\`!bjt <buy-in>\` — host a blackjack tournament. Everyone has 30 seconds to join with \`!j\`. Once it kicks off, each player is dealt a hand and plays against the dealer one at a time (20 seconds per turn). Beat the dealer, win 2x your buy-in. Min 50 milk bucks.`,
     ].join('\n'),
   },
+  {
+    id: 'v21-rework',
+    text: [
+      `🥛 **MILKBOT REWORK — PATCH NOTES** 🥛`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `🪣 **PLINKO REBALANCED** — Bigger board (9 slots), edges nerfed to 5x, center now 0.2x. House always drinks.`,
+      ``,
+      `📈 **XP OVERHAUL** — XP no longer scales with bet size. Flat rate per game, 200 XP hard cap per win (all bonuses included). Big bets don't shortcut the grind anymore.`,
+      ``,
+      `⛔ **LEVEL CAP: 25 | PRESTIGE CAP: 5** — Level hard stops at 25. Prestige maxes at 5. No exceptions.`,
+      ``,
+      `📊 **PORTFOLIO UPGRADE** — \`!port\` → pick a stock → **4 buttons**: Buy All, Sell All, Buy Amount, Sell Amount. Finally.`,
+      ``,
+      `📋 **HELP MENU REDESIGN** — \`!h\` now shows a proper embed with category dropdowns.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `*— MilkBot Management. drink responsibly. 🥛*`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────

@@ -9,10 +9,10 @@ const ws       = require('../winstreak');
 const prestige = require('../prestige');
 
 const MIN_BET = 10;
-const ROWS = 6;
-const MULTIPLIERS = [10, 3, 1, 0.3, 1, 3, 10];
-const MUL_LABELS  = ['10x', '3x', '1x', '0.3x', '1x', '3x', '10x'];
-const XP_WIN = 25;
+const ROWS = 8;
+const MULTIPLIERS = [5, 2, 1.2, 0.5, 0.2, 0.5, 1.2, 2, 5];
+const MUL_LABELS  = ['5x', '2x', '1.2x', '0.5x', '0.2x', '0.5x', '1.2x', '2x', '5x'];
+const XP_WIN = 30;
 const XP_LOSS = 5;
 
 function getData(p) {
@@ -22,7 +22,7 @@ function getData(p) {
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
 
 function boardRow(ballPos) {
-  return Array.from({ length: 7 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
+  return Array.from({ length: 9 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
 }
 
 function prizeRow(winnerSlot) {
@@ -45,7 +45,7 @@ function buildEmbed(positions, step, done, amount, username, payout, multiplier,
       if (bonuses) desc += ` *(${bonuses})*`;
       desc += ' 🥛';
     } else {
-      desc += `❌ **${username}** hit **0.3x** — **${payout}** back out of **${amount}** bet. 🥛`;
+      desc += `❌ **${username}** hit **${multiplier}x** — **${payout}** back out of **${amount}** bet. 🥛`;
     }
   }
 
@@ -79,10 +79,10 @@ module.exports = {
     saveData(balancesPath, balances);
 
     // Pre-compute full path: start at 3 (center), each step ±1 clamped 0–6
-    const positions = [3];
+    const positions = [4];
     for (let i = 0; i < ROWS; i++) {
       const dir = Math.random() < 0.5 ? -1 : 1;
-      positions.push(Math.max(0, Math.min(6, positions[i] + dir)));
+      positions.push(Math.max(0, Math.min(8, positions[i] + dir)));
     }
     const finalSlot  = positions[ROWS];
     const multiplier = MULTIPLIERS[finalSlot];
@@ -124,9 +124,9 @@ module.exports = {
 
     const xp = getData(xpPath);
     const xpGain = won
-      ? Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm)
+      ? Math.min(200, Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm))
       : XP_LOSS;
-    xp[userId] = (xp[userId] || 0) + xpGain;
+    xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
     saveData(xpPath, xp);
   },
 };

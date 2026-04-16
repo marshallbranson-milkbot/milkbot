@@ -36,6 +36,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
   let milkLordCommand = null;
   let blackjackCommand = null;
   let portfolioCommand = null;
+  let helpCommand = null;
   const initCallbacks = [];
 
   for (const file of commandFiles) {
@@ -53,6 +54,7 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     if (command.name === 'milklord') milkLordCommand = command;
     if (command.name === 'bl') blackjackCommand = command;
     if (command.name === 'port') portfolioCommand = command;
+    if (command.name === 'h') helpCommand = command;
   }
 
   // Listen for messages
@@ -100,12 +102,19 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('bj_') && blackjackCommand) {
         blackjackCommand.handleInteraction(interaction).catch(console.error);
-      } else if (interaction.customId.startsWith('port_buyall_') || interaction.customId.startsWith('port_sellall_')) {
+      } else if (
+        interaction.customId.startsWith('port_buyall_') ||
+        interaction.customId.startsWith('port_sellall_') ||
+        interaction.customId.startsWith('port_buyamt_') ||
+        interaction.customId.startsWith('port_sellamt_')
+      ) {
         if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
       }
     } else if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith('port_select_') && portfolioCommand) {
         portfolioCommand.handleSelectMenu(interaction).catch(console.error);
+      } else if (interaction.customId.startsWith('help_cat_') && helpCommand) {
+        helpCommand.handleSelectMenu(interaction).catch(console.error);
       }
     }
   });
@@ -128,6 +137,9 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
+
+    // One-time grinder reset at 6 AM EST
+    scheduleGrinderReset(client);
 
     // Schedule random crate drops
     scheduleCrateDrops(client);
@@ -217,6 +229,53 @@ const BOTH_CHANNELS   = new Set(['h', 'bal']);
         if (milkLordCommand) milkLordCommand.assignMilkLord(client);
       }, 24 * 60 * 60 * 1000);
     }, msUntilMidnight);
+  }
+
+  function scheduleGrinderReset(client) {
+    const GRINDER_ID = '879171470700445747';
+    const now = new Date();
+    const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const target = new Date(estNow);
+    target.setHours(6, 0, 0, 0);
+    if (target <= estNow) target.setDate(target.getDate() + 1);
+    const ms = target - estNow;
+
+    setTimeout(async () => {
+      const prestigePath = path.join(__dirname, 'data/prestige.json');
+      const balancesFilePath = path.join(__dirname, 'data/balances.json');
+      const xpFilePath = path.join(__dirname, 'data/xp.json');
+      const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
+
+      const pData = fs.existsSync(prestigePath) ? JSON.parse(fs.readFileSync(prestigePath, 'utf8')) : {};
+      pData[GRINDER_ID] = 1;
+      fs.writeFileSync(prestigePath, JSON.stringify(pData, null, 2));
+
+      const balances = fs.existsSync(balancesFilePath) ? JSON.parse(fs.readFileSync(balancesFilePath, 'utf8')) : {};
+      balances[GRINDER_ID] = 0;
+      fs.writeFileSync(balancesFilePath, JSON.stringify(balances, null, 2));
+
+      const xpData = fs.existsSync(xpFilePath) ? JSON.parse(fs.readFileSync(xpFilePath, 'utf8')) : {};
+      xpData[GRINDER_ID] = 0;
+      fs.writeFileSync(xpFilePath, JSON.stringify(xpData, null, 2));
+
+      if (fs.existsSync(portfoliosPath)) {
+        const portfolios = JSON.parse(fs.readFileSync(portfoliosPath, 'utf8'));
+        delete portfolios[GRINDER_ID];
+        fs.writeFileSync(portfoliosPath, JSON.stringify(portfolios, null, 2));
+      }
+
+      const guild = client.guilds.cache.get('562076997979865118');
+      const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
+      if (channel) {
+        channel.send(
+          `📋 **NOTICE FROM THE IRS (MilkBot Revenue Service)**\n\n` +
+          `<@${GRINDER_ID}>, it has come to our attention that you failed to claim your reported earnings on your M-2 Dairy Income Form this fiscal year.\n\n` +
+          `As a result, **MilkBot has seized all assets** — milk bucks, XP, stocks, the whole udder. You've been reset to **Prestige 1** with **zero balance**.\n\n` +
+          `This is not a drill. This is not negotiable. The milk belongs to the state now. 🥛\n\n` +
+          `*— MilkBot Revenue Service, Dept. of Dairy Enforcement*`
+        );
+      }
+    }, ms);
   }
 
   client.login(TOKEN);

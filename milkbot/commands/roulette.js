@@ -109,7 +109,8 @@ module.exports = {
     }
 
     const xp = getData(xpPath);
-    xp[userId] = (xp[userId] || 0) + xpGain;
+    const cappedXp = won ? Math.min(200, xpGain) : xpGain;
+    xp[userId] = Math.min(30000, (xp[userId] || 0) + cappedXp);
     saveData(xpPath, xp);
 
     // Result embed

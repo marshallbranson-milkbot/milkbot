@@ -35,6 +35,10 @@ module.exports = {
       );
     }
 
+    if (currentPrestige >= 5) {
+      return message.reply(`you're already at **Prestige 5** — maximum prestige. there is no higher. you've broken the dairy ceiling. 🥛`);
+    }
+
     const newPrestige = prestige.doPrestige(userId);
     const newMultiplier = newPrestige + 1;
 

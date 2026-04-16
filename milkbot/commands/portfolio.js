@@ -79,9 +79,9 @@ function executeSell(userId, username, ticker, sharesToSell, channel) {
 
   let xpGain = 0;
   if (profit > 0) {
-    xpGain = Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1);
+    xpGain = Math.min(200, Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1));
     const xp = getData(xpPath);
-    xp[userId] = (xp[userId] || 0) + xpGain;
+    xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
     saveData(xpPath, xp);
   }
 
@@ -178,13 +178,23 @@ module.exports = {
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`port_buyall_${ticker}_${userId}`)
-        .setLabel(`Buy All — ${maxBuy} shares @ ${price} 🥛`)
+        .setLabel(`Buy All — ${maxBuy} shares`)
         .setStyle(ButtonStyle.Success)
         .setDisabled(maxBuy === 0),
       new ButtonBuilder()
         .setCustomId(`port_sellall_${ticker}_${userId}`)
         .setLabel(`Sell All — ${holding?.shares || 0} shares`)
         .setStyle(ButtonStyle.Danger)
+        .setDisabled(!holding || holding.shares <= 0),
+      new ButtonBuilder()
+        .setCustomId(`port_buyamt_${ticker}_${userId}`)
+        .setLabel('Buy Amount')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(maxBuy === 0),
+      new ButtonBuilder()
+        .setCustomId(`port_sellamt_${ticker}_${userId}`)
+        .setLabel('Sell Amount')
+        .setStyle(ButtonStyle.Secondary)
         .setDisabled(!holding || holding.shares <= 0),
     );
 
@@ -232,6 +242,29 @@ module.exports = {
       }
 
       const result = executeSell(userId, username, ticker, holding.shares, channel);
+      interaction.followUp({ content: result.msg, ephemeral: true });
+
+    } else if (action === 'buyamt' || action === 'sellamt') {
+      await interaction.followUp({ content: `💬 How many shares? Reply with a number in the next 30 seconds.`, ephemeral: true });
+
+      const filter = m => m.author.id === userId;
+      const collected = await channel.awaitMessages({ filter, max: 1, time: 30000, errors: ['time'] }).catch(() => null);
+
+      if (!collected || collected.size === 0) {
+        return interaction.followUp({ content: `timed out. no trade made. 🥛`, ephemeral: true });
+      }
+
+      const reply = collected.first();
+      const shares = parseInt(reply.content.trim(), 10);
+      reply.delete().catch(() => {});
+
+      if (!shares || shares <= 0) {
+        return interaction.followUp({ content: `that's not a valid number. no trade made. 🥛`, ephemeral: true });
+      }
+
+      const result = action === 'buyamt'
+        ? executeBuy(userId, username, ticker, shares, channel)
+        : executeSell(userId, username, ticker, shares, channel);
       interaction.followUp({ content: result.msg, ephemeral: true });
     }
   },

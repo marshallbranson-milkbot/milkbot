@@ -376,8 +376,8 @@ function resolveAllHands(userId, channel, gameMsg) {
     } else if (result === 'win' || result === 'dealer_bust') {
       const winnings = Math.floor(hand.bet * hotMul * pm);
       balances[userId] = (balances[userId] || 0) + hand.bet + winnings;
-      const xpGain = Math.floor(Math.max(5, hand.bet / 10) * (state.doubleXp ? 2 : 1) * hotMul * pm);
-      xp[userId] = (xp[userId] || 0) + xpGain;
+      const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm));
+      xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
       totalXpGain += xpGain;
       totalNetWin += winnings;
       hand.result = result === 'dealer_bust' ? `dealer bust +${winnings}mb` : `win +${winnings}mb`;

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 
 const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
@@ -37,48 +38,93 @@ function getRank(level) {
   return 'Milk Baby';
 }
 
-const HELP_TEXT = `🥛 **welcome to milkbot. get rich or go broke.**
+const HELP_CATEGORIES = {
+  currency: {
+    label: '💰 Your Milk Bucks',
+    description: 'Balance, XP, daily rewards, and achievements.',
+    commands: [
+      '`!bal` — how broke are you right now',
+      '`!xp` — your XP, level, and rank (caps at level 25)',
+      '`!prestige` — reset at level 25 for a permanent multiplier (max prestige 5)',
+      '`!ach` — view your achievements',
+      '`!da` — grab your daily milk bucks (streaks pay up to 300)',
+      '`!cc` — claim a crate drop before someone else does (500 milk bucks)',
+      '`!give @user amount` — send milk bucks to another player',
+    ],
+  },
+  casino: {
+    label: '🎰 Casino',
+    description: 'Slots, roulette, plinko, lottery, and more.',
+    commands: [
+      '`!sl` — spin the slots for 10 milk bucks',
+      '`!rou amount red/black/number` — roulette. colors pay 2x, numbers pay 35x',
+      '`!pl amount` — plinko. drop the ball. 5x edges, 0.2x middle. (min 10)',
+      '`!lt tickets` — buy lottery tickets (10 🥛 each). midnight drawing. one winner takes it all.',
+      '`!fh amount` — flip against MilkBot directly (good luck)',
+      '`!cf @user amount` — challenge someone to a coinflip',
+      '`!a` / `!d` — accept or decline a coinflip',
+    ],
+  },
+  cards: {
+    label: '🃏 Cards',
+    description: 'Blackjack and tournaments.',
+    commands: [
+      '`!bl amount` — blackjack vs MilkBot (min 25 · blackjack pays 3:2)',
+      '`!bjt buy-in` — blackjack tournament. 30s join window, everyone vs dealer, winners take 2x. (min 50)',
+    ],
+  },
+  social: {
+    label: '⚔️ Social',
+    description: 'Raids, robbing, trivia, and word games.',
+    commands: [
+      '`!ra amount` — start a raid, crew joins with `!j`',
+      '`!ro @user` — rob someone. 25% chance it works. 2hr cooldown.',
+      '`!sc` — unscramble the word (3/letter, rare words 10/letter)',
+      '`!mt` — milk trivia, A/B/C, first right answer wins · 15 milk bucks',
+      '`!tr` — trivia crack, spin for 1 of 6 categories, A/B/C/D · 20 milk bucks',
+      '`!geo` — name the country from the flag · 25 milk bucks',
+    ],
+  },
+  stocks: {
+    label: '📈 Stocks',
+    description: 'Buy, sell, and manage your portfolio.',
+    commands: [
+      '`!b TICKER shares` — buy shares',
+      '`!ba TICKER` — buy as many shares as you can afford',
+      '`!s TICKER shares|all` — dump shares',
+      '`!port` — view your portfolio (select a stock to buy all, sell all, buy amount, or sell amount)',
+      '📊 Live prices + 7-day stats → **#milkbot-stocks-info**',
+    ],
+  },
+};
 
-━━━━━━━━━━━━━━━━━━━━━━
-💰 **YOUR MILK BUCKS** *(#milkbot-games)*
-━━━━━━━━━━━━━━━━━━━━━━
-\`!bal\` — how broke are you right now
-\`!xp\` — your XP, level, and rank
-\`!prestige\` — reset at level 25 for a permanent XP+milk multiplier
-\`!ach\` — view your achievements
-\`!da\` — grab your daily milk bucks (streaks pay up to 300)
-\`!cc\` — claim a crate drop before someone else does (500 milk bucks)
+function buildHelpEmbed(userId = 'public') {
+  const embed = new EmbedBuilder()
+    .setTitle('🥛 MilkBot — get rich or go broke')
+    .setDescription('Select a category below to see commands.\n\nAll games → **#milkbot-games** · Stocks → **#milkbot-stocks**')
+    .setColor(0xffffff)
+    .setFooter({ text: 'milk bucks. 🥛' });
 
-━━━━━━━━━━━━━━━━━━━━━━
-🎮 **GAMES** *(#milkbot-games)*
-━━━━━━━━━━━━━━━━━━━━━━
-\`!cf @user amount\` — challenge someone to a coinflip
-\`!a\` / \`!d\` — accept or decline a coinflip
-\`!fh amount\` — flip against MilkBot directly (good luck)
-\`!sc\` — unscramble the word (3/letter, rare words 10/letter)
-\`!sl\` — spin the slots for 10 milk bucks
-\`!mt\` — milk trivia, A/B/C, first right answer wins · 15 milk bucks
-\`!tr\` — trivia crack, spin for 1 of 6 categories, A/B/C/D · 20 milk bucks
-\`!geo\` — name the country from the flag · 25 milk bucks
-\`!bl amount\` — blackjack vs MilkBot (min 25 · blackjack pays 3:2)
-\`!ra amount\` — start a raid, crew joins with \`!j\`
-\`!ro @user\` — rob someone. 25% chance it works. 2hr cooldown.
-\`!rou amount red/black/number\` — roulette. colors pay 2x, numbers pay 35x
-\`!lt tickets\` — buy lottery tickets (10 🥛 each). midnight drawing. one winner takes it all.
-\`!give @user amount\` — send milk bucks to another player
-\`!pl amount\` — plinko. drop the ball. 10x edges, 0.3x middle. (min 10)
-\`!bjt buy-in\` — blackjack tournament. 30s join window, everyone vs dealer, winners take 2x. (min 50)
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`help_cat_${userId}`)
+    .setPlaceholder('Pick a category...')
+    .addOptions(
+      Object.entries(HELP_CATEGORIES).map(([value, { label, description }]) =>
+        new StringSelectMenuOptionBuilder().setLabel(label).setValue(value).setDescription(description)
+      )
+    );
 
-━━━━━━━━━━━━━━━━━━━━━━
-📈 **MILK STOCK MARKET** *(#milkbot-stocks · updates every 5 min)*
-━━━━━━━━━━━━━━━━━━━━━━
-📊 Live prices + 7-day stats → **#milkbot-stocks-info**
-\`!b TICKER shares\` — buy shares
-\`!ba TICKER\` — buy as many shares as you can afford
-\`!s TICKER shares|all\` — dump shares
-\`!port\` — view your portfolio (tap a stock to buy all or sell all)
+  return { embeds: [embed], components: [new ActionRowBuilder().addComponents(menu)] };
+}
 
-*milk bucks. 🥛*`;
+function buildCategoryReply(category) {
+  const cat = HELP_CATEGORIES[category];
+  if (!cat) return { content: 'unknown category 🥛', ephemeral: true };
+  return {
+    content: `**${cat.label}**\n\n${cat.commands.join('\n')}`,
+    ephemeral: true,
+  };
+}
 
 const STOCK_TIERS = [
   { label: '📗 STABLE',  range: '±2–5%/tick',   tickers: ['MILK', 'CREM', 'SKIM', 'LACT'] },
@@ -252,12 +298,13 @@ async function initDisplays(client) {
   if (!helpChannel) {
     console.log('[display] milkbot-commands channel not found');
   } else {
+    const helpPayload = buildHelpEmbed('public');
     const existing = await findBotMessage(helpChannel, client);
     if (existing) {
-      helpMessage = await existing.edit(HELP_TEXT).catch(console.error);
+      helpMessage = await existing.edit(helpPayload).catch(console.error);
       console.log('[display] Help message updated');
     } else {
-      helpMessage = await helpChannel.send(HELP_TEXT).catch(console.error);
+      helpMessage = await helpChannel.send(helpPayload).catch(console.error);
       console.log('[display] Help message posted');
     }
   }
@@ -298,11 +345,12 @@ async function refreshHelp(client) {
   if (!guild) return;
   const helpChannel = guild.channels.cache.find(c => c.name === 'milkbot-commands');
   if (!helpChannel) return;
+  const helpPayload = buildHelpEmbed('public');
   if (helpMessage) {
-    const updated = await helpMessage.edit(HELP_TEXT).catch(() => null);
+    const updated = await helpMessage.edit(helpPayload).catch(() => null);
     if (updated) return;
   }
-  helpMessage = await helpChannel.send(HELP_TEXT).catch(console.error);
+  helpMessage = await helpChannel.send(helpPayload).catch(console.error);
 }
 
 async function refreshLeaderboard(client) {
@@ -331,4 +379,4 @@ async function refreshStockBoard(client) {
   sbMessage = await sbChannel.send(sbText).catch(console.error);
 }
 
-module.exports = { initDisplays, refreshHelp, refreshLeaderboard, refreshStockBoard, HELP_TEXT };
+module.exports = { initDisplays, refreshHelp, refreshLeaderboard, refreshStockBoard, buildHelpEmbed, buildCategoryReply };

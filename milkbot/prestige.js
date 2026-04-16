@@ -18,11 +18,12 @@ function getMultiplier(userId) {
 }
 
 // Resets XP, increments prestige, resets stored level so DMs fire again.
-// Returns the new prestige level.
+// Returns the new prestige level, or current level if already at cap.
 function doPrestige(userId) {
   const pData = fs.existsSync(prestigePath)
     ? JSON.parse(fs.readFileSync(prestigePath, 'utf8'))
     : {};
+  if ((pData[userId] || 0) >= 5) return pData[userId];
   pData[userId] = (pData[userId] || 0) + 1;
   fs.writeFileSync(prestigePath, JSON.stringify(pData, null, 2));
 
