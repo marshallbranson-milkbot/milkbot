@@ -9,9 +9,28 @@ const DATA_PATH      = path.join(__dirname, '../data/raidboss.json');
 const BALANCES_PATH  = path.join(__dirname, '../data/balances.json');
 const XP_PATH        = path.join(__dirname, '../data/xp.json');
 
-const MAX_HP         = 4000;
+const MAX_HP          = 5000;
 const ATTACK_COOLDOWN = 60 * 60 * 1000; // 1 hour
-const RISK_CHANCE    = 0.15;
+const RISK_CHANCE     = 0.15;
+
+function getLevel(totalXp) {
+  let level = 1, xpUsed = 0;
+  while (true) {
+    const needed = level * 100;
+    if (xpUsed + needed > totalXp) break;
+    xpUsed += needed;
+    level++;
+    if (level >= 25) return 25;
+  }
+  return level;
+}
+
+function rollDamage(userId) {
+  const xpData = readXp();
+  const level = getLevel(xpData[userId] || 0);
+  const base = 30 + level * 4; // level 1 → 34, level 10 → 70, level 25 → 130
+  return Math.max(1, Math.floor(base * (0.8 + Math.random() * 0.4)));
+}
 
 const BOSSES = [
   {
@@ -137,7 +156,7 @@ function buildEmbed(bossData, { defeated = false, escaped = false } = {}) {
       ? `⏱️ Battle ended`
       : `⏰ Expires in ${timeRemaining(bossData.expiresAt)}`,
     `⚠️ 15% chance to lose milk bucks · 1 attack per hour`,
-    `🏆 Reward on defeat: **60 🥛 per attack** (prestige multiplied)`,
+    `🏆 Reward on defeat: **60 🥛 per attack** (prestige · damage scales with level)`,
   ].join('\n');
 
   return new EmbedBuilder().setTitle(title).setDescription(desc).setColor(color).setFooter({ text: footer });
@@ -329,8 +348,8 @@ async function handleInteraction(interaction) {
     }
   }
 
-  // Roll damage
-  const damage = Math.floor(Math.random() * 81) + 40;
+  // Roll damage based on player level
+  const damage = rollDamage(userId);
   bossData.currentHp = Math.max(0, bossData.currentHp - damage);
 
   // Roll risk
