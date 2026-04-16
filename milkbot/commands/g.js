@@ -163,17 +163,13 @@ async function handleGame(interaction, game, userId) {
       const amt = require('../jackpot').getJackpot();
       interaction.channel.send(`🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`);
     },
-    bossstatus: () => {
+    bossstatus: async () => {
       const s = require('../state');
       if (!s.activeRaidBoss) {
         interaction.followUp({ content: `🐄 No raid boss tonight. Check back at midnight EST. 🥛`, ephemeral: true }).catch(() => {});
       } else {
-        const { name, currentHp, maxHp } = s.activeRaidBoss;
-        const pct = Math.round((currentHp / maxHp) * 100);
-        interaction.followUp({
-          content: `🐄 **${name}** is active!\n❤️ HP: **${currentHp.toLocaleString()} / ${maxHp.toLocaleString()}** (${pct}%)\n\nHead to **#milkbot-games** and click the ⚔️ Attack button on the boss message. 🥛`,
-          ephemeral: true,
-        }).catch(() => {});
+        // Bump the full boss embed (with attack button) to the bottom of this channel
+        await require('./raidboss').bumpBoss(interaction.client, interaction.channel).catch(console.error);
       }
     },
   };
@@ -241,6 +237,13 @@ async function handleGame(interaction, game, userId) {
 module.exports = {
   name: 'g',
   description: 'Open the MilkBot game menu.',
+  slashOptions: [], // no options — registered as slash command for ephemeral support
+
+  // Slash command handler — replies ephemerally so only the requester sees the menu
+  async executeSlash(interaction) {
+    const userId = interaction.user.id;
+    await interaction.reply({ ...buildMain(userId), ephemeral: true });
+  },
 
   async execute(message) {
     const userId = message.author.id;

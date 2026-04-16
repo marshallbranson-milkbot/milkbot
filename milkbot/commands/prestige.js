@@ -28,10 +28,10 @@ module.exports = {
     const level = getLevel(totalXp);
     const currentPrestige = prestige.getPrestige(userId);
 
-    if (level < 25) {
+    if (level < 100) {
       return message.reply(
-        `You need to be **level 25** to prestige. You're level **${level}**. ` +
-        `${25 - level} more level${25 - level === 1 ? '' : 's'} to go. Keep drinking. 🥛`
+        `You need to be **level 100** to prestige. You're level **${level}**. ` +
+        `${100 - level} more level${100 - level === 1 ? '' : 's'} to go. Keep drinking. 🥛`
       );
     }
 

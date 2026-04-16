@@ -81,7 +81,7 @@ function executeSell(userId, username, ticker, sharesToSell, channel) {
   if (profit > 0) {
     xpGain = Math.min(200, Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1));
     const xp = getData(xpPath);
-    xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
+    xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
     saveData(xpPath, xp);
   }
 
@@ -100,6 +100,7 @@ module.exports = {
   name: 'port',
   aliases: ['portfolio'],
   description: 'View your stock portfolio.',
+  slashOptions: [],
 
   async execute(message) {
     const userId = message.author.id;

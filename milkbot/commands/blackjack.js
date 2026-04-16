@@ -377,7 +377,7 @@ function resolveAllHands(userId, channel, gameMsg) {
       const winnings = Math.floor(hand.bet * hotMul * pm);
       balances[userId] = (balances[userId] || 0) + hand.bet + winnings;
       const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm));
-      xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
+      xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
       totalXpGain += xpGain;
       totalNetWin += winnings;
       hand.result = result === 'dealer_bust' ? `dealer bust +${winnings}mb` : `win +${winnings}mb`;

@@ -51,7 +51,9 @@ const bjt = require('./bjt');
 module.exports = {
   name: 'ra',
   aliases: ['raid', 'j'],
-  description: 'Start a raid. Usage: !ra amount',
+  description: 'Start a raid, or join one with /j.',
+  slashOptions: [],        // /j — no args needed (join existing raid)
+  slashAliases: ['j'],     // registered as separate slash command routing to this execute
   execute(message, args) {
     // --- JOIN (tournament takes priority over raid) ---
     if (message.content.startsWith('!j') && bjt.tryJoin(message)) return;

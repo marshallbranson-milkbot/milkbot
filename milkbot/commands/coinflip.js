@@ -25,7 +25,9 @@
   module.exports = {
     name: 'cf',
     aliases: ['a', 'd'],
-    description: 'Challenge someone to a coinflip. Usage: !cf @user amount',
+    description: 'Challenge someone to a coinflip.',
+    slashOptions: [],         // /a and /d — no args needed (accept/decline pending challenge)
+    slashAliases: ['a', 'd'], // registered as separate slash commands routing to this execute
     execute(message, args) {
       const balances = getData(balancesPath);
 

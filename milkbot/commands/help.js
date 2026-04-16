@@ -2,7 +2,16 @@ const { buildHelpEmbed, buildCategoryReply, refreshHelp } = require('../display'
 
 module.exports = {
   name: 'h',
-  description: 'Shows all available commands.',
+  description: 'Shows all available MilkBot commands.',
+  slashOptions: [],
+
+  // Slash version: reply ephemerally so only the requester sees the help menu
+  async executeSlash(interaction) {
+    const payload = buildHelpEmbed(interaction.user.id);
+    await interaction.reply({ ...payload, ephemeral: true });
+    refreshHelp(interaction.client);
+  },
+
   async execute(message, args, client) {
     const payload = buildHelpEmbed(message.author.id);
     message.delete().catch(() => {});

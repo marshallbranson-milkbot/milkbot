@@ -22,7 +22,11 @@ const validTickers = STOCK_DEFS.map(s => s.ticker);
 module.exports = {
   name: 's',
   aliases: ['sell'],
-  description: 'Sell stock. Usage: !s TICKER amount|all',
+  description: 'Sell stock shares.',
+  slashOptions: [
+    { name: 'ticker', description: 'Stock ticker (e.g. MILK)', type: 'STRING', required: true },
+    { name: 'amount', description: 'Number of shares, or "all"', type: 'STRING', required: true },
+  ],
   execute(message, args) {
     const ticker = args[0]?.toUpperCase();
     const amountArg = args[1];

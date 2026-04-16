@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const state = require('../state');
-const { getMultiplier } = require('../prestige');
+const { getMultiplier, getLevelCap } = require('../prestige');
 
 const GUILD_ID       = '562076997979865118';
 const DATA_PATH      = path.join(__dirname, '../data/raidboss.json');
@@ -13,22 +13,23 @@ const MAX_HP          = 5000;
 const ATTACK_COOLDOWN = 60 * 60 * 1000; // 1 hour
 const RISK_CHANCE     = 0.15;
 
-function getLevel(totalXp) {
+function getLevel(totalXp, userId) {
+  const cap = userId ? getLevelCap(userId) : 100;
   let level = 1, xpUsed = 0;
   while (true) {
     const needed = level * 100;
     if (xpUsed + needed > totalXp) break;
     xpUsed += needed;
     level++;
-    if (level >= 25) return 25;
+    if (level >= cap) return cap;
   }
   return level;
 }
 
 function rollDamage(userId) {
   const xpData = readXp();
-  const level = getLevel(xpData[userId] || 0);
-  const base = 30 + level * 4; // level 1 → 34, level 10 → 70, level 25 → 130
+  const level = getLevel(xpData[userId] || 0, userId);
+  const base = 30 + level * 4; // level 1 → 34, level 50 → 230, level 100 → 430
   return Math.max(1, Math.floor(base * (0.8 + Math.random() * 0.4)));
 }
 
@@ -174,6 +175,39 @@ function buildAttackButton(disabled = false) {
 
 let expiryTimeout = null;
 
+// ── Bump (re-post boss embed to bottom of channel) ────────────────────────────
+
+async function bumpBoss(client, channel) {
+  const bossData = readData();
+  if (!bossData.active || bossData.defeated) return false;
+
+  // Delete the old message so the fresh one appears at the bottom
+  if (bossData.messageId && bossData.channelId) {
+    const oldChannel = channel ?? client.guilds.cache.get(GUILD_ID)?.channels.cache.get(bossData.channelId);
+    if (oldChannel) {
+      const old = await oldChannel.messages.fetch(bossData.messageId).catch(() => null);
+      if (old) await old.delete().catch(() => {});
+    }
+  }
+
+  const targetChannel = channel ?? client.guilds.cache.get(GUILD_ID)?.channels.cache.find(c => c.name === 'milkbot-games');
+  if (!targetChannel) return false;
+
+  const msg = await targetChannel.send({
+    embeds: [buildEmbed(bossData)],
+    components: [buildAttackButton()],
+  }).catch(console.error);
+
+  if (!msg) return false;
+
+  bossData.messageId = msg.id;
+  bossData.channelId = targetChannel.id;
+  saveData(bossData);
+  const boss = BOSSES[bossData.bossIndex % BOSSES.length];
+  state.activeRaidBoss = { name: boss.name, currentHp: bossData.currentHp, maxHp: bossData.maxHp };
+  return true;
+}
+
 // ── Spawn ──────────────────────────────────────────────────────────────────────
 
 async function spawnBoss(client) {
@@ -286,7 +320,7 @@ async function resolveRaidBoss(client, reason, bossDataOverride = null) {
     if (state.doubleXp) xpGain = Math.min(200, xpGain * 2);
 
     balances[userId] = (balances[userId] || 0) + reward;
-    xpData[userId] = Math.min(30000, (xpData[userId] || 0) + xpGain);
+    xpData[userId] = Math.min(require('../prestige').getXpCap(userId), (xpData[userId] || 0) + xpGain);
 
     const i = sortedAttackers.findIndex(([id]) => id === userId);
     const medal = medals[i] ?? '▸';
@@ -434,6 +468,7 @@ async function restoreOnStartup(client) {
 module.exports = {
   name: 'rb',
   spawnBoss,
+  bumpBoss,
   handleInteraction,
   restoreOnStartup,
 };

@@ -30,11 +30,16 @@ function getLevel(totalXp) {
 }
 
 function getRank(level) {
-  if (level >= 25) return 'Milk God';
-  if (level >= 20) return 'Milk Legend';
-  if (level >= 15) return 'Milk Hustler';
-  if (level >= 10) return 'Milk Fiend';
-  if (level >= 5) return 'Milk Drinker';
+  if (level >= 100) return 'THE ONE TRUE MOO';
+  if (level >= 90)  return 'Milk Eternal';
+  if (level >= 80)  return 'Milk God';
+  if (level >= 70)  return 'Milk Overlord';
+  if (level >= 60)  return 'Milk Legend';
+  if (level >= 50)  return 'Milk Baron';
+  if (level >= 40)  return 'Milk Dealer';
+  if (level >= 30)  return 'Milk Hustler';
+  if (level >= 20)  return 'Milk Fiend';
+  if (level >= 10)  return 'Milk Drinker';
   return 'Milk Baby';
 }
 
@@ -44,8 +49,8 @@ const HELP_CATEGORIES = {
     description: 'Balance, XP, daily rewards, and achievements.',
     commands: [
       '`!bal` — how broke are you right now',
-      '`!xp` — your XP, level, and rank (caps at level 25)',
-      '`!prestige` — reset at level 25 for a permanent multiplier (max prestige 5)',
+      '`!xp` — your XP, level, and rank (cap 100 · prestige 5 = no cap)',
+      '`!prestige` — reset at level 100 for a permanent multiplier (max prestige 5)',
       '`!ach` — view your achievements',
       '`!da` — grab your daily milk bucks (streaks pay up to 300)',
       '`!cc` — claim a crate drop before someone else does (500 milk bucks)',
@@ -89,10 +94,10 @@ const HELP_CATEGORIES = {
     label: '📈 Stocks',
     description: 'Buy, sell, and manage your portfolio.',
     commands: [
-      '`!b TICKER shares` — buy shares',
-      '`!ba TICKER` — buy as many shares as you can afford',
-      '`!s TICKER shares|all` — dump shares',
-      '`!port` — view your portfolio (select a stock to buy all, sell all, buy amount, or sell amount)',
+      '`/b TICKER shares` — buy shares',
+      '`/ba TICKER` — buy as many shares as you can afford',
+      '`/s TICKER shares|all` — dump shares',
+      '`/port` — view your portfolio (select a stock to buy all, sell all, buy amount, or sell amount)',
       '📊 Live prices + 7-day stats → **#milkbot-stocks-info**',
     ],
   },
@@ -106,9 +111,9 @@ function buildHelpEmbed(userId = 'public') {
       isPublic
         ? `> *get rich or go broke.*\n\n` +
           `**🎮 GAMES** — \`#milkbot-games\`\n` +
-          `\`!g\` — game menu\n\n` +
+          `\`/g\` — game menu *(only you can see it)*\n\n` +
           `**📈 STOCKS** — \`#milkbot-stocks\`\n` +
-          `\`!port\` — portfolio\n\n` +
+          `\`/port\` — portfolio · \`/b\` · \`/s\` · \`/ba\`\n\n` +
           `*type \`!h\` for all commands 🥛*`
         : `> *get rich or go broke.*\n\n` +
           `select a category below to see all commands:`
@@ -140,10 +145,10 @@ function buildCategoryReply(category) {
 }
 
 const STOCK_TIERS = [
-  { label: '📗 STABLE',  range: '±2–5%/tick',   tickers: ['MILK', 'CREM', 'SKIM', 'LACT'] },
-  { label: '📙 MEDIUM',  range: '±5–10%/tick',  tickers: ['BUTR', 'WHEY', 'MOO', 'CURDS'] },
-  { label: '📕 HIGH',    range: '±10–20%/tick', tickers: ['CHUG', 'GOT', 'FETA'] },
-  { label: '💀 CHAOTIC', range: '±5–30%/tick',  tickers: ['SPOIL', 'MOLD', 'FROTH'] },
+  { label: '📗 STABLE',  range: 'barely moves. reliable like a good cow.',       tickers: ['MILK', 'CREM', 'SKIM', 'LACT'] },
+  { label: '📙 MEDIUM',  range: 'some risk. some reward. mostly chaos.',          tickers: ['BUTR', 'WHEY', 'MOO', 'CURDS'] },
+  { label: '📕 HIGH',    range: 'volatile. not for the lactose intolerant.',      tickers: ['CHUG', 'GOT', 'FETA'] },
+  { label: '💀 CHAOTIC', range: 'anything goes. godspeed. 🥛',                   tickers: ['SPOIL', 'MOLD', 'FROTH'] },
 ];
 
 function buildStockBoardText() {
@@ -158,8 +163,11 @@ function buildStockBoardText() {
   });
 
   const lines = [
-    '📊 **MILK STOCK MARKET** — live prices + 7-day stats',
-    '📈 Buy/sell in **#milkbot-stocks** with `!b` `!s` `!port`',
+    '🥛 **THE MILK MARKET IS OPEN** 🥛',
+    '*real prices. fake money. actual consequences.*',
+    '',
+    '💸 Trade in **#milkbot-stocks** with `/b` `/s` `/port`',
+    '📦 or just stare at the numbers and spiral quietly.',
     '',
   ];
 
@@ -299,13 +307,18 @@ let lbMessage = null;
 let helpMessage = null;
 let sbMessage = null;
 
-async function findBotMessage(channel, client) {
+async function findBotMessage(channel, client, contentHint = null) {
   const fetched = await channel.messages.fetch({ limit: 50 });
-  return fetched.find(m => m.author.id === client.user.id) ?? null;
+  return fetched.find(m => {
+    if (m.author.id !== client.user.id) return false;
+    if (contentHint && !m.content.startsWith(contentHint)) return false;
+    return true;
+  }) ?? null;
 }
 
 async function updateOrPost(channel, client, payload, label) {
-  const existing = await findBotMessage(channel, client);
+  const hint = typeof payload === 'string' ? payload.slice(0, 20) : null;
+  const existing = await findBotMessage(channel, client, hint);
   if (existing) {
     const updated = await existing.edit(payload).catch(() => null);
     if (updated) {

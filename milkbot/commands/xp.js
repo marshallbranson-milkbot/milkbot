@@ -22,11 +22,16 @@ function getLevel(totalXp) {
 }
 
 function getRank(level) {
-  if (level >= 25) return 'Milk God';
-  if (level >= 20) return 'Milk Legend';
-  if (level >= 15) return 'Milk Hustler';
-  if (level >= 10) return 'Milk Fiend';
-  if (level >= 5) return 'Milk Drinker';
+  if (level >= 100) return 'THE ONE TRUE MOO';
+  if (level >= 90)  return 'Milk Eternal';
+  if (level >= 80)  return 'Milk God';
+  if (level >= 70)  return 'Milk Overlord';
+  if (level >= 60)  return 'Milk Legend';
+  if (level >= 50)  return 'Milk Baron';
+  if (level >= 40)  return 'Milk Dealer';
+  if (level >= 30)  return 'Milk Hustler';
+  if (level >= 20)  return 'Milk Fiend';
+  if (level >= 10)  return 'Milk Drinker';
   return 'Milk Baby';
 }
 

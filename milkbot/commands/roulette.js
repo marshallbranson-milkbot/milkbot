@@ -110,7 +110,7 @@ module.exports = {
 
     const xp = getData(xpPath);
     const cappedXp = won ? Math.min(200, xpGain) : xpGain;
-    xp[userId] = Math.min(30000, (xp[userId] || 0) + cappedXp);
+    xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + cappedXp);
     saveData(xpPath, xp);
 
     // Result embed

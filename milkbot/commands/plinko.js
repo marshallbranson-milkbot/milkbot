@@ -126,7 +126,7 @@ module.exports = {
     const xpGain = won
       ? Math.min(200, Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm))
       : XP_LOSS;
-    xp[userId] = Math.min(30000, (xp[userId] || 0) + xpGain);
+    xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
     saveData(xpPath, xp);
   },
 };

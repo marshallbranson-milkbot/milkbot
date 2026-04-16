@@ -117,7 +117,7 @@ module.exports = {
     if (xpGain > 0) {
       const xp = getData(xpPath);
       const gain = Math.min(200, Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier));
-      xp[userId] = Math.min(30000, (xp[userId] || 0) + gain);
+      xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + gain);
       saveData(xpPath, xp);
     }
 

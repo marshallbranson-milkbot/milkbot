@@ -60,4 +60,13 @@ function doPrestige(userId) {
   return pData[userId];
 }
 
-module.exports = { getPrestige, getMultiplier, doPrestige };
+// prestige 0–4: cap at level 100 (XP sum 1–99 = 495,000). prestige 5: unlimited.
+function getXpCap(userId) {
+  return getPrestige(userId) >= 5 ? Infinity : 495000;
+}
+
+function getLevelCap(userId) {
+  return getPrestige(userId) >= 5 ? Infinity : 100;
+}
+
+module.exports = { getPrestige, getMultiplier, doPrestige, getXpCap, getLevelCap };

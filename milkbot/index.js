@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const state = require('./state');
@@ -8,6 +8,7 @@ const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./displ
 const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
 
+const GUILD_ID        = '562076997979865118';
 const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
 // Commands allowed as text in milkbot-games (everything else → use !g)
@@ -124,6 +125,42 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       } else if (interaction.customId.startsWith('g_') && gCommand) {
         gCommand.handleButtonInteraction(interaction).catch(console.error);
       }
+    } else if (interaction.isChatInputCommand()) {
+      const cmdName = interaction.commandName;
+
+      // /g — ephemeral menu (special path)
+      if (cmdName === 'g' && gCommand) {
+        gCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+
+      // /h — ephemeral help (special path)
+      if (cmdName === 'h' && helpCommand) {
+        helpCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+
+      // Channel routing (mirrors prefix command rules)
+      const channelName = interaction.channel?.name;
+      if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {
+        interaction.reply({ content: '📈 stock commands go in **#milkbot-stocks** 🥛', ephemeral: true }).catch(() => {});
+        return;
+      }
+      if (!STOCKS_COMMANDS.has(cmdName) && !BOTH_CHANNELS.has(cmdName) && channelName !== 'milkbot-games') {
+        interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', ephemeral: true }).catch(() => {});
+        return;
+      }
+
+      // Find the command (check aliases too for /a /d /j)
+      const cmd = commands[cmdName];
+      if (!cmd) return;
+
+      const { makeSlashBridge } = require('./slashbridge');
+      // Pass !cmdName as content so commands that check message.content.startsWith('!a') etc. work
+      const fakeMsg = makeSlashBridge(interaction, null, `!${cmdName}`);
+      const args = buildSlashArgs(interaction, cmdName);
+      cmd.execute(fakeMsg, args, client);
+
     } else if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith('port_select_') && portfolioCommand) {
         portfolioCommand.handleSelectMenu(interaction).catch(console.error);
@@ -135,6 +172,40 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
   client.once('ready', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
+
+    // ── Register slash commands (guild-scoped for instant updates) ────────────
+    try {
+      const rest = new REST().setToken(TOKEN);
+      const seen = new Set();
+      const slashDefs = [];
+
+      for (const cmd of Object.values(commands)) {
+        if (!cmd.slashOptions) continue;
+        // Primary command
+        if (!seen.has(cmd.name)) {
+          seen.add(cmd.name);
+          const b = new SlashCommandBuilder().setName(cmd.name).setDescription(cmd.description || cmd.name);
+          for (const opt of cmd.slashOptions) {
+            if (opt.type === 'INTEGER') b.addIntegerOption(o => o.setName(opt.name).setDescription(opt.description).setRequired(!!opt.required));
+            else if (opt.type === 'STRING') b.addStringOption(o => o.setName(opt.name).setDescription(opt.description).setRequired(!!opt.required));
+            else if (opt.type === 'USER')   b.addUserOption(o => o.setName(opt.name).setDescription(opt.description).setRequired(!!opt.required));
+          }
+          slashDefs.push(b.toJSON());
+        }
+        // Slash aliases (e.g. /a /d for coinflip, /j for raid)
+        for (const alias of (cmd.slashAliases || [])) {
+          if (!seen.has(alias)) {
+            seen.add(alias);
+            slashDefs.push(new SlashCommandBuilder().setName(alias).setDescription(cmd.description || alias).toJSON());
+          }
+        }
+      }
+
+      await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), { body: slashDefs });
+      console.log(`[slash] registered ${slashDefs.length} slash commands`);
+    } catch (err) {
+      console.error('[slash] registration failed:', err.message);
+    }
 
     // One-time jackpot reset to 10,000
     const jackpotResetPath = path.join(__dirname, 'data/jackpot_reset_done.json');
@@ -300,7 +371,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
 
       const pData = fs.existsSync(prestigePath) ? JSON.parse(fs.readFileSync(prestigePath, 'utf8')) : {};
-      pData[GRINDER_ID] = 1;
+      pData[GRINDER_ID] = 2;
       fs.writeFileSync(prestigePath, JSON.stringify(pData, null, 2));
 
       const balances = fs.existsSync(balancesFilePath) ? JSON.parse(fs.readFileSync(balancesFilePath, 'utf8')) : {};
@@ -323,12 +394,25 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         channel.send(
           `📋 **NOTICE FROM THE IRS (MilkBot Revenue Service)**\n\n` +
           `<@${GRINDER_ID}>, it has come to our attention that you failed to claim your reported earnings on your M-2 Dairy Income Form this fiscal year.\n\n` +
-          `As a result, **MilkBot has seized all assets** — milk bucks, XP, stocks, the whole udder. You've been reset to **Prestige 1** with **zero balance**.\n\n` +
+          `As a result, **MilkBot has seized all assets** — milk bucks, XP, stocks, the whole udder. You've been reset to **Prestige 2** with **zero balance**.\n\n` +
           `This is not a drill. This is not negotiable. The milk belongs to the state now. 🥛\n\n` +
           `*— MilkBot Revenue Service, Dept. of Dairy Enforcement*`
         );
       }
     }, ms);
+  }
+
+  // ── Slash command arg builder ──────────────────────────────────────────────
+  // Maps slash interaction options to the string args[] array each execute() expects.
+  function buildSlashArgs(interaction, cmdName) {
+    const str  = (n) => interaction.options.getString(n)  ?? '';
+    const int  = (n) => String(interaction.options.getInteger(n) ?? '');
+    switch (cmdName) {
+      case 'b':   return [str('ticker'), int('shares')];
+      case 'ba':  return [str('ticker')];
+      case 's':   return [str('ticker'), str('amount')];
+      default:    return [];
+    }
   }
 
   client.login(TOKEN);

@@ -16,6 +16,7 @@ const fs = require('fs');
   module.exports = {
     name: 'bal',
     description: 'Check your milk bucks balance.',
+    slashOptions: [],
     execute(message) {
       const balance = getBalance(message.author.id);
       message.reply(`Your balance is **${balance} milk bucks** 🥛`).then(reply => {
