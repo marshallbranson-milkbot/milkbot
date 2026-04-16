@@ -207,6 +207,49 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       console.error('[slash] registration failed:', err.message);
     }
 
+    // One-time player resets (v1)
+    // 646425076748517386 → balance 0, portfolio cleared
+    // 879171470700445747 → fresh prestige 2, balance 0, XP 0, portfolio cleared
+    const playerResetFlagPath = path.join(__dirname, 'data/player_reset_v1_done.json');
+    if (!fs.existsSync(playerResetFlagPath)) {
+      const _balPath  = path.join(__dirname, 'data/balances.json');
+      const _presPath = path.join(__dirname, 'data/prestige.json');
+      const _xpPath   = path.join(__dirname, 'data/xp.json');
+      const _portPath = path.join(__dirname, 'data/portfolios.json');
+      const _achPath  = path.join(__dirname, 'data/achievements.json');
+
+      const _bal  = fs.existsSync(_balPath)  ? JSON.parse(fs.readFileSync(_balPath,  'utf8')) : {};
+      const _pres = fs.existsSync(_presPath) ? JSON.parse(fs.readFileSync(_presPath, 'utf8')) : {};
+      const _xp   = fs.existsSync(_xpPath)   ? JSON.parse(fs.readFileSync(_xpPath,   'utf8')) : {};
+
+      // User A: wipe milk bucks + stocks
+      _bal['646425076748517386'] = 0;
+
+      // User B: fresh prestige 2
+      _bal['879171470700445747']  = 0;
+      _pres['879171470700445747'] = 2;
+      _xp['879171470700445747']   = 0;
+
+      fs.writeFileSync(_balPath,  JSON.stringify(_bal,  null, 2));
+      fs.writeFileSync(_presPath, JSON.stringify(_pres, null, 2));
+      fs.writeFileSync(_xpPath,   JSON.stringify(_xp,   null, 2));
+
+      if (fs.existsSync(_portPath)) {
+        const _port = JSON.parse(fs.readFileSync(_portPath, 'utf8'));
+        delete _port['646425076748517386'];
+        delete _port['879171470700445747'];
+        fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
+      }
+      if (fs.existsSync(_achPath)) {
+        const _ach = JSON.parse(fs.readFileSync(_achPath, 'utf8'));
+        if (_ach['879171470700445747']) _ach['879171470700445747'].level = 1;
+        fs.writeFileSync(_achPath, JSON.stringify(_ach, null, 2));
+      }
+
+      fs.writeFileSync(playerResetFlagPath, JSON.stringify({ done: true }));
+      console.log('[reset] player_reset_v1 applied');
+    }
+
     // One-time jackpot reset to 10,000
     const jackpotResetPath = path.join(__dirname, 'data/jackpot_reset_done.json');
     if (!fs.existsSync(jackpotResetPath)) {
