@@ -10,20 +10,20 @@ const balancesPath  = path.join(__dirname, 'data/balances.json');
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const STOCK_DEFS = [
-  { ticker: 'MILK',  name: 'MilkCorp Industries',  volatility: [0.02, 0.05], minPrice: 25, dividendPct: 0.05 },
-  { ticker: 'CREM',  name: 'Creme Capital',         volatility: [0.02, 0.05], minPrice: 25, dividendPct: 0.05 },
-  { ticker: 'BUTR',  name: 'ButterCo Holdings',     volatility: [0.05, 0.10], minPrice: 15, dividendPct: 0.03 },
-  { ticker: 'WHEY',  name: 'Whey Street Group',     volatility: [0.05, 0.10], minPrice: 15, dividendPct: 0.03 },
-  { ticker: 'MOO',   name: 'Moo Markets Inc',       volatility: [0.05, 0.10], minPrice: 15, dividendPct: 0.03 },
-  { ticker: 'CHUG',  name: 'Chug Enterprises',      volatility: [0.10, 0.20], minPrice: 10, dividendPct: 0.03 },
-  { ticker: 'GOT',   name: 'Got Milk Global',       volatility: [0.10, 0.20], minPrice: 10, dividendPct: 0.01 },
-  { ticker: 'SPOIL', name: 'Spoiled Rotten LLC',    volatility: [0.05, 0.30], minPrice:  5, dividendPct: 0.01 },
-  { ticker: 'SKIM',  name: 'Skim Street Capital',   volatility: [0.02, 0.05], minPrice: 25, dividendPct: 0.05 },
-  { ticker: 'LACT',  name: 'Lactose Capital',       volatility: [0.02, 0.05], minPrice: 25, dividendPct: 0.05 },
-  { ticker: 'CURDS', name: 'CurdCo Ventures',       volatility: [0.05, 0.10], minPrice: 15, dividendPct: 0.03 },
-  { ticker: 'FETA',  name: 'Feta Financial',        volatility: [0.10, 0.20], minPrice: 10, dividendPct: 0.03 },
-  { ticker: 'MOLD',  name: 'Moldy Money LLC',       volatility: [0.05, 0.30], minPrice:  5, dividendPct: 0.01 },
-  { ticker: 'FROTH', name: 'Frothy Futures LLC',    volatility: [0.05, 0.30], minPrice:  5, dividendPct: 0.01 },
+  { ticker: 'MILK',  name: 'MilkCorp Industries',  volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'CREM',  name: 'Creme Capital',         volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'BUTR',  name: 'ButterCo Holdings',     volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'WHEY',  name: 'Whey Street Group',     volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'MOO',   name: 'Moo Markets Inc',       volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'CHUG',  name: 'Chug Enterprises',      volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'GOT',   name: 'Got Milk Global',       volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'SPOIL', name: 'Spoiled Rotten LLC',    volatility: [0.05, 0.30], minPrice:  5 },
+  { ticker: 'SKIM',  name: 'Skim Street Capital',   volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'LACT',  name: 'Lactose Capital',       volatility: [0.02, 0.05], minPrice: 25 },
+  { ticker: 'CURDS', name: 'CurdCo Ventures',       volatility: [0.05, 0.10], minPrice: 15 },
+  { ticker: 'FETA',  name: 'Feta Financial',        volatility: [0.10, 0.20], minPrice: 10 },
+  { ticker: 'MOLD',  name: 'Moldy Money LLC',       volatility: [0.05, 0.30], minPrice:  5 },
+  { ticker: 'FROTH', name: 'Frothy Futures LLC',    volatility: [0.05, 0.30], minPrice:  5 },
 ];
 
 const BASE_PRICE = 100;
@@ -112,26 +112,4 @@ function updatePrices() {
   return prices;
 }
 
-function processDividends() {
-  const portfolios = getPortfolios();
-  const prices     = getPrices();
-  if (!fs.existsSync(balancesPath)) return;
-  const balances   = JSON.parse(fs.readFileSync(balancesPath, 'utf8'));
-
-  for (const [userId, holdings] of Object.entries(portfolios)) {
-    let earned = 0;
-    for (const [ticker, holding] of Object.entries(holdings)) {
-      if (!holding || !holding.shares || holding.shares <= 0) continue;
-      const def = STOCK_DEFS.find(s => s.ticker === ticker);
-      if (!def || !def.dividendPct) continue;
-      const price = prices[ticker]?.price || 0;
-      earned += Math.floor((def.dividendPct / 288) * holding.shares * price);
-    }
-    if (earned > 0) {
-      balances[userId] = (balances[userId] || 0) + earned;
-    }
-  }
-  fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
-}
-
-module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices, getStats, processDividends };
+module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices, getStats };

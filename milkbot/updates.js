@@ -242,6 +242,25 @@ const UPDATES = [
     ].join('\n'),
   },
   {
+    id: 'v27-stability',
+    text: [
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `🥛 **MILKBOT PATCH — THE INTEGRITY UPDATE** 🥛`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      `🔒 **ECONOMY HARDENED** — Several holes in the economy have been patched. Balance limits are now enforced everywhere. The numbers mean something again.`,
+      ``,
+      `⚔️ **GAMES TIGHTENED** — Button spam, duplicate actions, and edge cases across Blackjack, Raid Boss, and the Casino have been locked down. Play fast, play clean.`,
+      ``,
+      `📉 **DIVIDENDS REMOVED** — Passive income from holding stocks is gone. The market is about buying low and selling high now. That's it.`,
+      ``,
+      `🛡️ **UNDER THE HOOD** — A full audit was run on every system. A lot was caught. A lot was fixed. The bot is cleaner than it's ever been.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `*— MilkBot Management. the milk doesn't lie. 🥛*`,
+    ].join('\n'),
+  },
+  {
     id: 'v26-public-patch-2',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,

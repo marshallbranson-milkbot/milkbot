@@ -3,7 +3,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require
 const fs = require('fs');
 const path = require('path');
 const state = require('./state');
-const { updatePrices, processDividends } = require('./stockdata');
+const { updatePrices } = require('./stockdata');
 const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./display');
 const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
@@ -313,8 +313,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     // Schedule random crate drops
     scheduleCrateDrops(client);
 
-    // Update stock prices every 5 minutes, pay dividends, then refresh the stock board
-    setInterval(() => { updatePrices(); processDividends(); refreshStockBoard(client); }, 5 * 60 * 1000);
+    // Update stock prices every 5 minutes then refresh the stock board
+    setInterval(() => { updatePrices(); refreshStockBoard(client); }, 5 * 60 * 1000);
 
     // Refresh leaderboard every 5 minutes
     setInterval(() => refreshLeaderboard(client), 5 * 60 * 1000);
