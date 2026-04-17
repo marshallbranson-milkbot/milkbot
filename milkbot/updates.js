@@ -242,7 +242,7 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v26-public-patch',
+    id: 'v26-public-patch-2',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `🥛 **MILKBOT PATCH — OPEN DOORS UPDATE** 🥛`,
