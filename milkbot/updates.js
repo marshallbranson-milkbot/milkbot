@@ -241,6 +241,25 @@ const UPDATES = [
       `*— MilkBot Management. the raid never ends. 🥛*`,
     ].join('\n'),
   },
+  {
+    id: 'v26-public-patch',
+    text: [
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `🥛 **MILKBOT PATCH — OPEN DOORS UPDATE** 🥛`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      `⚡ **SLASH COMMANDS ONLY** — \`!\` commands are gone. Everything lives under \`/\` now. \`/g\` for games. \`/bal\`, \`/port\`, \`/b\`, \`/s\` for the rest. Type \`/\` and Discord shows you everything.`,
+      ``,
+      `📦 **CRATE CLAIMS** — \`!cc\` is gone. When a crate drops, open \`/g\` → Wallet → **Claim Crate**. Same reward, same window, cleaner channel.`,
+      ``,
+      `🐄 **RAID BOSS HP NOW SCALES WITH THE SERVER** — Boss HP adjusts based on how many active players are in the server. More recruits = bigger boss = bigger fight. The raid grows with you.`,
+      ``,
+      `⏱️ **8-SECOND COOLDOWN BETWEEN GAMES** — You can still play back to back, just not instantly. Finish one, wait 8 seconds, run it back.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `*— MilkBot Management. the server is open. 🥛*`,
+    ].join('\n'),
+  },
 ];
 
 // ─── LOGIC ──────────────────────────────────────────────────────────────────
