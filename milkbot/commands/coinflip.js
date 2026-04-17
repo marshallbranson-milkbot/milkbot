@@ -111,7 +111,7 @@
       // --- CHALLENGE ---
       const challenger = message.author;
       const opponent = message.mentions.users.first();
-      const bet = parseInt(args[1]);
+      const bet = parseInt(args[1], 10);
 
       if (!opponent) {
         return message.reply('You need to tag someone. `!cf @user amount`');

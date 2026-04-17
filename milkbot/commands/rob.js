@@ -52,6 +52,9 @@ module.exports = {
       return message.reply(`You're laying low. Try again in **${hours}h ${minutes}m**. 🥛`);
     }
 
+    cooldowns[`rob_${message.author.id}`] = now;
+    saveData(cooldownsPath, cooldowns);
+
     const balances = getData(balancesPath);
     const robberBalance = balances[message.author.id] || 0;
     const targetBalance = balances[target.id] || 0;
@@ -63,9 +66,6 @@ module.exports = {
     if (robberBalance <= 0) {
       return message.reply(`You're broke. You've got nothing to lose but you also can't pull this off. 🥛`);
     }
-
-    cooldowns[`rob_${message.author.id}`] = now;
-    saveData(cooldownsPath, cooldowns);
 
     const success = Math.random() < SUCCESS_CHANCE;
 

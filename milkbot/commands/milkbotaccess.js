@@ -50,6 +50,12 @@ async function handleInteraction(interaction) {
     return interaction.editReply({ content: `You already have access. 🥛` });
   }
 
+  const accountAge = Date.now() - interaction.user.createdTimestamp;
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  if (accountAge < THIRTY_DAYS) {
+    return interaction.editReply({ content: `Your account needs to be at least 30 days old to join. 🥛` });
+  }
+
   await interaction.member.roles.add(role);
   return interaction.editReply({ content: `You're in. MilkBot channels are now unlocked. 🥛` });
 }

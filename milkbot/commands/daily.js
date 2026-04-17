@@ -50,16 +50,15 @@ const fs = require('fs');
       let streak = cooldowns[`streak_${userId}`] || 0;
       streak = streakBroken ? 1 : streak + 1;
 
+      cooldowns[`daily_${userId}`] = now;
+      cooldowns[`streak_${userId}`] = streak;
+      saveData(cooldownsPath, cooldowns);
+
       const { amount, msg } = getPayoutAndMessage(streak);
 
       const balances = getData(balancesPath);
       balances[userId] = (balances[userId] || 0) + amount;
-
-      cooldowns[`daily_${userId}`] = now;
-      cooldowns[`streak_${userId}`] = streak;
-
       saveData(balancesPath, balances);
-      saveData(cooldownsPath, cooldowns);
 
       message.reply(msg).then(reply => {
         setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);

@@ -73,38 +73,14 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       return;
     }
 
-    const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
-    const commandName = args.shift().toLowerCase();
-
-    const command = commands[commandName];
-    if (!command) {
-      message.delete().catch(() => {});
-      return;
-    }
-
-    const autoDelete = (reply) => {
-      setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
-    };
-
+    // All ! commands are retired — redirect to slash commands
+    message.delete().catch(() => {});
     const channelName = message.channel.name;
-    if (STOCKS_COMMANDS.has(commandName)) {
-      if (channelName !== 'milkbot-stocks') {
-        message.reply('📈 Stock commands go in **#milkbot-stocks**!').then(autoDelete);
-        return;
-      }
-    } else if (!BOTH_CHANNELS.has(commandName)) {
-      if (channelName !== 'milkbot-games') {
-        message.reply('🎮 Game and currency commands go in **#milkbot-games**!').then(autoDelete);
-        return;
-      }
-      // In milkbot-games, only !g and join/accept/decline commands work as text
-      if (channelName === 'milkbot-games' && !GAMES_MENU_PASSTHROUGH.has(commandName)) {
-        message.reply('use `!g` to play 🥛').then(autoDelete);
-        return;
-      }
+    if (channelName === 'milkbot-games' || channelName === 'milkbot-stocks') {
+      message.channel.send(`use \`/g\` for games or \`/\` for everything else 🥛`)
+        .then(m => setTimeout(() => m.delete().catch(() => {}), 5000))
+        .catch(() => {});
     }
-
-    command.execute(message, args, client);
   });
 
   // Handle button and select menu interactions
@@ -361,7 +337,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
     const crateMsg = await channel.send(
       `📦 **A MILK CRATE JUST DROPPED!** 📦\n` +
-      `First to type \`!cc\` claims **500 milk bucks**! You have 30 minutes. ⏳`
+      `Open \`/g\` → Wallet → **Claim Crate** to grab **500 milk bucks**! First one wins. You have 30 minutes. ⏳`
     ).catch(() => null);
 
     const expireTimeout = setTimeout(() => {

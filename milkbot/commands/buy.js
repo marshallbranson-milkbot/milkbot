@@ -28,7 +28,7 @@ module.exports = {
   ],
   execute(message, args) {
     const ticker = args[0]?.toUpperCase();
-    const amount = parseInt(args[1]);
+    const amount = parseInt(args[1], 10);
 
     if (!ticker || !validTickers.includes(ticker)) {
       return message.reply(`Invalid ticker. Valid stocks: ${validTickers.join(', ')} 🥛`);

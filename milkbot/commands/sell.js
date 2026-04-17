@@ -50,7 +50,7 @@ module.exports = {
     if (amountArg === 'all') {
       sharesToSell = holding.shares;
     } else {
-      const amount = parseInt(amountArg);
+      const amount = parseInt(amountArg, 10);
       if (!amount || isNaN(amount) || amount <= 0) {
         return message.reply(`Enter a number of shares or "all". \`!sell ${ticker} shares\` 🥛`);
       }

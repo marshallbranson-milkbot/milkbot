@@ -96,7 +96,7 @@ module.exports = {
       return message.reply(`A raid is already in progress! Type \`!j\` to get in. 🥛`);
     }
 
-    const buyIn = parseInt(args[0]);
+    const buyIn = parseInt(args[0], 10);
 
     if (!buyIn || isNaN(buyIn) || buyIn <= 0) {
       return message.reply(`Set a buy-in amount. \`!ra amount\` 🥛`);

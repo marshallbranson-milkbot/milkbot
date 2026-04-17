@@ -147,6 +147,7 @@ const INTERACTIVE_GAMES = new Set(['blackjack', 'bjt', 'coinflip', 'raid']);
 const PASSIVE_GAMES = new Set(['balance', 'xp', 'ach', 'prestige', 'jackpot', 'bossstatus', 'crate', 'daily']);
 
 const activeGameUsers = new Set();
+const lastGameTime = new Map();
 
 // ── Game dispatcher ────────────────────────────────────────────────────────────
 async function handleGame(interaction, game, userId) {
@@ -157,6 +158,14 @@ async function handleGame(interaction, game, userId) {
       setTimeout(() => msg?.delete().catch(() => {}), 5000);
       return;
     }
+    const last = lastGameTime.get(userId) || 0;
+    if (Date.now() - last < 8000) {
+      await interaction.deferUpdate();
+      const msg = await interaction.channel.send(`slow down 🥛`).catch(() => null);
+      setTimeout(() => msg?.delete().catch(() => {}), 4000);
+      return;
+    }
+    lastGameTime.set(userId, Date.now());
     activeGameUsers.add(userId);
     setTimeout(() => activeGameUsers.delete(userId), 60000); // safety release after 60s
   }

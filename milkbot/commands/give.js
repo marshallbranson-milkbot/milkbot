@@ -27,8 +27,9 @@ module.exports = {
       return message.reply(`you only have **${senderBal} milk bucks**. can't give what you don't have. 🥛`);
     }
 
+    const BAL_CAP = 10_000_000;
     balances[message.author.id] = senderBal - amount;
-    balances[target.id] = (balances[target.id] || 0) + amount;
+    balances[target.id] = Math.min((balances[target.id] || 0) + amount, BAL_CAP);
     saveData(balancesPath, balances);
 
     const targetMember = message.guild?.members.cache.get(target.id);

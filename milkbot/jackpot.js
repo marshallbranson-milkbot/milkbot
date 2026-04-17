@@ -21,13 +21,12 @@ function tryJackpot(userId, username, channel) {
   const amount = getJackpot();
   if (amount <= 0) return false;
 
-  fs.writeFileSync(jackpotPath, JSON.stringify({ amount: 0 }, null, 2));
-
   const balances = fs.existsSync(balancesPath)
     ? JSON.parse(fs.readFileSync(balancesPath, 'utf8'))
     : {};
-  balances[userId] = (balances[userId] || 0) + amount;
+  balances[userId] = Math.min((balances[userId] || 0) + amount, 10_000_000);
   fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
+  fs.writeFileSync(jackpotPath, JSON.stringify({ amount: 0 }, null, 2));
 
   channel.send(
     `🚨🥛🚨 **J A C K P O T** 🚨🥛🚨\n\n` +

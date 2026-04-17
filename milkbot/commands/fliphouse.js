@@ -22,7 +22,7 @@
     name: 'fh',
     description: 'Flip against MilkBot. Usage: !fh amount',
     execute(message, args) {
-      const bet = parseInt(args[0]);
+      const bet = parseInt(args[0], 10);
       const userId = message.author.id;
 
       if (!bet || isNaN(bet) || bet <= 0) {

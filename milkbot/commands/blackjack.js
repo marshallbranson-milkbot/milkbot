@@ -596,7 +596,7 @@ module.exports = {
       return message.reply(`You're already in a game! Use the buttons to play. 🃏`);
     }
 
-    const bet = parseInt(args[0]);
+    const bet = parseInt(args[0], 10);
     if (!bet || isNaN(bet) || bet < MIN_BET) {
       return message.reply(`Minimum bet is **${MIN_BET} milk bucks**. Usage: \`!bl amount\` 🥛`);
     }

@@ -9,7 +9,6 @@ const DATA_PATH      = path.join(__dirname, '../data/raidboss.json');
 const BALANCES_PATH  = path.join(__dirname, '../data/balances.json');
 const XP_PATH        = path.join(__dirname, '../data/xp.json');
 
-const MAX_HP          = 25000;
 const ATTACK_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 const RISK_CHANCE     = 0.15;
 
@@ -572,6 +571,14 @@ function readBalances() {
   return JSON.parse(fs.readFileSync(BALANCES_PATH, 'utf8'));
 }
 
+function calcMaxHp() {
+  const balances = readBalances();
+  const activePlayers = Object.values(balances).filter(b => b > 0).length;
+  return Math.max(10000, Math.min(500000, activePlayers * 2500));
+}
+
+let bossEditTimer = null;
+
 function readXp() {
   if (!fs.existsSync(XP_PATH)) return {};
   return JSON.parse(fs.readFileSync(XP_PATH, 'utf8'));
@@ -712,14 +719,15 @@ async function spawnBoss(client) {
 
   const now = Date.now();
   const expiresAt = now + 24 * 60 * 60 * 1000;
+  const spawnHp = calcMaxHp();
 
   const bossData = {
     active: true,
     bossIndex,
     spawnedAt: now,
     expiresAt,
-    maxHp: MAX_HP,
-    currentHp: MAX_HP,
+    maxHp: spawnHp,
+    currentHp: spawnHp,
     defeated: false,
     defeatedAt: null,
     messageId: null,
@@ -736,7 +744,7 @@ async function spawnBoss(client) {
 
   bossData.messageId = msg.id;
   saveData(bossData);
-  state.activeRaidBoss = { name: boss.name, currentHp: MAX_HP, maxHp: MAX_HP };
+  state.activeRaidBoss = { name: boss.name, currentHp: spawnHp, maxHp: spawnHp };
 
   console.log(`[raidboss] spawned: ${boss.name}`);
 
@@ -896,17 +904,22 @@ async function handleInteraction(interaction) {
   saveData(bossData);
   state.activeRaidBoss = { name: BOSSES[bossData.bossIndex % BOSSES.length].name, currentHp: bossData.currentHp, maxHp: bossData.maxHp };
 
-  // Update boss message
+  // Update boss message (debounced to avoid Discord rate limits on rapid attacks)
   const guild = interaction.guild;
   const channel = guild?.channels.cache.get(bossData.channelId)
     ?? guild?.channels.cache.find(c => c.name === 'milkbot-games');
   if (channel && bossData.messageId) {
-    const msg = await channel.messages.fetch(bossData.messageId).catch(() => null);
-    if (msg) {
-      await msg.edit({
-        embeds: [buildEmbed(bossData, { defeated })],
-        components: [buildAttackButton(defeated)],
-      }).catch(console.error);
+    if (defeated) {
+      // Defeat is time-sensitive — edit immediately
+      const msg = await channel.messages.fetch(bossData.messageId).catch(() => null);
+      if (msg) await msg.edit({ embeds: [buildEmbed(bossData, { defeated: true })], components: [buildAttackButton(true)] }).catch(console.error);
+    } else {
+      clearTimeout(bossEditTimer);
+      bossEditTimer = setTimeout(async () => {
+        const fresh = readData();
+        const msg = await channel.messages.fetch(fresh.messageId ?? bossData.messageId).catch(() => null);
+        if (msg) msg.edit({ embeds: [buildEmbed(fresh)], components: [buildAttackButton()] }).catch(console.error);
+      }, 1500);
     }
   }
 
@@ -932,14 +945,6 @@ async function handleInteraction(interaction) {
 async function restoreOnStartup(client) {
   const bossData = readData();
   if (!bossData.active || bossData.defeated) return;
-
-  // One-time migration: scale existing boss to new 25k HP
-  if (bossData.maxHp < 25000) {
-    const ratio = bossData.currentHp / bossData.maxHp;
-    bossData.maxHp = 25000;
-    bossData.currentHp = Math.floor(ratio * 25000 * 0.85);
-    saveData(bossData);
-  }
 
   const remaining = bossData.expiresAt - Date.now();
   if (remaining <= 0) {
