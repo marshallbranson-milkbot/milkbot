@@ -261,7 +261,7 @@ module.exports = {
       const shares = parseInt(reply.content.trim(), 10);
       reply.delete().catch(() => {});
 
-      if (!shares || shares <= 0) {
+      if (!shares || shares <= 0 || shares > 1_000_000) {
         return interaction.followUp({ content: `that's not a valid number. no trade made. 🥛`, ephemeral: true });
       }
 

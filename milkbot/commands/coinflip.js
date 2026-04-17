@@ -67,7 +67,7 @@
         const bonus = Math.floor(bet * (hotMul * pm - 1));
 
         balances[winnerId] = (balances[winnerId] || 0) + bet + bonus;
-        balances[loserId] = (balances[loserId] || 0) - bet;
+        balances[loserId] = Math.max(0, (balances[loserId] || 0) - bet);
         saveData(balancesPath, balances);
 
         const prevLoserStreak = ws.resetStreak(loserId);
