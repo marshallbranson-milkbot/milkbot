@@ -58,13 +58,13 @@ function buildSocial(userId) {
   const state = require('../state');
   const bossActive = !!state.activeRaidBoss;
   return {
-    content: '⚔️ **SOCIAL** — raid · rob · scramble · trivia · geo · trivia crack · boss',
+    content: '⚔️ **SOCIAL** — raid · rob · scramble · milk trivia · geo · trivia crack · boss',
     components: [
       new ActionRowBuilder().addComponents(
         btn(`g_play_raid_${userId}`,        '⚔️ Raid',         ButtonStyle.Danger),
         btn(`g_play_rob_${userId}`,         '🔫 Rob',          ButtonStyle.Danger),
         btn(`g_play_scramble_${userId}`,    '🔤 Scramble',     ButtonStyle.Primary),
-        btn(`g_play_trivia_${userId}`,      '🧠 Trivia',       ButtonStyle.Primary),
+        btn(`g_play_trivia_${userId}`,      '🥛 Milk Trivia',  ButtonStyle.Primary),
         btn(`g_play_geo_${userId}`,         '🌍 Geo',          ButtonStyle.Primary),
       ),
       new ActionRowBuilder().addComponents(

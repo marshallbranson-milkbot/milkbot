@@ -185,7 +185,7 @@ const UPDATES = [
     text: [
       `🐄 **NIGHTLY RAID BOSS**`,
       `Every night at midnight EST, a milk-themed monster appears in **#milkbot-games** with **5,000 HP**.`,
-      `Click **⚔️ Attack** on the boss message. Once per hour. Damage scales with your level. Risk: 15% chance you lose some milk bucks per attack.`,
+      `Click **⚔️ Attack** on the boss message. Once per 15 minutes. Damage scales with your level. Risk: 15% chance you lose some milk bucks per attack.`,
       `If the server defeats it before the next midnight — **60 🥛 per attack**, multiplied by your prestige level.`,
       `If it escapes — **20 🥛 per attack**, no multiplier.`,
       `7 rotating bosses. 🥛`,
