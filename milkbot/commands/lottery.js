@@ -62,7 +62,7 @@ async function drawLottery(client) {
     const prize = lottery.pot;
 
     const balances = getData(balancesPath);
-    balances[winnerId] = (balances[winnerId] || 0) + prize;
+    balances[winnerId] = Math.min(10_000_000, (balances[winnerId] || 0) + prize);
     saveData(balancesPath, balances);
 
     // Get winner display name

@@ -812,7 +812,7 @@ async function resolveRaidBoss(client, reason, bossDataOverride = null) {
     }
     if (state.doubleXp) xpGain = Math.min(200, xpGain * 2);
 
-    balances[userId] = (balances[userId] || 0) + reward;
+    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + reward);
     xpData[userId] = Math.min(require('../prestige').getXpCap(userId), (xpData[userId] || 0) + xpGain);
 
     const i = sortedAttackers.findIndex(([id]) => id === userId);

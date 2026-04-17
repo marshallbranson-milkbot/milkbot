@@ -44,7 +44,7 @@
         const pm = prestige.getMultiplier(userId);
         const payout = Math.floor(bet * hotMul * pm);
 
-        balances[userId] = balance + payout;
+        balances[userId] = Math.min(10_000_000, balance + payout);
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);

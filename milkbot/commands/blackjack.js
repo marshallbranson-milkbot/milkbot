@@ -379,7 +379,7 @@ function resolveAllHands(userId, channel, gameMsg) {
       totalNetWin -= hand.bet;
     } else if (result === 'win' || result === 'dealer_bust') {
       const winnings = Math.floor(hand.bet * hotMul * pm);
-      balances[userId] = (balances[userId] || 0) + hand.bet + winnings;
+      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + hand.bet + winnings);
       const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm));
       xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
       totalXpGain += xpGain;
@@ -469,6 +469,7 @@ function resolveAllHands(userId, channel, gameMsg) {
 
 async function handleInteraction(interaction) {
   const parts = interaction.customId.split('_'); // ['bj', 'action', 'userId']
+  if (parts.length < 3 || !parts[2]) return;
   const action = parts[1];
   const ownerId = parts[2];
 
@@ -642,7 +643,7 @@ module.exports = {
         const hotMul = newStreak >= 3 ? 1.5 : 1;
         const pm = prestige.getMultiplier(userId);
         const winnings = Math.floor(bjPayout * hotMul * pm);
-        balances[userId] = (balances[userId] || 0) + bet + winnings;
+        balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + bet + winnings);
         xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * hotMul * pm);
         const xp = getData(xpPath);
         xp[userId] = (xp[userId] || 0) + xpGain;

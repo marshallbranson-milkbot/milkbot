@@ -105,7 +105,7 @@ module.exports = {
     }
 
     const actualWinnings = Math.floor(winnings * multiplier);
-    balances[userId] = (balances[userId] || 0) + actualWinnings;
+    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + actualWinnings);
     saveData(balancesPath, balances);
 
     let xpGain = 0;

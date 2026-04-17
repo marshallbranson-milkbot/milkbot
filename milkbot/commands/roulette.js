@@ -104,7 +104,7 @@ module.exports = {
       : XP_LOSS;
 
     if (won) {
-      balances[userId] = (balances[userId] || 0) + finalPayout;
+      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + finalPayout);
       saveData(balancesPath, balances);
     }
 

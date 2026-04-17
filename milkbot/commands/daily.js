@@ -57,7 +57,7 @@ const fs = require('fs');
       const { amount, msg } = getPayoutAndMessage(streak);
 
       const balances = getData(balancesPath);
-      balances[userId] = (balances[userId] || 0) + amount;
+      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + amount);
       saveData(balancesPath, balances);
 
       message.reply(msg).then(reply => {
