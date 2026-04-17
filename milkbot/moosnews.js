@@ -658,6 +658,7 @@ async function dropNews(client, headline) {
       await existing.edit(newsText);
       state.lastNewsAt = Date.now();
       console.log('[moosnews] Moo News message updated');
+      require('./display').refreshStockBoard(client).catch(console.error);
       return;
     } catch (err) {
       console.error('[moosnews] dropNews: failed to edit saved message:', err.message);
@@ -668,6 +669,8 @@ async function dropNews(client, headline) {
   const msg = await channel.send(newsText).catch(e => { console.error('[moosnews] dropNews: failed to send:', e.message); return null; });
   if (msg) saveMooNewsMsgId(msg.id);
   state.lastNewsAt = Date.now();
+
+  require('./display').refreshStockBoard(client).catch(console.error);
 }
 
 function todayDateStr() {
