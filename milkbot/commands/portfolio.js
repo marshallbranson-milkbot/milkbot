@@ -161,6 +161,7 @@ module.exports = {
 
   async handleSelectMenu(interaction) {
     const parts = interaction.customId.split('_'); // ['port', 'select', 'userId']
+    if (parts.length < 3 || !parts[2]) return;
     const ownerId = parts[2];
 
     if (interaction.user.id !== ownerId) {
@@ -208,6 +209,7 @@ module.exports = {
 
   async handleButtonInteraction(interaction) {
     const parts = interaction.customId.split('_'); // ['port', 'buyall'/'sellall', 'TICKER', 'userId']
+    if (parts.length < 4 || !parts[3]) return;
     const action = parts[1];
     const ticker = parts[2];
     const ownerId = parts[3];

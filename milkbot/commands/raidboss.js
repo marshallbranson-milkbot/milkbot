@@ -853,90 +853,102 @@ async function resolveRaidBoss(client, reason, bossDataOverride = null) {
 
 // ── Handle button interaction ──────────────────────────────────────────────────
 
+const attackingUsers = new Set();
+
 async function handleInteraction(interaction) {
+  const userId = interaction.user.id;
+
+  if (attackingUsers.has(userId)) {
+    return interaction.reply({ content: `⏳ Your attack is still processing. 🥛`, ephemeral: true });
+  }
+  attackingUsers.add(userId);
+
   await interaction.deferReply({ ephemeral: true });
 
-  const userId = interaction.user.id;
-  const username = interaction.user.username;
+  try {
+    const username = interaction.user.username;
 
-  const bossData = readData();
-  if (!bossData.active || bossData.defeated) {
-    return interaction.editReply({ content: `🐄 No raid boss active right now. Check back at midnight EST. 🥛` });
-  }
-
-  // Cooldown check
-  const record = bossData.attacks[userId];
-  if (record) {
-    const elapsed = Date.now() - record.lastAttack;
-    const remaining = ATTACK_COOLDOWN - elapsed;
-    if (remaining > 0) {
-      const mins = Math.ceil(remaining / 60000);
-      return interaction.editReply({ content: `⏳ Your sword needs sharpening. Attack again in **${mins} minute${mins !== 1 ? 's' : ''}**. 🥛` });
+    const bossData = readData();
+    if (!bossData.active || bossData.defeated) {
+      return interaction.editReply({ content: `🐄 No raid boss active right now. Check back at midnight EST. 🥛` });
     }
-  }
 
-  // Roll damage based on player level
-  const damage = rollDamage(userId);
-  bossData.currentHp = Math.max(0, bossData.currentHp - damage);
+    // Cooldown check
+    const record = bossData.attacks[userId];
+    if (record) {
+      const elapsed = Date.now() - record.lastAttack;
+      const remaining = ATTACK_COOLDOWN - elapsed;
+      if (remaining > 0) {
+        const mins = Math.ceil(remaining / 60000);
+        return interaction.editReply({ content: `⏳ Your sword needs sharpening. Attack again in **${mins} minute${mins !== 1 ? 's' : ''}**. 🥛` });
+      }
+    }
 
-  // Roll risk
-  let riskMsg = '';
-  const balances = readBalances();
-  if (Math.random() < RISK_CHANCE) {
-    const bal = balances[userId] || 0;
-    const loss = Math.max(25, Math.min(300, Math.floor(bal * 0.05)));
-    balances[userId] = Math.max(0, bal - loss);
-    fs.writeFileSync(BALANCES_PATH, JSON.stringify(balances, null, 2));
-    riskMsg = `\n💸 The boss counter-attacked! You lost **${loss} 🥛**.`;
-  }
+    // Roll damage based on player level
+    const damage = rollDamage(userId);
+    bossData.currentHp = Math.max(0, bossData.currentHp - damage);
 
-  // Record attack
-  if (!bossData.attacks[userId]) {
-    bossData.attacks[userId] = { username, count: 0, lastAttack: 0, totalDamage: 0 };
-  }
-  bossData.attacks[userId].count++;
-  bossData.attacks[userId].lastAttack = Date.now();
-  bossData.attacks[userId].totalDamage += damage;
-  bossData.attacks[userId].username = username; // keep display name fresh
+    // Roll risk
+    let riskMsg = '';
+    const balances = readBalances();
+    if (Math.random() < RISK_CHANCE) {
+      const bal = balances[userId] || 0;
+      const loss = Math.max(25, Math.min(300, Math.floor(bal * 0.05)));
+      balances[userId] = Math.max(0, bal - loss);
+      fs.writeFileSync(BALANCES_PATH, JSON.stringify(balances, null, 2));
+      riskMsg = `\n💸 The boss counter-attacked! You lost **${loss} 🥛**.`;
+    }
 
-  const defeated = bossData.currentHp <= 0;
-  if (defeated) bossData.defeated = true;
-  saveData(bossData);
-  state.activeRaidBoss = { name: BOSSES[bossData.bossIndex % BOSSES.length].name, currentHp: bossData.currentHp, maxHp: bossData.maxHp };
+    // Record attack
+    if (!bossData.attacks[userId]) {
+      bossData.attacks[userId] = { username, count: 0, lastAttack: 0, totalDamage: 0 };
+    }
+    bossData.attacks[userId].count++;
+    bossData.attacks[userId].lastAttack = Date.now();
+    bossData.attacks[userId].totalDamage += damage;
+    bossData.attacks[userId].username = username; // keep display name fresh
 
-  // Update boss message (debounced to avoid Discord rate limits on rapid attacks)
-  const guild = interaction.guild;
-  const channel = guild?.channels.cache.get(bossData.channelId)
-    ?? guild?.channels.cache.find(c => c.name === 'milkbot-games');
-  if (channel && bossData.messageId) {
+    const defeated = bossData.currentHp <= 0;
+    if (defeated) bossData.defeated = true;
+    saveData(bossData);
+    state.activeRaidBoss = { name: BOSSES[bossData.bossIndex % BOSSES.length].name, currentHp: bossData.currentHp, maxHp: bossData.maxHp };
+
+    // Update boss message (debounced to avoid Discord rate limits on rapid attacks)
+    const guild = interaction.guild;
+    const channel = guild?.channels.cache.get(bossData.channelId)
+      ?? guild?.channels.cache.find(c => c.name === 'milkbot-games');
+    if (channel && bossData.messageId) {
+      if (defeated) {
+        // Defeat is time-sensitive — edit immediately
+        const msg = await channel.messages.fetch(bossData.messageId).catch(() => null);
+        if (msg) await msg.edit({ embeds: [buildEmbed(bossData, { defeated: true })], components: [buildAttackButton(true)] }).catch(console.error);
+      } else {
+        clearTimeout(bossEditTimer);
+        bossEditTimer = setTimeout(async () => {
+          const fresh = readData();
+          const msg = await channel.messages.fetch(fresh.messageId ?? bossData.messageId).catch(() => null);
+          if (msg) msg.edit({ embeds: [buildEmbed(fresh)], components: [buildAttackButton()] }).catch(console.error);
+        }, 1500);
+      }
+    }
+
+    const myRecord = bossData.attacks[userId];
+    const reply = [
+      `⚔️ You hit **${BOSSES[bossData.bossIndex % BOSSES.length].name}** for **${damage} damage**!`,
+      `❤️ Boss HP: **${bossData.currentHp.toLocaleString()} / ${bossData.maxHp.toLocaleString()}**`,
+      `📊 Your attacks this boss: **${myRecord.count}** (${myRecord.totalDamage} total dmg)`,
+      riskMsg,
+      defeated ? `\n💥 **YOU LANDED THE KILLING BLOW!** Rewards incoming.` : ``,
+    ].filter(Boolean).join('\n');
+
+    await interaction.editReply({ content: reply });
+
     if (defeated) {
-      // Defeat is time-sensitive — edit immediately
-      const msg = await channel.messages.fetch(bossData.messageId).catch(() => null);
-      if (msg) await msg.edit({ embeds: [buildEmbed(bossData, { defeated: true })], components: [buildAttackButton(true)] }).catch(console.error);
-    } else {
-      clearTimeout(bossEditTimer);
-      bossEditTimer = setTimeout(async () => {
-        const fresh = readData();
-        const msg = await channel.messages.fetch(fresh.messageId ?? bossData.messageId).catch(() => null);
-        if (msg) msg.edit({ embeds: [buildEmbed(fresh)], components: [buildAttackButton()] }).catch(console.error);
-      }, 1500);
+      // Short delay so the embed update lands first
+      setTimeout(() => resolveRaidBoss(interaction.client, 'defeated').catch(console.error), 2000);
     }
-  }
-
-  const myRecord = bossData.attacks[userId];
-  const reply = [
-    `⚔️ You hit **${BOSSES[bossData.bossIndex % BOSSES.length].name}** for **${damage} damage**!`,
-    `❤️ Boss HP: **${bossData.currentHp.toLocaleString()} / ${bossData.maxHp.toLocaleString()}**`,
-    `📊 Your attacks this boss: **${myRecord.count}** (${myRecord.totalDamage} total dmg)`,
-    riskMsg,
-    defeated ? `\n💥 **YOU LANDED THE KILLING BLOW!** Rewards incoming.` : ``,
-  ].filter(Boolean).join('\n');
-
-  await interaction.editReply({ content: reply });
-
-  if (defeated) {
-    // Short delay so the embed update lands first
-    setTimeout(() => resolveRaidBoss(interaction.client, 'defeated').catch(console.error), 2000);
+  } finally {
+    attackingUsers.delete(userId);
   }
 }
 

@@ -134,7 +134,7 @@ module.exports = {
 
     const lottery = getLottery();
     for (let i = 0; i < count; i++) lottery.entries.push(userId);
-    lottery.pot += cost;
+    lottery.pot = Math.min(999_999_999, lottery.pot + cost);
     saveLottery(lottery);
 
     const remaining = msUntilDraw(lottery.drawTimestamp);
