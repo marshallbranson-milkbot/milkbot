@@ -9,8 +9,8 @@ const DATA_PATH      = path.join(__dirname, '../data/raidboss.json');
 const BALANCES_PATH  = path.join(__dirname, '../data/balances.json');
 const XP_PATH        = path.join(__dirname, '../data/xp.json');
 
-const MAX_HP          = 5000;
-const ATTACK_COOLDOWN = 15 * 60 * 1000; // 15 minutes
+const MAX_HP          = 25000;
+const ATTACK_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 const RISK_CHANCE     = 0.15;
 
 function getLevel(totalXp, userId) {
@@ -620,7 +620,7 @@ function buildEmbed(bossData, { defeated = false, escaped = false } = {}) {
   } else {
     title = `🐄 RAID BOSS HAS APPEARED 🐄`;
     color = 0xff6600;
-    footer = '1 attack per 15 min · rewards scale with participation 🥛';
+    footer = '1 attack per 5 min · rewards scale with participation 🥛';
   }
 
   const desc = [
@@ -641,7 +641,7 @@ function buildEmbed(bossData, { defeated = false, escaped = false } = {}) {
     defeated || escaped
       ? `⏱️ Battle ended`
       : `⏰ Expires in ${timeRemaining(bossData.expiresAt)}`,
-    `⚠️ 15% chance to lose milk bucks · 1 attack per 15 min`,
+    `⚠️ 15% chance to lose milk bucks · 1 attack per 5 min`,
     `🏆 Reward on defeat: **60 🥛 per attack** (prestige · damage scales with level)`,
   ].join('\n');
 
@@ -932,6 +932,14 @@ async function handleInteraction(interaction) {
 async function restoreOnStartup(client) {
   const bossData = readData();
   if (!bossData.active || bossData.defeated) return;
+
+  // One-time migration: scale existing boss to new 25k HP
+  if (bossData.maxHp < 25000) {
+    const ratio = bossData.currentHp / bossData.maxHp;
+    bossData.maxHp = 25000;
+    bossData.currentHp = Math.floor(ratio * 25000 * 0.85);
+    saveData(bossData);
+  }
 
   const remaining = bossData.expiresAt - Date.now();
   if (remaining <= 0) {
