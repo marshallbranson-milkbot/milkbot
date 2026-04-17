@@ -121,15 +121,17 @@ function makeFakeMessage(interaction, mode = 'autodelete') {
 
 // ── Collect one message from the user in the channel ──────────────────────────
 async function collect(interaction, prompt, userId) {
-  const promptMsg = await interaction.followUp({ content: prompt, ephemeral: true }).catch(() => null);
-  setTimeout(() => promptMsg?.delete().catch(() => {}), 8000);
+  const promptMsg = await interaction.channel.send(prompt).catch(() => null);
+  setTimeout(() => promptMsg?.delete().catch(() => {}), 20000);
   const result = await interaction.channel.awaitMessages({
     filter: m => m.author.id === userId,
     max: 1,
     time: 30000,
   }).catch(() => null);
+  promptMsg?.delete().catch(() => {});
   if (!result || result.size === 0) {
-    interaction.followUp({ content: `timed out. no action taken. 🥛`, ephemeral: true }).catch(() => {});
+    const tm = await interaction.channel.send(`timed out. no action taken. 🥛`).catch(() => null);
+    setTimeout(() => tm?.delete().catch(() => {}), 5000);
     return null;
   }
   const msg = result.first();
