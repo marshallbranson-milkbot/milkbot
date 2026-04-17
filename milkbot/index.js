@@ -290,6 +290,13 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         fs.writeFileSync(firstSpawnFlagPath, JSON.stringify({ done: true }));
         await rbCommand.spawnBoss(client).catch(console.error);
       }
+
+      // One-time force-respawn to load new Destiny boss roster
+      const destinyRespawnPath = path.join(__dirname, 'data/raidboss_destiny_v1.json');
+      if (!fs.existsSync(destinyRespawnPath)) {
+        fs.writeFileSync(destinyRespawnPath, JSON.stringify({ done: true }));
+        await rbCommand.spawnBoss(client).catch(console.error);
+      }
     }
 
     // One-time grinder reset at 6 AM EST

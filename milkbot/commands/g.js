@@ -8,11 +8,10 @@ function btn(customId, label, style) {
 // ── Menu builders ──────────────────────────────────────────────────────────────
 function buildMain(userId) {
   return {
-    content: '🥛 **MILKBOT** — what are we doing',
+    content: '🥛 **MILKBOT GAMES** — pick your poison',
     components: [
       new ActionRowBuilder().addComponents(
         btn(`g_cat_casino_${userId}`,  '🎰 Casino',  ButtonStyle.Primary),
-        btn(`g_cat_cards_${userId}`,   '🃏 Cards',   ButtonStyle.Primary),
         btn(`g_cat_social_${userId}`,  '⚔️ Social',  ButtonStyle.Primary),
         btn(`g_cat_wallet_${userId}`,  '💰 Wallet',  ButtonStyle.Secondary),
       ),
@@ -22,30 +21,19 @@ function buildMain(userId) {
 
 function buildCasino(userId) {
   return {
-    content: '🎰 **CASINO** — slots · roulette · plinko · flip house · coinflip · lottery',
+    content: '🎰 **CASINO** — bet it all, lose it all, cry about it 🥛',
     components: [
       new ActionRowBuilder().addComponents(
-        btn(`g_play_slots_${userId}`,     '🎲 Slots — 10🥛',  ButtonStyle.Success),
-        btn(`g_play_roulette_${userId}`,  '🎡 Roulette',      ButtonStyle.Primary),
-        btn(`g_play_plinko_${userId}`,    '🪣 Plinko',        ButtonStyle.Primary),
-        btn(`g_play_fliphouse_${userId}`, '🏠 Flip House',    ButtonStyle.Primary),
-        btn(`g_play_coinflip_${userId}`,  '🤝 Coinflip',      ButtonStyle.Primary),
+        btn(`g_play_slots_${userId}`,     '🎲 Slots — 10🥛', ButtonStyle.Success),
+        btn(`g_play_roulette_${userId}`,  '🎡 Roulette',     ButtonStyle.Primary),
+        btn(`g_play_plinko_${userId}`,    '🪣 Plinko',       ButtonStyle.Primary),
+        btn(`g_play_fliphouse_${userId}`, '🏠 Flip House',   ButtonStyle.Primary),
       ),
       new ActionRowBuilder().addComponents(
-        btn(`g_play_lottery_${userId}`,   '🎟️ Lottery',       ButtonStyle.Primary),
-        btn(`g_back_${userId}`,           '⬅️ Back',          ButtonStyle.Secondary),
-      ),
-    ],
-  };
-}
-
-function buildCards(userId) {
-  return {
-    content: '🃏 **CARDS** — blackjack · tournament',
-    components: [
-      new ActionRowBuilder().addComponents(
-        btn(`g_play_blackjack_${userId}`, '🃏 Blackjack',    ButtonStyle.Success),
+        btn(`g_play_blackjack_${userId}`, '🃏 Blackjack',    ButtonStyle.Primary),
         btn(`g_play_bjt_${userId}`,       '🏆 Tournament',  ButtonStyle.Primary),
+        btn(`g_play_coinflip_${userId}`,  '🤝 Coinflip',    ButtonStyle.Primary),
+        btn(`g_play_lottery_${userId}`,   '🎟️ Lottery',     ButtonStyle.Primary),
       ),
       new ActionRowBuilder().addComponents(
         btn(`g_back_${userId}`,           '⬅️ Back',        ButtonStyle.Secondary),
@@ -79,7 +67,7 @@ function buildSocial(userId) {
 
 function buildWallet(userId) {
   return {
-    content: '💰 **WALLET** — balance · xp · daily · achievements · prestige · give · crate',
+    content: '💰 **WALLET** — your sad little milk bucks',
     components: [
       new ActionRowBuilder().addComponents(
         btn(`g_play_balance_${userId}`,  '💰 Balance',      ButtonStyle.Secondary),
@@ -98,29 +86,19 @@ function buildWallet(userId) {
   };
 }
 
-const CAT_BUILDERS = { casino: buildCasino, cards: buildCards, social: buildSocial, wallet: buildWallet };
+const CAT_BUILDERS = { casino: buildCasino, social: buildSocial, wallet: buildWallet };
 
 // ── Fake message for games that don't need real mentions ───────────────────────
 function autoDelete(promise) {
-  return promise.then(m => { setTimeout(() => m?.delete().catch(() => {}), 10000); return m; });
+  return promise.then(m => { setTimeout(() => m?.delete().catch(() => {}), 15000); return m; });
 }
 
-// Returns true if the button was clicked on an ephemeral message (i.e. /g slash)
-function isEphemeralContext(interaction) {
-  return !!(interaction.message?.flags?.bitfield & 64);
-}
-
-// mode: 'ephemeral' | 'channel' | 'autodelete'
+// mode: 'channel' | 'autodelete'
 function makeFakeMessage(interaction, mode = 'autodelete') {
   const sendFn =
-    mode === 'ephemeral'
-      ? async (content) => {
-          const payload = typeof content === 'string' ? { content } : content;
-          return interaction.followUp({ ...payload, ephemeral: true }).catch(() => null);
-        }
-      : mode === 'channel'
-        ? (content) => interaction.channel.send(content)
-        : (content) => autoDelete(interaction.channel.send(content));
+    mode === 'channel'
+      ? (content) => interaction.channel.send(content)
+      : (content) => autoDelete(interaction.channel.send(content));
 
   const channelProxy = new Proxy(interaction.channel, {
     get(target, prop) {
@@ -143,7 +121,8 @@ function makeFakeMessage(interaction, mode = 'autodelete') {
 
 // ── Collect one message from the user in the channel ──────────────────────────
 async function collect(interaction, prompt, userId) {
-  await interaction.followUp({ content: prompt, ephemeral: true });
+  const promptMsg = await interaction.followUp({ content: prompt, ephemeral: true }).catch(() => null);
+  setTimeout(() => promptMsg?.delete().catch(() => {}), 8000);
   const result = await interaction.channel.awaitMessages({
     filter: m => m.author.id === userId,
     max: 1,
@@ -158,13 +137,14 @@ async function collect(interaction, prompt, userId) {
   return msg;
 }
 
-// Co-op games always post publicly; solo games go ephemeral when triggered from /g
+// Co-op games post publicly and manage their own lifecycle
 const COOP_GAMES = new Set(['scramble', 'trivia', 'triviacrack', 'geo']);
+// Interactive games need a persistent public message for button interactions
+const INTERACTIVE_GAMES = new Set(['blackjack', 'bjt', 'coinflip', 'raid']);
 
 // ── Game dispatcher ────────────────────────────────────────────────────────────
 async function handleGame(interaction, game, userId) {
-  const isSlash = isEphemeralContext(interaction);
-  const mode = COOP_GAMES.has(game) ? 'channel' : (isSlash ? 'ephemeral' : 'autodelete');
+  const mode = COOP_GAMES.has(game) || INTERACTIVE_GAMES.has(game) ? 'channel' : 'autodelete';
   const fakeMsg = makeFakeMessage(interaction, mode);
 
   // One-click games (no input needed)
