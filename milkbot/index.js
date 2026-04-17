@@ -119,6 +119,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         interaction.customId.startsWith('port_sellamt_')
       ) {
         if (portfolioCommand) portfolioCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if (interaction.customId === 'milkbot_optin') {
+        require('./commands/milkbotaccess').handleInteraction(interaction).catch(console.error);
       } else if (interaction.customId === 'rb_attack') {
         const rbCommand = commands['rb'];
         if (rbCommand) rbCommand.handleInteraction(interaction).catch(console.error);
@@ -271,6 +273,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     await initMooNewsMessage(client);
     scheduleNews(client);
     postUpdates(client);
+    require('./commands/milkbotaccess').postOptIn(client).catch(console.error);
 
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
