@@ -272,10 +272,9 @@ module.exports = {
   },
 
   async execute(message) {
-    const userId = message.author.id;
-    const menuMsg = await message.channel.send(buildMain(userId));
     message.delete().catch(() => {});
-    setTimeout(() => menuMsg.delete().catch(() => {}), 5 * 60 * 1000);
+    const reply = await message.channel.send('use `/g` to open the menu 🥛');
+    setTimeout(() => reply.delete().catch(() => {}), 5000);
   },
 
   async handleButtonInteraction(interaction) {
