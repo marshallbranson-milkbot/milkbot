@@ -385,6 +385,9 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
   }
 
   function scheduleGrinderReset(client) {
+    const flagPath = path.join(__dirname, 'data/grinder_reset_done.json');
+    if (fs.existsSync(flagPath)) return;
+
     const GRINDER_ID = '879171470700445747';
     const now = new Date();
     const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -394,6 +397,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     const ms = target - estNow;
 
     setTimeout(async () => {
+      if (fs.existsSync(flagPath)) return;
+
       const prestigePath = path.join(__dirname, 'data/prestige.json');
       const balancesFilePath = path.join(__dirname, 'data/balances.json');
       const xpFilePath = path.join(__dirname, 'data/xp.json');
@@ -416,6 +421,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         delete portfolios[GRINDER_ID];
         fs.writeFileSync(portfoliosPath, JSON.stringify(portfolios, null, 2));
       }
+
+      fs.writeFileSync(flagPath, JSON.stringify({ done: true }));
 
       const guild = client.guilds.cache.get('562076997979865118');
       const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
