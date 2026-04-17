@@ -188,6 +188,9 @@ function canSplit(cards) {
 // userId -> gameState
 const activeGames = new Map();
 
+// Prevents concurrent button processing for the same player
+const activeInteractions = new Set();
+
 // Returns available action strings for the current hand
 function getActions(game) {
   const hand = game.hands[game.currentHandIndex];
@@ -478,6 +481,9 @@ async function handleInteraction(interaction) {
     return interaction.reply({ content: `that game is already over 🥛`, ephemeral: true });
   }
 
+  if (activeInteractions.has(ownerId)) return;
+  activeInteractions.add(ownerId);
+
   await interaction.deferUpdate();
   clearTimeout(game.timeout);
 
@@ -485,6 +491,7 @@ async function handleInteraction(interaction) {
   const channel = interaction.channel;
   const hand = game.hands[game.currentHandIndex];
 
+  try {
   if (action === 'hit') {
     hand.cards.push(game.deck.pop());
     const total = handTotal(hand.cards);
@@ -581,6 +588,9 @@ async function handleInteraction(interaction) {
       resetHandTimeout(userId, channel, game);
       game.gameMsg.edit(buildGameMessage(game, 'playing')).catch(() => {});
     }
+  }
+  } finally {
+    activeInteractions.delete(ownerId);
   }
 }
 

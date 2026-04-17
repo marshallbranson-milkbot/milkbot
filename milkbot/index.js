@@ -79,7 +79,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     if (channelName === 'milkbot-games' || channelName === 'milkbot-stocks') {
       message.channel.send(`use \`/g\` for games or \`/\` for everything else 🥛`)
         .then(m => setTimeout(() => m.delete().catch(() => {}), 5000))
-        .catch(() => {});
+        .catch(err => console.warn('[index] channel send failed:', err.message));
     }
   });
 
@@ -121,11 +121,11 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {
-        interaction.reply({ content: '📈 stock commands go in **#milkbot-stocks** 🥛', ephemeral: true }).catch(() => {});
+        interaction.reply({ content: '📈 stock commands go in **#milkbot-stocks** 🥛', ephemeral: true }).catch(err => console.warn('[index] reply failed:', err.message));
         return;
       }
       if (!STOCKS_COMMANDS.has(cmdName) && !BOTH_CHANNELS.has(cmdName) && channelName !== 'milkbot-games') {
-        interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', ephemeral: true }).catch(() => {});
+        interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', ephemeral: true }).catch(err => console.warn('[index] reply failed:', err.message));
         return;
       }
 

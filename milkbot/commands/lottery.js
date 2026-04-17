@@ -40,6 +40,14 @@ function formatTimeUntil(ms) {
 
 async function drawLottery(client) {
   const lottery = getLottery();
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  if (lottery.lastDrawDate === todayStr) {
+    console.log('[lottery] already drew today, skipping duplicate draw');
+    const fresh = makeFreshLottery();
+    saveLottery(fresh);
+    setTimeout(() => drawLottery(client), msUntilDraw(fresh.drawTimestamp));
+    return;
+  }
   const guild = client.guilds.cache.get(GUILD_ID);
   const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
 
@@ -84,6 +92,7 @@ async function drawLottery(client) {
 
   // Reset and schedule next draw
   const fresh = makeFreshLottery();
+  fresh.lastDrawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   saveLottery(fresh);
   setTimeout(() => drawLottery(client), msUntilDraw(fresh.drawTimestamp));
 }
