@@ -143,9 +143,25 @@ async function collect(interaction, prompt, userId) {
 const COOP_GAMES = new Set(['scramble', 'trivia', 'triviacrack', 'geo']);
 // Interactive games need a persistent public message for button interactions
 const INTERACTIVE_GAMES = new Set(['blackjack', 'bjt', 'coinflip', 'raid']);
+// Passive lookups — don't count as an active game
+const PASSIVE_GAMES = new Set(['balance', 'xp', 'ach', 'prestige', 'jackpot', 'bossstatus', 'crate', 'daily']);
+
+const activeGameUsers = new Set();
 
 // ── Game dispatcher ────────────────────────────────────────────────────────────
 async function handleGame(interaction, game, userId) {
+  if (!PASSIVE_GAMES.has(game)) {
+    if (activeGameUsers.has(userId)) {
+      await interaction.deferUpdate();
+      const msg = await interaction.channel.send(`you're already in a game. finish it first 🥛`).catch(() => null);
+      setTimeout(() => msg?.delete().catch(() => {}), 5000);
+      return;
+    }
+    activeGameUsers.add(userId);
+    setTimeout(() => activeGameUsers.delete(userId), 60000); // safety release after 60s
+  }
+  const release = () => activeGameUsers.delete(userId);
+
   const mode = COOP_GAMES.has(game) || INTERACTIVE_GAMES.has(game) ? 'channel' : 'autodelete';
   const fakeMsg = makeFakeMessage(interaction, mode);
 
@@ -185,6 +201,7 @@ async function handleGame(interaction, game, userId) {
   if (oneClick[game]) {
     await interaction.deferUpdate();
     oneClick[game]();
+    release();
     return;
   }
 
@@ -201,6 +218,7 @@ async function handleGame(interaction, game, userId) {
   if (amountGames[game]) {
     await interaction.deferUpdate();
     const msg = await collect(interaction, amountGames[game], userId);
+    release();
     if (!msg) return;
     require(`./${game}`).execute(fakeMsg, [msg.content.trim()]);
     return;
@@ -210,6 +228,7 @@ async function handleGame(interaction, game, userId) {
   if (game === 'roulette') {
     await interaction.deferUpdate();
     const msg = await collect(interaction, '🎡 Type your bet: `amount red`, `amount black`, or `amount 0–36` *(min 10 🥛)*', userId);
+    release();
     if (!msg) return;
     require('./roulette').execute(fakeMsg, msg.content.trim().split(/\s+/));
     return;
@@ -219,6 +238,7 @@ async function handleGame(interaction, game, userId) {
   if (game === 'rob') {
     await interaction.deferUpdate();
     const msg = await collect(interaction, '🔫 Who do you want to rob? Reply with **@user**', userId);
+    release();
     if (!msg) return;
     require('./rob').execute(msg, msg.content.trim().split(/\s+/));
     return;
@@ -227,6 +247,7 @@ async function handleGame(interaction, game, userId) {
   if (game === 'give') {
     await interaction.deferUpdate();
     const msg = await collect(interaction, '💸 Reply with **@user amount**', userId);
+    release();
     if (!msg) return;
     require('./give').execute(msg, msg.content.trim().split(/\s+/));
     return;
@@ -235,6 +256,7 @@ async function handleGame(interaction, game, userId) {
   if (game === 'coinflip') {
     await interaction.deferUpdate();
     const msg = await collect(interaction, '🤝 Challenge someone: Reply with **@user amount**', userId);
+    release();
     if (!msg) return;
     require('./coinflip').execute(msg, msg.content.trim().split(/\s+/));
     return;
