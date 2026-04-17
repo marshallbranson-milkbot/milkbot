@@ -286,6 +286,19 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       console.log('[restore] grinder_restore_v1 applied — 50k balance set');
     }
 
+    // One-time: reset bigtrades leaderboard + set Grinder to level 40
+    const lbResetV1Path = path.join(__dirname, 'data/lb_reset_v1_done.json');
+    if (!fs.existsSync(lbResetV1Path)) {
+      const _bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
+      fs.writeFileSync(_bigTradesPath, JSON.stringify({}, null, 2));
+      const _xpPath = path.join(__dirname, 'data/xp.json');
+      const _xp = fs.existsSync(_xpPath) ? JSON.parse(fs.readFileSync(_xpPath, 'utf8')) : {};
+      _xp['879171470700445747'] = 78000;
+      fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
+      fs.writeFileSync(lbResetV1Path, JSON.stringify({ done: true }));
+      console.log('[reset] lb_reset_v1 applied — bigtrades cleared, Grinder set to level 40');
+    }
+
     // Schedule random crate drops
     scheduleCrateDrops(client);
 
