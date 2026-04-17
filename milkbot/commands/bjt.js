@@ -153,25 +153,25 @@ function resolveTournament() {
       losers.push(p);
     } else if (playerBJ && dealerBJ) {
       p.result = `push — both blackjack`;
-      balances[p.userId] = (balances[p.userId] || 0) + buyIn;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn);
       pushers.push(p);
     } else if (playerBJ) {
       // Natural blackjack beats dealer — 3:2 payout
       const bjPayout = buyIn + Math.floor(buyIn * 1.5);
       p.result = `blackjack! (+${Math.floor(buyIn * 1.5)} mb)`;
-      balances[p.userId] = (balances[p.userId] || 0) + bjPayout;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + bjPayout);
       winners.push(p);
     } else if (dealerTotal > 21) {
       p.result = `dealer bust — win (${pt})`;
-      balances[p.userId] = (balances[p.userId] || 0) + buyIn * 2;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn * 2);
       winners.push(p);
     } else if (pt > dealerTotal) {
       p.result = `win (${pt} vs ${dealerTotal})`;
-      balances[p.userId] = (balances[p.userId] || 0) + buyIn * 2;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn * 2);
       winners.push(p);
     } else if (pt === dealerTotal) {
       p.result = `push (${pt})`;
-      balances[p.userId] = (balances[p.userId] || 0) + buyIn;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn);
       pushers.push(p);
     } else {
       p.result = `loss (${pt} vs ${dealerTotal})`;

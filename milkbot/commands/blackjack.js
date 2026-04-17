@@ -390,7 +390,7 @@ function resolveAllHands(userId, channel, gameMsg) {
       hand.result = `loss`;
       totalNetWin -= hand.bet;
     } else {
-      balances[userId] = (balances[userId] || 0) + hand.bet;
+      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + hand.bet);
       hand.result = `push`;
     }
   }
@@ -633,7 +633,7 @@ module.exports = {
       let xpGain = 0;
 
       if (dealerBJ) {
-        balances[userId] = (balances[userId] || 0) + bet;
+        balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + bet);
         saveData(balancesPath, balances);
         quip = `both blackjack. the universe is balanced. 🃏`;
         resultLine = `Push — bet returned. Balance: **${balances[userId]}** 🥛`;
