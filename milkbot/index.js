@@ -299,6 +299,17 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       console.log('[reset] lb_reset_v1 applied — bigtrades cleared, Grinder set to level 40');
     }
 
+    // One-time: correct Grinder XP to level 20
+    const grinderXpV2Path = path.join(__dirname, 'data/grinder_xp_v2_done.json');
+    if (!fs.existsSync(grinderXpV2Path)) {
+      const _xpPath = path.join(__dirname, 'data/xp.json');
+      const _xp = fs.existsSync(_xpPath) ? JSON.parse(fs.readFileSync(_xpPath, 'utf8')) : {};
+      _xp['879171470700445747'] = 19000;
+      fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
+      fs.writeFileSync(grinderXpV2Path, JSON.stringify({ done: true }));
+      console.log('[reset] grinder_xp_v2 applied — Grinder set to level 20');
+    }
+
     // Schedule random crate drops
     scheduleCrateDrops(client);
 
