@@ -275,8 +275,16 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       }
     }
 
-    // One-time grinder reset at 6 AM EST
-    scheduleGrinderReset(client);
+    // One-time grinder restoration to 50k after accidental repeat reset
+    const grinderRestorePath = path.join(__dirname, 'data/grinder_restore_v1_done.json');
+    if (!fs.existsSync(grinderRestorePath)) {
+      const _balPath = path.join(__dirname, 'data/balances.json');
+      const _bal = fs.existsSync(_balPath) ? JSON.parse(fs.readFileSync(_balPath, 'utf8')) : {};
+      _bal['879171470700445747'] = 50000;
+      fs.writeFileSync(_balPath, JSON.stringify(_bal, null, 2));
+      fs.writeFileSync(grinderRestorePath, JSON.stringify({ done: true }));
+      console.log('[restore] grinder_restore_v1 applied — 50k balance set');
+    }
 
     // Schedule random crate drops
     scheduleCrateDrops(client);
@@ -384,59 +392,6 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     }, msUntilMidnight);
   }
 
-  function scheduleGrinderReset(client) {
-    const flagPath = path.join(__dirname, 'data/grinder_reset_done.json');
-    if (fs.existsSync(flagPath)) return;
-
-    const GRINDER_ID = '879171470700445747';
-    const now = new Date();
-    const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const target = new Date(estNow);
-    target.setHours(6, 0, 0, 0);
-    if (target <= estNow) target.setDate(target.getDate() + 1);
-    const ms = target - estNow;
-
-    setTimeout(async () => {
-      if (fs.existsSync(flagPath)) return;
-
-      const prestigePath = path.join(__dirname, 'data/prestige.json');
-      const balancesFilePath = path.join(__dirname, 'data/balances.json');
-      const xpFilePath = path.join(__dirname, 'data/xp.json');
-      const portfoliosPath = path.join(__dirname, 'data/portfolios.json');
-
-      const pData = fs.existsSync(prestigePath) ? JSON.parse(fs.readFileSync(prestigePath, 'utf8')) : {};
-      pData[GRINDER_ID] = 2;
-      fs.writeFileSync(prestigePath, JSON.stringify(pData, null, 2));
-
-      const balances = fs.existsSync(balancesFilePath) ? JSON.parse(fs.readFileSync(balancesFilePath, 'utf8')) : {};
-      balances[GRINDER_ID] = 0;
-      fs.writeFileSync(balancesFilePath, JSON.stringify(balances, null, 2));
-
-      const xpData = fs.existsSync(xpFilePath) ? JSON.parse(fs.readFileSync(xpFilePath, 'utf8')) : {};
-      xpData[GRINDER_ID] = 0;
-      fs.writeFileSync(xpFilePath, JSON.stringify(xpData, null, 2));
-
-      if (fs.existsSync(portfoliosPath)) {
-        const portfolios = JSON.parse(fs.readFileSync(portfoliosPath, 'utf8'));
-        delete portfolios[GRINDER_ID];
-        fs.writeFileSync(portfoliosPath, JSON.stringify(portfolios, null, 2));
-      }
-
-      fs.writeFileSync(flagPath, JSON.stringify({ done: true }));
-
-      const guild = client.guilds.cache.get('562076997979865118');
-      const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
-      if (channel) {
-        channel.send(
-          `📋 **NOTICE FROM THE IRS (MilkBot Revenue Service)**\n\n` +
-          `<@${GRINDER_ID}>, it has come to our attention that you failed to claim your reported earnings on your M-2 Dairy Income Form this fiscal year.\n\n` +
-          `As a result, **MilkBot has seized all assets** — milk bucks, XP, stocks, the whole udder. You've been reset to **Prestige 2** with **zero balance**.\n\n` +
-          `This is not a drill. This is not negotiable. The milk belongs to the state now. 🥛\n\n` +
-          `*— MilkBot Revenue Service, Dept. of Dairy Enforcement*`
-        );
-      }
-    }, ms);
-  }
 
   // ── Slash command arg builder ──────────────────────────────────────────────
   // Maps slash interaction options to the string args[] array each execute() expects.
