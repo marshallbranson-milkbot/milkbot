@@ -6,7 +6,8 @@ const achPath = path.join(__dirname, '../data/achievements.json');
 
 function getData() {
   if (!fs.existsSync(achPath)) return {};
-  return JSON.parse(fs.readFileSync(achPath, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(achPath, 'utf8')); }
+  catch (e) { console.error('[getData] corrupted:', achPath); return {}; }
 }
 
 module.exports = {

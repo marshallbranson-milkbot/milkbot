@@ -5,7 +5,8 @@ const streaksPath = path.join(__dirname, 'data/streaks.json');
 
 function getData() {
   if (!fs.existsSync(streaksPath)) return {};
-  return JSON.parse(fs.readFileSync(streaksPath, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(streaksPath, 'utf8')); }
+  catch (e) { console.error('[winstreak] corrupted:', streaksPath); return {}; }
 }
 
 function saveData(data) {

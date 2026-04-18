@@ -19,7 +19,8 @@ const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 
 function getData(p) {
   if (!fs.existsSync(p)) return {};
-  return JSON.parse(fs.readFileSync(p, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
+  catch (e) { console.error('[getData] corrupted:', p); return {}; }
 }
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
 

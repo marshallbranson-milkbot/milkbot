@@ -312,6 +312,13 @@ module.exports = {
 
     if (action === 'play') {
       const game = parts[2];
+      const VALID_GAMES = new Set([
+        'slots','scramble','trivia','triviacrack','geo','daily','balance','xp',
+        'ach','prestige','crate','jackpot','bossstatus',
+        'blackjack','plinko','fliphouse','bjt','raid','lottery',
+        'roulette','rob','give','coinflip',
+      ]);
+      if (!VALID_GAMES.has(game)) return interaction.deferUpdate();
       await handleGame(interaction, game, userId).catch(err => {
         console.error(`[g] game error (${game}):`, err);
         interaction.followUp({ content: `something went wrong. try again. 🥛`, ephemeral: true }).catch(() => {});

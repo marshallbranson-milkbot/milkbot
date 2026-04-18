@@ -4,7 +4,9 @@ const path = require('path');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 
 function getData(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  if (!fs.existsSync(filePath)) return {};
+  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch (e) { console.error('[getData] corrupted:', filePath); return {}; }
 }
 
 const GUILD_ID = '562076997979865118';

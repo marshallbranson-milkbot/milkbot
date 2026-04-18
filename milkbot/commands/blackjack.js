@@ -13,7 +13,8 @@ const prestige = require('../prestige');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch (e) { console.error('[getData] corrupted:', filePath); return {}; }
 }
 
 function saveData(filePath, data) {

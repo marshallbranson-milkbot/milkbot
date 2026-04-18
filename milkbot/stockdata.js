@@ -30,9 +30,11 @@ const BASE_PRICE = 100;
 
 function getPrices() {
   if (fs.existsSync(stocksPath)) {
-    const data = JSON.parse(fs.readFileSync(stocksPath, 'utf8'));
-    const allPresent = STOCK_DEFS.every(s => data[s.ticker]);
-    if (allPresent) return data;
+    try {
+      const data = JSON.parse(fs.readFileSync(stocksPath, 'utf8'));
+      const allPresent = STOCK_DEFS.every(s => data[s.ticker]);
+      if (allPresent) return data;
+    } catch (e) { console.error('[stockdata] corrupted stocks:', e.message); }
   }
   const initial = {};
   for (const s of STOCK_DEFS) {
@@ -48,7 +50,8 @@ function savePrices(data) {
 
 function getPortfolios() {
   if (!fs.existsSync(portfoliosPath)) return {};
-  return JSON.parse(fs.readFileSync(portfoliosPath, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(portfoliosPath, 'utf8')); }
+  catch (e) { console.error('[stockdata] corrupted portfolios:', e.message); return {}; }
 }
 
 function savePortfolios(data) {

@@ -83,7 +83,9 @@ function buildTipMessage(headline) {
 
 async function sendInsiderTip(client, headline) {
   if (!fs.existsSync(balancesPath)) return;
-  const balances = JSON.parse(fs.readFileSync(balancesPath, 'utf8'));
+  let balances;
+  try { balances = JSON.parse(fs.readFileSync(balancesPath, 'utf8')); }
+  catch (e) { console.error('[moosnews] corrupted balances:', e.message); return; }
   const players = Object.keys(balances).filter(id => balances[id] > 0);
   if (players.length === 0) return;
 

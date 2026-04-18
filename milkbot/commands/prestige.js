@@ -23,7 +23,11 @@ module.exports = {
   execute(message) {
     const userId = message.author.id;
 
-    const xpData = fs.existsSync(xpPath) ? JSON.parse(fs.readFileSync(xpPath, 'utf8')) : {};
+    let xpData = {};
+    if (fs.existsSync(xpPath)) {
+      try { xpData = JSON.parse(fs.readFileSync(xpPath, 'utf8')); }
+      catch (e) { console.error('[prestige] corrupted xp:', e.message); }
+    }
     const totalXp = xpData[userId] || 0;
     const level = getLevel(totalXp);
     const currentPrestige = prestige.getPrestige(userId);

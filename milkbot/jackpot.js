@@ -6,7 +6,8 @@ const balancesPath = path.join(__dirname, 'data/balances.json');
 
 function getJackpot() {
   if (!fs.existsSync(jackpotPath)) return 0;
-  return JSON.parse(fs.readFileSync(jackpotPath, 'utf8')).amount || 0;
+  try { return JSON.parse(fs.readFileSync(jackpotPath, 'utf8')).amount || 0; }
+  catch (e) { console.error('[jackpot] corrupted:', e.message); return 0; }
 }
 
 function addToJackpot(amount = 5) {
@@ -21,9 +22,11 @@ function tryJackpot(userId, username, channel) {
   const amount = getJackpot();
   if (amount <= 0) return false;
 
-  const balances = fs.existsSync(balancesPath)
-    ? JSON.parse(fs.readFileSync(balancesPath, 'utf8'))
-    : {};
+  let balances = {};
+  if (fs.existsSync(balancesPath)) {
+    try { balances = JSON.parse(fs.readFileSync(balancesPath, 'utf8')); }
+    catch (e) { console.error('[jackpot] corrupted balances:', e.message); }
+  }
   balances[userId] = Math.min((balances[userId] || 0) + amount, 10_000_000);
   fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
   fs.writeFileSync(jackpotPath, JSON.stringify({ amount: 0 }, null, 2));

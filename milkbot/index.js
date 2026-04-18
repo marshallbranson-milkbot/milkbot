@@ -196,9 +196,10 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       const _portPath = path.join(__dirname, 'data/portfolios.json');
       const _achPath  = path.join(__dirname, 'data/achievements.json');
 
-      const _bal  = fs.existsSync(_balPath)  ? JSON.parse(fs.readFileSync(_balPath,  'utf8')) : {};
-      const _pres = fs.existsSync(_presPath) ? JSON.parse(fs.readFileSync(_presPath, 'utf8')) : {};
-      const _xp   = fs.existsSync(_xpPath)   ? JSON.parse(fs.readFileSync(_xpPath,   'utf8')) : {};
+      let _bal = {}, _pres = {}, _xp = {};
+      try { if (fs.existsSync(_balPath))  _bal  = JSON.parse(fs.readFileSync(_balPath,  'utf8')); } catch (e) { console.error('[reset] corrupted balances:', e.message); }
+      try { if (fs.existsSync(_presPath)) _pres = JSON.parse(fs.readFileSync(_presPath, 'utf8')); } catch (e) { console.error('[reset] corrupted prestige:', e.message); }
+      try { if (fs.existsSync(_xpPath))   _xp   = JSON.parse(fs.readFileSync(_xpPath,  'utf8')); } catch (e) { console.error('[reset] corrupted xp:', e.message); }
 
       // User A: wipe milk bucks + stocks
       _bal['646425076748517386'] = 0;
@@ -213,13 +214,15 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       fs.writeFileSync(_xpPath,   JSON.stringify(_xp,   null, 2));
 
       if (fs.existsSync(_portPath)) {
-        const _port = JSON.parse(fs.readFileSync(_portPath, 'utf8'));
+        let _port = {};
+        try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) { console.error('[reset] corrupted portfolios:', e.message); }
         delete _port['646425076748517386'];
         delete _port['879171470700445747'];
         fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
       }
       if (fs.existsSync(_achPath)) {
-        const _ach = JSON.parse(fs.readFileSync(_achPath, 'utf8'));
+        let _ach = {};
+        try { _ach = JSON.parse(fs.readFileSync(_achPath, 'utf8')); } catch (e) { console.error('[reset] corrupted ach:', e.message); }
         if (_ach['879171470700445747']) _ach['879171470700445747'].level = 1;
         fs.writeFileSync(_achPath, JSON.stringify(_ach, null, 2));
       }
@@ -279,7 +282,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     const grinderRestorePath = path.join(__dirname, 'data/grinder_restore_v1_done.json');
     if (!fs.existsSync(grinderRestorePath)) {
       const _balPath = path.join(__dirname, 'data/balances.json');
-      const _bal = fs.existsSync(_balPath) ? JSON.parse(fs.readFileSync(_balPath, 'utf8')) : {};
+      let _bal = {};
+      try { if (fs.existsSync(_balPath)) _bal = JSON.parse(fs.readFileSync(_balPath, 'utf8')); } catch (e) { console.error('[restore] corrupted balances:', e.message); }
       _bal['879171470700445747'] = 50000;
       fs.writeFileSync(_balPath, JSON.stringify(_bal, null, 2));
       fs.writeFileSync(grinderRestorePath, JSON.stringify({ done: true }));
@@ -292,7 +296,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       const _bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
       fs.writeFileSync(_bigTradesPath, JSON.stringify({}, null, 2));
       const _xpPath = path.join(__dirname, 'data/xp.json');
-      const _xp = fs.existsSync(_xpPath) ? JSON.parse(fs.readFileSync(_xpPath, 'utf8')) : {};
+      let _xp = {};
+      try { if (fs.existsSync(_xpPath)) _xp = JSON.parse(fs.readFileSync(_xpPath, 'utf8')); } catch (e) { console.error('[reset] corrupted xp:', e.message); }
       _xp['879171470700445747'] = 78000;
       fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
       fs.writeFileSync(lbResetV1Path, JSON.stringify({ done: true }));
@@ -303,7 +308,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     const grinderXpV2Path = path.join(__dirname, 'data/grinder_xp_v2_done.json');
     if (!fs.existsSync(grinderXpV2Path)) {
       const _xpPath = path.join(__dirname, 'data/xp.json');
-      const _xp = fs.existsSync(_xpPath) ? JSON.parse(fs.readFileSync(_xpPath, 'utf8')) : {};
+      let _xp = {};
+      try { if (fs.existsSync(_xpPath)) _xp = JSON.parse(fs.readFileSync(_xpPath, 'utf8')); } catch (e) { console.error('[reset] corrupted xp:', e.message); }
       _xp['879171470700445747'] = 19000;
       fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
       fs.writeFileSync(grinderXpV2Path, JSON.stringify({ done: true }));

@@ -7,7 +7,8 @@ const xpPath = path.join(__dirname, 'data/xp.json');
 
 function getData() {
   if (!fs.existsSync(achPath)) return {};
-  return JSON.parse(fs.readFileSync(achPath, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(achPath, 'utf8')); }
+  catch (e) { console.error('[achievements] corrupted:', achPath); return {}; }
 }
 
 function saveData(data) {

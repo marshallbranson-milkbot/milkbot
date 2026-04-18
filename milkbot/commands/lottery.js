@@ -9,7 +9,8 @@ const GUILD_ID     = '562076997979865118';
 
 function getData(p) {
   if (!fs.existsSync(p)) return {};
-  return JSON.parse(fs.readFileSync(p, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
+  catch (e) { console.error('[getData] corrupted:', p); return {}; }
 }
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
 

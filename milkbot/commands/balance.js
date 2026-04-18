@@ -5,7 +5,8 @@ const fs = require('fs');
 
   function getBalances() {
     if (!fs.existsSync(balancesPath)) return {};
-    return JSON.parse(fs.readFileSync(balancesPath, 'utf8'));
+    try { return JSON.parse(fs.readFileSync(balancesPath, 'utf8')); }
+    catch (e) { console.error('[getData] corrupted:', balancesPath); return {}; }
   }
 
   function getBalance(userId) {

@@ -568,7 +568,8 @@ function saveData(data) {
 
 function readBalances() {
   if (!fs.existsSync(BALANCES_PATH)) return {};
-  return JSON.parse(fs.readFileSync(BALANCES_PATH, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(BALANCES_PATH, 'utf8')); }
+  catch (e) { console.error('[raidboss] corrupted balances:', e.message); return {}; }
 }
 
 function calcMaxHp() {
@@ -581,7 +582,8 @@ let bossEditTimer = null;
 
 function readXp() {
   if (!fs.existsSync(XP_PATH)) return {};
-  return JSON.parse(fs.readFileSync(XP_PATH, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(XP_PATH, 'utf8')); }
+  catch (e) { console.error('[raidboss] corrupted xp:', e.message); return {}; }
 }
 
 function buildHpBar(current, max) {
