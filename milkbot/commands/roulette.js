@@ -48,7 +48,7 @@ module.exports = {
   description: 'Spin the roulette wheel. Colors pay 2x, numbers pay 35x.',
   async execute(message, args) {
     const amount = parseInt(args[0], 10);
-    if (!amount || amount < MIN_BET) {
+    if (!amount || isNaN(amount) || amount < MIN_BET) {
       return message.reply(`minimum bet is **${MIN_BET} milk bucks**. \`!rou <amount> <red|black|0-36>\` 🥛`);
     }
 
@@ -105,8 +105,9 @@ module.exports = {
       : XP_LOSS;
 
     if (won) {
-      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + finalPayout);
-      saveData(balancesPath, balances);
+      const freshBals = getData(balancesPath);
+      freshBals[userId] = Math.min(10_000_000, (freshBals[userId] || 0) + finalPayout);
+      saveData(balancesPath, freshBals);
     }
 
     const xp = getData(xpPath);

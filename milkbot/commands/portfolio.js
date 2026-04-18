@@ -8,6 +8,7 @@ const state = require('../state');
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
 const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
+const VALID_TICKERS = new Set(STOCK_DEFS.map(s => s.ticker));
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -170,6 +171,7 @@ module.exports = {
     }
 
     const ticker = interaction.values[0];
+    if (!VALID_TICKERS.has(ticker)) return interaction.reply({ content: `invalid stock 🥛`, ephemeral: true });
     const userId = ownerId;
     const prices = getPrices();
     const price = prices[ticker]?.price || 0;
@@ -215,6 +217,7 @@ module.exports = {
     const ticker = parts[2];
     const ownerId = parts[3];
 
+    if (!VALID_TICKERS.has(ticker)) return interaction.deferUpdate();
     if (interaction.user.id !== ownerId) {
       return interaction.reply({ content: `that's not your portfolio chief 🥛`, ephemeral: true });
     }

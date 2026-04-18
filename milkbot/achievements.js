@@ -336,7 +336,7 @@ function check(userId, username, event, data, channel) {
       const xpData = fs.existsSync(xpPath) ? JSON.parse(fs.readFileSync(xpPath, 'utf8')) : {};
       xpData[userId] = (xpData[userId] || 0) + bonusXp;
       fs.writeFileSync(xpPath, JSON.stringify(xpData, null, 2));
-    } catch (_) {}
+    } catch (e) { console.error('[achievements] XP save failed:', e.message); }
   }
 
   // ── LEVEL-UP CHECK ────────────────────────────────────────────────────────

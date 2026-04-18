@@ -49,6 +49,11 @@ async function drawLottery(client) {
     setTimeout(() => drawLottery(client), msUntilDraw(fresh.drawTimestamp));
     return;
   }
+
+  // Mark draw started BEFORE processing — prevents duplicate draw if bot restarts mid-draw
+  lottery.lastDrawDate = todayStr;
+  saveLottery(lottery);
+
   const guild = client.guilds.cache.get(GUILD_ID);
   const channel = guild?.channels.cache.find(c => c.name === 'milkbot-games');
 
@@ -135,7 +140,7 @@ module.exports = {
 
     const lottery = getLottery();
     for (let i = 0; i < count; i++) lottery.entries.push(userId);
-    lottery.pot = Math.min(999_999_999, lottery.pot + cost);
+    lottery.pot = Math.min(10_000_000, lottery.pot + cost);
     saveLottery(lottery);
 
     const remaining = msUntilDraw(lottery.drawTimestamp);
