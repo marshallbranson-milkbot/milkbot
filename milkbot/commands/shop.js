@@ -101,32 +101,19 @@ async function handleBuy(interaction, itemId, qty, userId) {
     });
   }
 
-  // Check stack cap before deducting anything
-  const stackCheck = shop.applyItemPurchase(userId, itemId);
-  if (!stackCheck.ok) {
-    return interaction.update({
-      content: `❌ ${stackCheck.message}`,
-      components: [new ActionRowBuilder().addComponents(btn(`shop_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
-    });
-  }
-
-  // Deduct balance (first item already applied above)
+  // Deduct balance
   balances[userId] = balance - cost;
 
   let resultLines = [`✅ bought **${qty}x ${item.emoji} ${item.name}** for **${cost.toLocaleString()} 🥛**`];
   resultLines.push(`💰 balance: **${balances[userId].toLocaleString()} 🥛**`);
-  if (stackCheck.instant) {
-    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + stackCheck.instant);
-    resultLines.push(`💸 ${stackCheck.message}`);
-  } else {
-    resultLines.push(`🧴 ${stackCheck.message}`);
-  }
 
-  for (let i = 1; i < qty; i++) {
+  for (let i = 0; i < qty; i++) {
     const result = shop.applyItemPurchase(userId, itemId);
-    if (!result.ok) break; // hit cap mid-purchase, stop applying
     if (result.instant) {
       balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + result.instant);
+      resultLines.push(`💸 ${result.message}`);
+    } else if (i === 0) {
+      resultLines.push(result.queued ? `📦 ${result.message}` : `🧴 ${result.message}`);
     }
   }
 

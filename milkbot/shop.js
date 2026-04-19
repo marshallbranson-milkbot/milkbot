@@ -147,31 +147,35 @@ function applyItemPurchase(userId, itemId) {
     return { ok: true, instant: value, message: `+${value.toLocaleString()} milk bucks added to your balance instantly. 🥛` };
   }
 
-  // All other types: store in buffs.json
+  // All other types: activate if under cap, otherwise queue to inventory
   const buffs = _readBuffs(userId);
-
   const STACK_CAP = 2;
 
+  const _queueToInventory = () => {
+    const inv = readData(inventoryPath);
+    if (!inv[userId]) inv[userId] = {};
+    inv[userId][itemId] = (inv[userId][itemId] || 0) + 1;
+    writeData(inventoryPath, inv);
+    return { ok: true, queued: true, message: `already at ${STACK_CAP} active — saved to your inventory. use it from \`/inv\` when one expires. 🥛` };
+  };
+
   if (type === 'combo_surge') {
-    const earnCount = buffs.filter(b => b.type === 'earnings_mul').length;
-    const xpCount   = buffs.filter(b => b.type === 'xp_mul').length;
-    if (earnCount >= STACK_CAP || xpCount >= STACK_CAP)
-      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
+    if (buffs.filter(b => b.type === 'earnings_mul').length >= STACK_CAP ||
+        buffs.filter(b => b.type === 'xp_mul').length >= STACK_CAP)
+      return _queueToInventory();
     const exp = item.duration ? now + item.duration : null;
     buffs.push({ itemId, type: 'earnings_mul', value, expiresAt: exp, uses: item.uses, label: item.name });
     buffs.push({ itemId, type: 'xp_mul',       value, expiresAt: exp, uses: item.uses, label: item.name });
   } else if (type === 'combo_raid') {
-    const shieldCount = buffs.filter(b => b.type === 'raid_shield').length;
-    const mulCount    = buffs.filter(b => b.type === 'raid_damage_mul').length;
-    if (shieldCount >= STACK_CAP || mulCount >= STACK_CAP)
-      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
+    if (buffs.filter(b => b.type === 'raid_shield').length >= STACK_CAP ||
+        buffs.filter(b => b.type === 'raid_damage_mul').length >= STACK_CAP)
+      return _queueToInventory();
     const exp = item.duration ? now + item.duration : null;
-    buffs.push({ itemId, type: 'raid_shield',    value: 1,   expiresAt: exp, uses: item.uses, label: item.name });
-    buffs.push({ itemId, type: 'raid_damage_mul', value,     expiresAt: exp, uses: item.uses, label: item.name });
+    buffs.push({ itemId, type: 'raid_shield',    value: 1, expiresAt: exp, uses: item.uses, label: item.name });
+    buffs.push({ itemId, type: 'raid_damage_mul', value,   expiresAt: exp, uses: item.uses, label: item.name });
   } else {
-    const count = buffs.filter(b => b.type === type).length;
-    if (count >= STACK_CAP)
-      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
+    if (buffs.filter(b => b.type === type).length >= STACK_CAP)
+      return _queueToInventory();
     buffs.push({ itemId, type, value, expiresAt: item.duration ? now + item.duration : null, uses: item.uses, label: item.name });
   }
 
@@ -202,7 +206,6 @@ function useInventoryItem(userId, itemId) {
   if (type === 'cursed_orb') {
     const win = Math.random() < 0.5;
     if (win) {
-      applyItemPurchase(userId, 'cursed_cream_orb'); // re-use buff apply? no — manual
       const buffs = _readBuffs(userId);
       buffs.push({ itemId, type: 'next_win_mul', value, expiresAt: null, uses: 1, label: 'Cursed Cream Orb (10x)' });
       _saveBuffs(userId, buffs);
@@ -212,7 +215,32 @@ function useInventoryItem(userId, itemId) {
     }
   }
 
-  return { ok: false, message: 'this item cannot be used from inventory' };
+  // Regular buff items queued to inventory — activate with cap check
+  const STACK_CAP = 2;
+  const buffs = _readBuffs(userId);
+  const now = Date.now();
+
+  if (type === 'combo_surge') {
+    if (buffs.filter(b => b.type === 'earnings_mul').length >= STACK_CAP ||
+        buffs.filter(b => b.type === 'xp_mul').length >= STACK_CAP)
+      return { ok: false, message: `you're still at the 2-buff cap. wait for one to expire first. 🥛` };
+    const exp = item.duration ? now + item.duration : null;
+    buffs.push({ itemId, type: 'earnings_mul', value, expiresAt: exp, uses: item.uses, label: item.name });
+    buffs.push({ itemId, type: 'xp_mul',       value, expiresAt: exp, uses: item.uses, label: item.name });
+  } else if (type === 'combo_raid') {
+    if (buffs.filter(b => b.type === 'raid_shield').length >= STACK_CAP ||
+        buffs.filter(b => b.type === 'raid_damage_mul').length >= STACK_CAP)
+      return { ok: false, message: `you're still at the 2-buff cap. wait for one to expire first. 🥛` };
+    const exp = item.duration ? now + item.duration : null;
+    buffs.push({ itemId, type: 'raid_shield',    value: 1, expiresAt: exp, uses: item.uses, label: item.name });
+    buffs.push({ itemId, type: 'raid_damage_mul', value,   expiresAt: exp, uses: item.uses, label: item.name });
+  } else {
+    if (buffs.filter(b => b.type === type).length >= STACK_CAP)
+      return { ok: false, message: `you're still at the 2-buff cap. wait for one to expire first. 🥛` };
+    buffs.push({ itemId, type, value, expiresAt: item.duration ? now + item.duration : null, uses: item.uses, label: item.name });
+  }
+  _saveBuffs(userId, buffs);
+  return { ok: true, message: `✅ **${item.emoji} ${item.name}** activated! 🥛` };
 }
 
 // ── Buff readers ──────────────────────────────────────────────────────────────
