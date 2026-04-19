@@ -308,7 +308,7 @@ async function renderVideo({ audioPath, words, outputDir, introText, outroText }
       const concatRefs = cuts.map((_, i) => `[v${i}]`).join('');
       const postBase = `eq=brightness=-0.18:saturation=1.15`;
       const postWithBox = drawBoxFilter ? `${postBase},${drawBoxFilter}` : postBase;
-      const filterGraph = `${concatInputs};${concatRefs}concat=n=${cuts.length}:v=1:a=0[concat];[concat]${postWithBox},subtitles='${escapedAss}'[vout]`;
+      const filterGraph = `${concatInputs};${concatRefs}concat=n=${cuts.length}:v=1:a=0[concat];[concat]${postWithBox},subtitles='${escapedAss}':fontsdir='${ffmpegEscapePath(FONTS_DIR)}'[vout]`;
 
       cmd
         .complexFilter(filterGraph)
