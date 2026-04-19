@@ -156,14 +156,17 @@ module.exports = {
   },
 
   async executeSlash(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    const userId = interaction.user.id;
-    const username = interaction.user.username;
-    const payload = this._buildPortfolioPayload(userId, username);
-    if (payload.empty) {
-      return interaction.editReply(`You don't own any stocks. Use \`/b\` to invest. 🥛`);
+    try {
+      const userId = interaction.user.id;
+      const username = interaction.user.username;
+      const payload = this._buildPortfolioPayload(userId, username);
+      if (payload.empty) {
+        return interaction.reply({ content: `You don't own any stocks. Use \`/b\` to invest. 🥛`, ephemeral: true });
+      }
+      await interaction.reply({ content: payload.content, components: payload.components, ephemeral: true });
+    } catch (e) {
+      console.error('[port] executeSlash error:', e);
     }
-    await interaction.editReply({ content: payload.content, components: payload.components });
   },
 
   async execute(message) {
