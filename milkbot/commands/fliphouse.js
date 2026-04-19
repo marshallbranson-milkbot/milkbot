@@ -48,7 +48,7 @@
         const nextMul = shopMod.getAndConsumeNextWinMul(userId);
         const payout = Math.floor(bet * hotMul * pm * shopMul * nextMul);
 
-        balances[userId] = Math.min(100_000_000, balance + payout);
+        balances[userId] = Math.min(1_000_000_000, balance + payout);
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);

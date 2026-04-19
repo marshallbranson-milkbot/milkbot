@@ -110,7 +110,7 @@ module.exports = {
 
     if (won) {
       const freshBals = getData(balancesPath);
-      freshBals[userId] = Math.min(100_000_000, (freshBals[userId] || 0) + finalPayout);
+      freshBals[userId] = Math.min(1_000_000_000, (freshBals[userId] || 0) + finalPayout);
       saveData(balancesPath, freshBals);
     }
 

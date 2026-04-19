@@ -68,7 +68,7 @@ async function drawLottery(client) {
     const prize = lottery.pot;
 
     const balances = getData(balancesPath);
-    balances[winnerId] = Math.min(100_000_000, (balances[winnerId] || 0) + prize);
+    balances[winnerId] = Math.min(1_000_000_000, (balances[winnerId] || 0) + prize);
     saveData(balancesPath, balances);
 
     // Get winner display name
@@ -145,7 +145,7 @@ module.exports = {
 
     const lottery = getLottery();
     for (let i = 0; i < count; i++) lottery.entries.push(userId);
-    lottery.pot = Math.min(100_000_000, lottery.pot + cost);
+    lottery.pot = Math.min(1_000_000_000, lottery.pot + cost);
     saveLottery(lottery);
 
     const remaining = msUntilDraw(lottery.drawTimestamp);

@@ -37,7 +37,7 @@ module.exports = {
     message.delete().catch(() => {});
 
     const balances = getData(balancesPath);
-    balances[message.author.id] = Math.min(100_000_000, (balances[message.author.id] || 0) + REWARD);
+    balances[message.author.id] = Math.min(1_000_000_000, (balances[message.author.id] || 0) + REWARD);
     saveData(balancesPath, balances);
 
     message.channel.send(

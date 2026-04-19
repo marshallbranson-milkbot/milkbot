@@ -140,7 +140,7 @@ module.exports = {
           const newStreak = ws.recordWin(userId);
           const hotMultiplier = newStreak >= 3 ? 1.5 : 1;
           const pm = prestige.getMultiplier(userId);
-          balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + Math.floor(payout * hotMultiplier * pm));
+          balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + Math.floor(payout * hotMultiplier * pm));
           xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + Math.floor(baseXp * hotMultiplier * pm));
           if (newStreak >= 3) hotAnnouncements.push({ username, newStreak });
         }

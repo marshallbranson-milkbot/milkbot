@@ -62,7 +62,7 @@ const fs = require('fs');
       if (dailyMul > 1) shopMod.consumeDailyMul(userId);
 
       const balances = getData(balancesPath);
-      balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + amount);
+      balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + amount);
       saveData(balancesPath, balances);
 
       const dailyMsg = dailyMul > 1 ? `${msg}\n🛒 *+${Math.round((dailyMul - 1) * 100)}% shop daily buff applied — you got ${amount.toLocaleString()} 🥛*` : msg;

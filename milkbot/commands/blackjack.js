@@ -384,7 +384,7 @@ function resolveAllHands(userId, channel, gameMsg) {
       totalNetWin -= hand.bet;
     } else if (result === 'win' || result === 'dealer_bust') {
       const winnings = Math.floor(hand.bet * hotMul * pm * shopMul * nextMul);
-      balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + hand.bet + winnings);
+      balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + hand.bet + winnings);
       const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul));
       xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
       totalXpGain += xpGain;
@@ -395,7 +395,7 @@ function resolveAllHands(userId, channel, gameMsg) {
       hand.result = `loss`;
       totalNetWin -= hand.bet;
     } else {
-      balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + hand.bet);
+      balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + hand.bet);
       hand.result = `push`;
     }
   }
@@ -638,7 +638,7 @@ module.exports = {
       let xpGain = 0;
 
       if (dealerBJ) {
-        balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + bet);
+        balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + bet);
         saveData(balancesPath, balances);
         quip = `both blackjack. the universe is balanced. 🃏`;
         resultLine = `Push — bet returned. Balance: **${balances[userId]}** 🥛`;
@@ -651,7 +651,7 @@ module.exports = {
         const bjShopMul = bjShopMod.getEarningsMul(userId);
         const bjNextMul = bjShopMod.getAndConsumeNextWinMul(userId);
         const winnings = Math.floor(bjPayout * hotMul * pm * bjShopMul * bjNextMul);
-        balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + bet + winnings);
+        balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + bet + winnings);
         const bjXpMul = bjShopMod.getXpMul(userId);
         xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * hotMul * pm * bjXpMul);
         const xp = getData(xpPath);
