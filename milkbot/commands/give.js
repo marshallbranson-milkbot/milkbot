@@ -41,7 +41,7 @@ module.exports = {
     const targetName = targetMember?.displayName ?? target.username;
 
     message.channel.send(
-      `💸 **${message.author.username}** sent **${amount.toLocaleString()} milk bucks** to **${targetName}**. generous. or suspicious. 🥛`
+      `💸 **${message.author.username}** sent **${actualAmount.toLocaleString()} milk bucks** to **${targetName}**. generous. or suspicious. 🥛`
     ).catch(console.error);
   },
 };
