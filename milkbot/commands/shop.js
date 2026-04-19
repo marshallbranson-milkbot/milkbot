@@ -21,31 +21,38 @@ const TIER_COLOR = { COMMON: '🟤', UNCOMMON: '🟢', RARE: '🔵', LEGENDARY: 
 // ── Browse shop ephemeral ──────────────────────────────────────────────────────
 function buildBrowsePayload(userId) {
   const slots = shop.getTodaySlots();
-  const rows = [];
 
-  // Up to 3 buttons per row, 2 rows = 6 items
-  const row1 = new ActionRowBuilder();
-  const row2 = new ActionRowBuilder();
+  // Pack items 5 per row (Discord max), then add close button on its own row
+  const itemRows = [];
+  let currentRow = new ActionRowBuilder();
+  let rowCount = 0;
+
   for (let i = 0; i < slots.length; i++) {
     const id = slots[i];
     const item = shop.ITEMS[id];
     if (!item) continue;
+    if (i > 0 && i % 5 === 0 && itemRows.length < 4) {
+      itemRows.push(currentRow);
+      currentRow = new ActionRowBuilder();
+      rowCount++;
+    }
     const label = `${TIER_COLOR[item.tier]} ${item.emoji} ${item.name}`;
-    const b = new ButtonBuilder()
-      .setCustomId(`shop_item_${id}_${userId}`)
-      .setLabel(label.slice(0, 80))
-      .setStyle(ButtonStyle.Secondary);
-    if (i < 3) row1.addComponents(b);
-    else row2.addComponents(b);
+    currentRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`shop_item_${id}_${userId}`)
+        .setLabel(label.slice(0, 80))
+        .setStyle(ButtonStyle.Secondary)
+    );
   }
+  if (currentRow.components.length > 0) itemRows.push(currentRow);
 
-  const backRow = new ActionRowBuilder().addComponents(
+  const closeRow = new ActionRowBuilder().addComponents(
     btn(`shop_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger)
   );
 
   return {
-    content: `🛒 **TODAY'S MILK MARKET** — pick something. or don't. the dairy doesn't care.\n*prices refresh at midnight EST*`,
-    components: [row1, row2, backRow],
+    content: `🛒 **TODAY'S MILK MARKET** — ten items. hand-churned. pick something or keep being broke.\n*prices refresh at midnight EST*`,
+    components: [...itemRows, closeRow],
     ephemeral: true,
   };
 }
