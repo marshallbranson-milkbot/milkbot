@@ -275,8 +275,6 @@ const UPDATES = [
       ``,
       `☠️ **BOSS NUKE ITEMS** — Boss Plague Vial (800 HP) and The Dairy Plague (5,000 HP) deal instant server-wide damage. anyone who nukes it gets credit toward the kill reward.`,
       ``,
-      `🎒 **\`/inv\`** — check your active buffs (with time or uses remaining) and use consumables straight from your stash.`,
-      ``,
       `📊 **\`/port\` FIXED** — portfolio slash command now works for everyone, not just the bot owner.`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
