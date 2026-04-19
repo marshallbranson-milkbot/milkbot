@@ -9,9 +9,9 @@ const ws       = require('../winstreak');
 const prestige = require('../prestige');
 
 const MIN_BET = 10;
-const ROWS = 10;
-const MULTIPLIERS = [15, 8, 3, 0.8, 0.3, 0.2, 0.3, 0.8, 3, 8, 15];
-const MUL_LABELS  = ['15x','8x','3x','0.8x','0.3x','0.2x','0.3x','0.8x','3x','8x','15x'];
+const ROWS = 12;
+const MULTIPLIERS = [10, 5, 3, 1.5, 0.08, 0.05, 0.03, 0.05, 0.08, 1.5, 3, 5, 10];
+const MUL_LABELS  = ['10x','5x','3x','1.5x','0.08x','0.05x','0.03x','0.05x','0.08x','1.5x','3x','5x','10x'];
 const XP_WIN = 30;
 const XP_LOSS = 5;
 
@@ -23,7 +23,7 @@ function getData(p) {
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
 
 function boardRow(ballPos) {
-  return Array.from({ length: 11 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
+  return Array.from({ length: 13 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
 }
 
 function prizeRow(winnerSlot) {
@@ -80,10 +80,10 @@ module.exports = {
     saveData(balancesPath, balances);
 
     // Pre-compute full path: start at center (6), each step ±1 clamped 0–12
-    const positions = [5];
+    const positions = [6];
     for (let i = 0; i < ROWS; i++) {
       const dir = Math.random() < 0.5 ? -1 : 1;
-      positions.push(Math.max(0, Math.min(10, positions[i] + dir)));
+      positions.push(Math.max(0, Math.min(12, positions[i] + dir)));
     }
     const finalSlot  = positions[ROWS];
     const multiplier = MULTIPLIERS[finalSlot];
