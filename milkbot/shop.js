@@ -150,15 +150,28 @@ function applyItemPurchase(userId, itemId) {
   // All other types: store in buffs.json
   const buffs = _readBuffs(userId);
 
+  const STACK_CAP = 2;
+
   if (type === 'combo_surge') {
+    const earnCount = buffs.filter(b => b.type === 'earnings_mul').length;
+    const xpCount   = buffs.filter(b => b.type === 'xp_mul').length;
+    if (earnCount >= STACK_CAP || xpCount >= STACK_CAP)
+      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
     const exp = item.duration ? now + item.duration : null;
     buffs.push({ itemId, type: 'earnings_mul', value, expiresAt: exp, uses: item.uses, label: item.name });
     buffs.push({ itemId, type: 'xp_mul',       value, expiresAt: exp, uses: item.uses, label: item.name });
   } else if (type === 'combo_raid') {
+    const shieldCount = buffs.filter(b => b.type === 'raid_shield').length;
+    const mulCount    = buffs.filter(b => b.type === 'raid_damage_mul').length;
+    if (shieldCount >= STACK_CAP || mulCount >= STACK_CAP)
+      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
     const exp = item.duration ? now + item.duration : null;
     buffs.push({ itemId, type: 'raid_shield',    value: 1,   expiresAt: exp, uses: item.uses, label: item.name });
     buffs.push({ itemId, type: 'raid_damage_mul', value,     expiresAt: exp, uses: item.uses, label: item.name });
   } else {
+    const count = buffs.filter(b => b.type === type).length;
+    if (count >= STACK_CAP)
+      return { ok: false, message: `you already have ${STACK_CAP} of this buff active. let one expire first. 🥛` };
     buffs.push({ itemId, type, value, expiresAt: item.duration ? now + item.duration : null, uses: item.uses, label: item.name });
   }
 
