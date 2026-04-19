@@ -9,8 +9,8 @@ const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
 
 const GUILD_ID        = '562076997979865118';
-const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
-const BOTH_CHANNELS   = new Set(['h', 'bal']);
+const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'ba', 'buyall']);
+const BOTH_CHANNELS   = new Set(['h', 'bal', 'port', 'portfolio']);
 // Commands allowed as text in milkbot-games (everything else → use !g)
 const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
