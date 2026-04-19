@@ -9,9 +9,9 @@ const ws       = require('../winstreak');
 const prestige = require('../prestige');
 
 const MIN_BET = 10;
-const ROWS = 8;
-const MULTIPLIERS = [5, 2, 1.2, 0.5, 0.2, 0.5, 1.2, 2, 5];
-const MUL_LABELS  = ['5x', '2x', '1.2x', '0.5x', '0.2x', '0.5x', '1.2x', '2x', '5x'];
+const ROWS = 12;
+const MULTIPLIERS = [20, 8, 3, 1.5, 0.8, 0.5, 0.3, 0.5, 0.8, 1.5, 3, 8, 20];
+const MUL_LABELS  = ['20x','8x','3x','1.5x','0.8x','0.5x','0.3x','0.5x','0.8x','1.5x','3x','8x','20x'];
 const XP_WIN = 30;
 const XP_LOSS = 5;
 
@@ -23,7 +23,7 @@ function getData(p) {
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
 
 function boardRow(ballPos) {
-  return Array.from({ length: 9 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
+  return Array.from({ length: 13 }, (_, i) => i === ballPos ? '🟡' : '⬛').join('');
 }
 
 function prizeRow(winnerSlot) {
@@ -60,7 +60,7 @@ function buildEmbed(positions, step, done, amount, username, payout, multiplier,
 module.exports = {
   name: 'pl',
   aliases: ['plinko'],
-  description: 'Drop the ball. 10x edges, 0.3x middle. Min 10 milk bucks.',
+  description: 'Drop the ball. 20x edges, 0.3x middle. 12 rows. Min 10 milk bucks.',
   async execute(message, args) {
     const amount = parseInt(args[0], 10);
     if (!amount || amount < MIN_BET) {
@@ -79,11 +79,11 @@ module.exports = {
     balances[userId] = balance - amount;
     saveData(balancesPath, balances);
 
-    // Pre-compute full path: start at 3 (center), each step ±1 clamped 0–6
-    const positions = [4];
+    // Pre-compute full path: start at center (6), each step ±1 clamped 0–12
+    const positions = [6];
     for (let i = 0; i < ROWS; i++) {
       const dir = Math.random() < 0.5 ? -1 : 1;
-      positions.push(Math.max(0, Math.min(8, positions[i] + dir)));
+      positions.push(Math.max(0, Math.min(12, positions[i] + dir)));
     }
     const finalSlot  = positions[ROWS];
     const multiplier = MULTIPLIERS[finalSlot];
