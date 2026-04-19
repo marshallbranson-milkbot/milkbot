@@ -7,6 +7,7 @@ const { updatePrices } = require('./stockdata');
 const { initDisplays, refreshLeaderboard, refreshStockBoard, initShopDisplay, refreshShopBoard } = require('./display');
 const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
+const { scheduleRecap, captureMidnightSnapshot, runDailyRecap } = require('./recap');
 
 const GUILD_ID        = '562076997979865118';
 const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
@@ -367,6 +368,14 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
     // Schedule random crate drops
     scheduleCrateDrops(client);
+
+    // Daily TikTok recap pipeline (midnight snapshot, 6am recap)
+    await captureMidnightSnapshot();
+    scheduleRecap(client);
+    if (process.env.RECAP_RUN_ON_START === '1') {
+      console.log('[recap] RECAP_RUN_ON_START set — running recap once');
+      setTimeout(() => runDailyRecap(client).catch(e => console.error('[recap] startup run failed:', e)), 10000);
+    }
 
     // Update stock prices every 5 minutes then refresh the stock board
     setInterval(() => { updatePrices(); refreshStockBoard(client); }, 5 * 60 * 1000);

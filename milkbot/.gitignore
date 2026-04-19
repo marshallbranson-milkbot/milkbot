@@ -1,3 +1,8 @@
- node_modules
-  .env
-  data/*.json
+node_modules
+.env
+data/*.json
+data/snapshots/
+data/recap-tmp/
+recap/assets/backgrounds/ScreenRecording_*
+recap/assets/backgrounds/ScreenRecording_*.MP4
+recap/assets/backgrounds/ScreenRecording_*.mp4
