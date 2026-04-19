@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const state = require('./state');
 const { updatePrices } = require('./stockdata');
-const { initDisplays, refreshLeaderboard, refreshStockBoard } = require('./display');
+const { initDisplays, refreshLeaderboard, refreshStockBoard, initShopDisplay, refreshShopBoard } = require('./display');
 const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
 
@@ -41,6 +41,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
   let portfolioCommand = null;
   let helpCommand = null;
   let gCommand = null;
+  let shopCommand = null;
+  let inventoryCommand = null;
   const initCallbacks = [];
 
   for (const file of commandFiles) {
@@ -60,6 +62,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     if (command.name === 'port') portfolioCommand = command;
     if (command.name === 'h') helpCommand = command;
     if (command.name === 'g') gCommand = command;
+    if (command.name === 'shop') shopCommand = command;
+    if (command.name === 'inv') inventoryCommand = command;
   }
 
   // Listen for messages
@@ -102,6 +106,10 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         if (rbCommand) rbCommand.handleInteraction(interaction).catch(console.error);
       } else if (interaction.customId.startsWith('g_') && gCommand) {
         gCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if ((interaction.customId.startsWith('shop_') || interaction.customId === 'shop_browse' || interaction.customId === 'shop_inv') && shopCommand) {
+        shopCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if (interaction.customId.startsWith('inv_') && inventoryCommand) {
+        inventoryCommand.handleButtonInteraction(interaction).catch(console.error);
       }
     } else if (interaction.isChatInputCommand()) {
       const cmdName = interaction.commandName;
@@ -115,6 +123,16 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       // /h — ephemeral help (special path)
       if (cmdName === 'h' && helpCommand) {
         helpCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+
+      // /shop and /inv — ephemeral, no channel restriction
+      if (cmdName === 'shop' && shopCommand) {
+        shopCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+      if (cmdName === 'inv' && inventoryCommand) {
+        inventoryCommand.executeSlash(interaction).catch(console.error);
         return;
       }
 
@@ -247,6 +265,31 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
     // Post/update help and leaderboard display messages
     await initDisplays(client);
+
+    // Shop board — post/update in #milkbot-shop
+    await initShopDisplay(client);
+    scheduleShopReset(client);
+
+    // One-time shop launch announcement
+    const shopLaunchPath = path.join(__dirname, 'data/shop_launch_v1.json');
+    if (!fs.existsSync(shopLaunchPath)) {
+      fs.writeFileSync(shopLaunchPath, JSON.stringify({ done: true }));
+      const _guild = client.guilds.cache.get(GUILD_ID);
+      const _gCh = _guild?.channels.cache.find(c => c.name === 'milkbot-games');
+      if (_gCh) {
+        await _gCh.send(
+          `🏪 **THE MILK MARKET IS NOW OPEN** 🏪\n\n` +
+          `MilkBot just got a huge update. here's what dropped:\n\n` +
+          `🛒 **#milkbot-shop** — 59 items across 4 tiers. common to legendary. use \`/shop\` or click the buttons in the shop channel to browse + buy.\n` +
+          `⚡ **Shop buffs** — items boost your earnings, XP, jackpot odds, daily rewards, raid damage, and more. stack them. get disgusting.\n` +
+          `🛡️ **Raid shields** — negate boss counter-attacks. never lose milk to the boss again (for a while).\n` +
+          `☠️ **Boss nuke items** — deal instant server-wide HP damage. everyone benefits. the boss does not.\n` +
+          `🎒 **\`/inv\`** — check your active buffs and use items from your stash.\n` +
+          `⚔️ **Raid boss HP raised to 25,000** — the boss got bigger. good thing you have nukes.\n\n` +
+          `*buffs stack additively. buy early, buy often. the dairy economy never sleeps. 🥛*`
+        ).catch(console.error);
+      }
+    }
 
     // Initialize persistent Moo News message, then schedule daily drops
     await initMooNewsMessage(client);
@@ -422,6 +465,25 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     }, msUntilMidnight);
   }
 
+
+  function scheduleShopReset(client) {
+    const now = new Date();
+    const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const midnight = new Date(estNow);
+    midnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = midnight - estNow;
+
+    setTimeout(async () => {
+      const { regenerateSlots } = require('./shop');
+      regenerateSlots();
+      await refreshShopBoard(client).catch(console.error);
+      setInterval(async () => {
+        regenerateSlots();
+        await refreshShopBoard(client).catch(console.error);
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+    console.log(`[shop] reset scheduled in ${Math.ceil(msUntilMidnight / 60000)} min`);
+  }
 
   // ── Slash command arg builder ──────────────────────────────────────────────
   // Maps slash interaction options to the string args[] array each execute() expects.

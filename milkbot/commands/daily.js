@@ -55,13 +55,18 @@ const fs = require('fs');
       cooldowns[`streak_${userId}`] = streak;
       saveData(cooldownsPath, cooldowns);
 
-      const { amount, msg } = getPayoutAndMessage(streak);
+      const { amount: baseAmount, msg } = getPayoutAndMessage(streak);
+      const shopMod = require('../shop');
+      const dailyMul = shopMod.getDailyMul(userId);
+      const amount = Math.floor(baseAmount * dailyMul);
+      if (dailyMul > 1) shopMod.consumeDailyMul(userId);
 
       const balances = getData(balancesPath);
       balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + amount);
       saveData(balancesPath, balances);
 
-      message.reply(msg).then(reply => {
+      const dailyMsg = dailyMul > 1 ? `${msg}\n🛒 *+${Math.round((dailyMul - 1) * 100)}% shop daily buff applied — you got ${amount.toLocaleString()} 🥛*` : msg;
+      message.reply(dailyMsg).then(reply => {
         setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
       });
       const estHour = parseInt(new Date(now).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));

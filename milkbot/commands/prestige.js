@@ -19,7 +19,7 @@ function getLevel(totalXp) {
 module.exports = {
   name: 'prestige',
   aliases: ['pr'],
-  description: 'Prestige at level 25 to reset XP and gain a permanent multiplier.',
+  description: 'Prestige at level 50 to reset XP and gain a permanent multiplier.',
   execute(message) {
     const userId = message.author.id;
 
@@ -32,10 +32,10 @@ module.exports = {
     const level = getLevel(totalXp);
     const currentPrestige = prestige.getPrestige(userId);
 
-    if (level < 100) {
+    if (level < 50) {
       return message.reply(
-        `You need to be **level 100** to prestige. You're level **${level}**. ` +
-        `${100 - level} more level${100 - level === 1 ? '' : 's'} to go. Keep drinking. 🥛`
+        `You need to be **level 50** to prestige. You're level **${level}**. ` +
+        `${50 - level} more level${50 - level === 1 ? '' : 's'} to go. Keep drinking. 🥛`
       );
     }
 

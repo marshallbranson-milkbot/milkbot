@@ -221,8 +221,26 @@ async function handleGame(interaction, game, userId) {
     fliphouse: '🏠 How much do you want to flip for?',
     bjt:       '🏆 Enter your tournament buy-in *(min 50 🥛)*',
     raid:      '⚔️ How much are you putting into the raid?',
-    lottery:   '🎟️ How many lottery tickets? *(10 🥛 each)*',
   };
+
+  if (game === 'lottery') {
+    await interaction.deferUpdate();
+    const lt = require('./lottery');
+    const lotteryData = lt.getLotteryState();
+    const totalTickets = lotteryData.entries.length;
+    const uniqueUsers  = new Set(lotteryData.entries).size;
+    const pot          = lotteryData.pot.toLocaleString();
+    const lotteryPrompt =
+      `🎟️ **LOTTERY**\n` +
+      `🥛 **Pot:** ${pot} milk bucks\n` +
+      `🎫 **Tickets sold:** ${totalTickets} (${uniqueUsers} player${uniqueUsers !== 1 ? 's' : ''} in)\n\n` +
+      `How many tickets do you want? *(10 🥛 each)*`;
+    const msg = await collect(interaction, lotteryPrompt, userId);
+    release();
+    if (!msg) return;
+    lt.execute(fakeMsg, [msg.content.trim()]);
+    return;
+  }
 
   if (amountGames[game]) {
     await interaction.deferUpdate();

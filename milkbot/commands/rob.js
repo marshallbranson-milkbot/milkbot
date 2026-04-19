@@ -74,14 +74,18 @@ module.exports = {
       const newStreak = ws.recordWin(message.author.id);
       const hotMul = newStreak >= 3 ? 1.5 : 1;
       const pm = prestige.getMultiplier(message.author.id);
-      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm));
+      const shopMod = require('../shop');
+      const shopMul = shopMod.getEarningsMul(message.author.id);
+      const nextMul = shopMod.getAndConsumeNextWinMul(message.author.id);
+      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm * shopMul * nextMul));
 
-      balances[message.author.id] = robberBalance + stolen;
+      balances[message.author.id] = Math.min(10_000_000, robberBalance + stolen);
       balances[target.id] = targetBalance - stolen;
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm);
+      const shopXpMul = shopMod.getXpMul(message.author.id);
+      xp[message.author.id] = Math.min(require('../prestige').getXpCap(message.author.id), (xp[message.author.id] || 0) + Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul));
       saveData(xpPath, xp);
 
       const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');

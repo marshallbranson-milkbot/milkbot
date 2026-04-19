@@ -21,11 +21,16 @@ function recordWin(userId) {
   return data[userId];
 }
 
-// Returns previous streak count before resetting
+// Returns previous streak count before resetting (shield absorbs the reset)
 function resetStreak(userId) {
   const data = getData();
   const prev = data[userId] || 0;
   if (prev > 0) {
+    const shopMod = require('./shop');
+    if (shopMod.hasStreakShield(userId)) {
+      shopMod.consumeStreakShield(userId);
+      return 0; // streak preserved — return 0 so caller knows no public message needed
+    }
     data[userId] = 0;
     saveData(data);
   }

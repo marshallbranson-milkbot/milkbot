@@ -99,9 +99,13 @@ module.exports = {
     const newStreak = won ? ws.recordWin(userId) : (ws.resetStreak(userId), 0);
     const hotMul  = (won && newStreak >= 3) ? 1.5 : 1;
     const pm      = prestige.getMultiplier(userId);
-    const finalPayout = won ? Math.floor(payout * hotMul * pm) : 0;
+    const shopMod = require('../shop');
+    const shopMul = won ? shopMod.getEarningsMul(userId) : 1;
+    const nextMul = won ? shopMod.getAndConsumeNextWinMul(userId) : 1;
+    const finalPayout = won ? Math.floor(payout * hotMul * pm * shopMul * nextMul) : 0;
+    const shopXpMul = shopMod.getXpMul(userId);
     const xpGain  = won
-      ? Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm)
+      ? Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul)
       : XP_LOSS;
 
     if (won) {

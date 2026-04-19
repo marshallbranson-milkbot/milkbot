@@ -115,10 +115,15 @@ async function init(client) {
   }
 }
 
+function getLotteryState() {
+  return getLottery();
+}
+
 module.exports = {
   name: 'lt',
   aliases: ['lottery'],
   description: 'Buy lottery tickets. 10 milk bucks each. One winner drawn at midnight.',
+  getLotteryState,
   init,
   async execute(message, args) {
     const count = parseInt(args[0], 10);
@@ -126,8 +131,8 @@ module.exports = {
       return message.reply(`tell me how many tickets. \`!lt <tickets>\` — 10 milk bucks each 🎟️`);
     }
 
-    const cost    = count * TICKET_PRICE;
     const userId  = message.author.id;
+    const cost    = count * TICKET_PRICE;
     const balances = getData(balancesPath);
     const balance  = balances[userId] || 0;
 
@@ -146,7 +151,6 @@ module.exports = {
     const remaining = msUntilDraw(lottery.drawTimestamp);
     const timeStr   = formatTimeUntil(remaining);
 
-    // Count this user's total tickets
     const myTickets = lottery.entries.filter(id => id === userId).length;
 
     message.reply(

@@ -43,13 +43,17 @@
         const newStreak = ws.recordWin(userId);
         const hotMul = newStreak >= 3 ? 1.5 : 1;
         const pm = prestige.getMultiplier(userId);
-        const payout = Math.floor(bet * hotMul * pm);
+        const shopMod = require('../shop');
+        const shopMul = shopMod.getEarningsMul(userId);
+        const nextMul = shopMod.getAndConsumeNextWinMul(userId);
+        const payout = Math.floor(bet * hotMul * pm * shopMul * nextMul);
 
         balances[userId] = Math.min(10_000_000, balance + payout);
         saveData(balancesPath, balances);
 
         const xp = getData(xpPath);
-        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
+        const shopXpMul = shopMod.getXpMul(userId);
+        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul);
         saveData(xpPath, xp);
 
         const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');

@@ -105,7 +105,10 @@ module.exports = {
       if (prevStreak >= 3) coldStreakMsg = `❄️ **${message.author.username}'s hot streak is OVER** after ${prevStreak} wins. Back to normal. 🥛`;
     }
 
-    const actualWinnings = Math.floor(winnings * multiplier);
+    const shopMod = require('../shop');
+    const shopMul = winnings > 0 ? shopMod.getEarningsMul(userId) : 1;
+    const nextMul = winnings > 0 ? shopMod.getAndConsumeNextWinMul(userId) : 1;
+    const actualWinnings = Math.floor(winnings * multiplier * shopMul * nextMul);
     balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + actualWinnings);
     saveData(balancesPath, balances);
 
@@ -117,7 +120,8 @@ module.exports = {
     }
     if (xpGain > 0) {
       const xp = getData(xpPath);
-      const gain = Math.min(200, Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier));
+      const shopXpMul = require('../shop').getXpMul(userId);
+      const gain = Math.min(200, Math.floor(xpGain * (state.doubleXp ? 2 : 1) * multiplier * shopXpMul));
       xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + gain);
       saveData(xpPath, xp);
     }

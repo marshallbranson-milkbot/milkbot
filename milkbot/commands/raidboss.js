@@ -13,7 +13,7 @@ const ATTACK_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 const RISK_CHANCE     = 0.15;
 
 function getLevel(totalXp, userId) {
-  const cap = userId ? getLevelCap(userId) : 100;
+  const cap = userId ? getLevelCap(userId) : 50;
   let level = 1, xpUsed = 0;
   while (true) {
     const needed = level * 100;
@@ -575,7 +575,7 @@ function readBalances() {
 function calcMaxHp() {
   const balances = readBalances();
   const activePlayers = Object.values(balances).filter(b => b > 0).length;
-  return Math.max(10000, Math.min(500000, activePlayers * 2500));
+  return Math.max(5000, Math.min(25000, activePlayers * 2500));
 }
 
 let bossEditTimer = null;
@@ -886,14 +886,21 @@ async function handleInteraction(interaction) {
       }
     }
 
-    // Roll damage based on player level
-    const damage = rollDamage(userId);
+    // Roll damage based on player level, then apply shop bonuses
+    const baseDamage = rollDamage(userId);
+    const shopBonuses = require('../shop').applyRaidBonuses(userId);
+    const damage = Math.floor((baseDamage + shopBonuses.flatBonus) * shopBonuses.mulBonus);
     bossData.currentHp = Math.max(0, bossData.currentHp - damage);
 
-    // Roll risk
+    // Roll risk — shop raid_shield negates counter
     let riskMsg = '';
     const balances = readBalances();
-    if (Math.random() < RISK_CHANCE) {
+    const shopMod = require('../shop');
+    const shielded = shopMod.hasRaidShield(userId);
+    if (shielded) {
+      shopMod.consumeRaidShield(userId);
+      riskMsg = `\n🛡️ The boss tried to counter — your shield blocked it! 🥛`;
+    } else if (Math.random() < RISK_CHANCE) {
       const bal = balances[userId] || 0;
       const loss = Math.max(25, Math.min(300, Math.floor(bal * 0.05)));
       balances[userId] = Math.max(0, bal - loss);
@@ -981,6 +988,7 @@ module.exports = {
   name: 'rb',
   spawnBoss,
   bumpBoss,
+  resolveRaidBoss,
   handleInteraction,
   restoreOnStartup,
 };

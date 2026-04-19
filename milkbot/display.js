@@ -31,16 +31,16 @@ function getLevel(totalXp) {
 }
 
 function getRank(level) {
-  if (level >= 100) return 'THE ONE TRUE MOO';
-  if (level >= 90)  return 'Milk Eternal';
-  if (level >= 80)  return 'Milk God';
-  if (level >= 70)  return 'Milk Overlord';
-  if (level >= 60)  return 'Milk Legend';
-  if (level >= 50)  return 'Milk Baron';
-  if (level >= 40)  return 'Milk Dealer';
-  if (level >= 30)  return 'Milk Hustler';
-  if (level >= 20)  return 'Milk Fiend';
-  if (level >= 10)  return 'Milk Drinker';
+  if (level >= 50) return 'THE ONE TRUE MOO';
+  if (level >= 45) return 'Milk Eternal';
+  if (level >= 40) return 'Milk God';
+  if (level >= 35) return 'Milk Overlord';
+  if (level >= 30) return 'Milk Legend';
+  if (level >= 25) return 'Milk Baron';
+  if (level >= 20) return 'Milk Dealer';
+  if (level >= 15) return 'Milk Hustler';
+  if (level >= 10) return 'Milk Fiend';
+  if (level >= 5)  return 'Milk Drinker';
   return 'Milk Baby';
 }
 
@@ -50,8 +50,8 @@ const HELP_CATEGORIES = {
     description: 'Balance, XP, daily rewards, and achievements.',
     commands: [
       '`!bal` — how broke are you right now',
-      '`!xp` — your XP, level, and rank (cap 100 · prestige 5 = no cap)',
-      '`!prestige` — reset at level 100 for a permanent multiplier (max prestige 5)',
+      '`!xp` — your XP, level, and rank (cap 50 · prestige 5 = no cap)',
+      '`!prestige` — reset at level 50 for a permanent multiplier (max prestige 5)',
       '`!ach` — view your achievements',
       '`!da` — grab your daily milk bucks (streaks pay up to 300)',
       '`!cc` — claim a crate drop before someone else does (500 milk bucks)',
@@ -307,6 +307,7 @@ function buildLeaderboardText(guild) {
 let lbMessage = null;
 let helpMessage = null;
 let sbMessage = null;
+let shopMessage = null;
 
 async function findBotMessage(channel, client, contentHint = null) {
   const fetched = await channel.messages.fetch({ limit: 50 });
@@ -399,4 +400,37 @@ async function refreshStockBoard(client) {
   sbMessage = await sbChannel.send(sbText).catch(console.error);
 }
 
-module.exports = { initDisplays, refreshHelp, refreshLeaderboard, refreshStockBoard, buildHelpEmbed, buildCategoryReply };
+async function initShopDisplay(client) {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return;
+  const shopChannel = guild.channels.cache.find(c => c.name === 'milkbot-shop');
+  if (!shopChannel) { console.log('[display] milkbot-shop channel not found — create it first'); return; }
+  const { buildShopBoardText } = require('./shop');
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('shop_browse').setLabel('🛒  Browse Shop').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('shop_inv').setLabel('🎒  My Inventory').setStyle(ButtonStyle.Secondary),
+  );
+  shopMessage = await updateOrPost(shopChannel, client, { content: buildShopBoardText(), components: [row] }, 'Shop board');
+}
+
+async function refreshShopBoard(client) {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return;
+  const shopChannel = guild.channels.cache.find(c => c.name === 'milkbot-shop');
+  if (!shopChannel) return;
+  const { buildShopBoardText } = require('./shop');
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('shop_browse').setLabel('🛒  Browse Shop').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('shop_inv').setLabel('🎒  My Inventory').setStyle(ButtonStyle.Secondary),
+  );
+  const payload = { content: buildShopBoardText(), components: [row] };
+  if (shopMessage) {
+    const updated = await shopMessage.edit(payload).catch(() => null);
+    if (updated) { shopMessage = updated; return; }
+  }
+  shopMessage = await shopChannel.send(payload).catch(console.error);
+}
+
+module.exports = { initDisplays, refreshHelp, refreshLeaderboard, refreshStockBoard, buildHelpEmbed, buildCategoryReply, initShopDisplay, refreshShopBoard };

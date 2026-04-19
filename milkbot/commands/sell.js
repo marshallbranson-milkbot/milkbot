@@ -78,7 +78,7 @@ module.exports = {
 
     // Update balance
     const balances = getData(balancesPath);
-    balances[userId] = (balances[userId] || 0) + revenue;
+    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + revenue);
     saveData(balancesPath, balances);
 
     const bigTrades = getData(bigTradesPath);
@@ -92,7 +92,7 @@ module.exports = {
     if (profit > 0) {
       xpGain = Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1);
       const xp = getData(xpPath);
-      xp[userId] = (xp[userId] || 0) + xpGain;
+      xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
       saveData(xpPath, xp);
     }
 

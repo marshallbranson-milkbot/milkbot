@@ -93,13 +93,17 @@ module.exports = {
     const newStreak = won ? ws.recordWin(userId) : (ws.resetStreak(userId), 0);
     const hotMul    = (won && newStreak >= 3) ? 1.5 : 1;
     const pm        = prestige.getMultiplier(userId);
+    const shopMod   = require('../shop');
+    const shopMul   = won ? shopMod.getEarningsMul(userId) : 1;
+    const nextMul   = won ? shopMod.getAndConsumeNextWinMul(userId) : 1;
     const payout    = won
-      ? Math.floor(amount * multiplier * hotMul * pm)
+      ? Math.floor(amount * multiplier * hotMul * pm * shopMul * nextMul)
       : Math.floor(amount * multiplier);
 
     const bonuses = [
       hotMul > 1 ? '🔥 1.5x streak' : '',
       pm > 1 ? `🌟 ${pm}x prestige` : '',
+      (shopMul > 1 || nextMul > 1) ? `🛒 shop` : '',
     ].filter(Boolean).join(' · ');
 
     // Send initial frame (start position only)
@@ -124,8 +128,9 @@ module.exports = {
     }
 
     const xp = getData(xpPath);
+    const shopXpMul = require('../shop').getXpMul(userId);
     const xpGain = won
-      ? Math.min(200, Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm))
+      ? Math.min(200, Math.floor(XP_WIN * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul))
       : XP_LOSS;
     xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
     saveData(xpPath, xp);

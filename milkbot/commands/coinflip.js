@@ -65,7 +65,10 @@
         const newStreak = ws.recordWin(winnerId);
         const hotMul = newStreak >= 3 ? 1.5 : 1;
         const pm = prestige.getMultiplier(winnerId);
-        const bonus = Math.floor(bet * (hotMul * pm - 1));
+        const shopMod = require('../shop');
+        const shopMul = shopMod.getEarningsMul(winnerId);
+        const nextMul = shopMod.getAndConsumeNextWinMul(winnerId);
+        const bonus = Math.floor(bet * (hotMul * pm * shopMul * nextMul - 1));
 
         balances[winnerId] = Math.min(10_000_000, (balances[winnerId] || 0) + bet + bonus);
         balances[loserId] = Math.max(0, (balances[loserId] || 0) - bet);
@@ -74,7 +77,8 @@
         const prevLoserStreak = ws.resetStreak(loserId);
 
         const xp = getData(xpPath);
-        xp[winnerId] = (xp[winnerId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
+        const shopXpMul = shopMod.getXpMul(winnerId);
+        xp[winnerId] = Math.min(require('../prestige').getXpCap(winnerId), (xp[winnerId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul));
         saveData(xpPath, xp);
 
         const winnerName = challengerWins ? challenger?.username : message.author.username;

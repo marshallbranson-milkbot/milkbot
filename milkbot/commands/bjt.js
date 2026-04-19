@@ -158,17 +158,25 @@ function resolveTournament() {
       pushers.push(p);
     } else if (playerBJ) {
       // Natural blackjack beats dealer — 3:2 payout
-      const bjPayout = buyIn + Math.floor(buyIn * 1.5);
-      p.result = `blackjack! (+${Math.floor(buyIn * 1.5)} mb)`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + bjPayout);
+      const shopMod = require('../shop');
+      const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
+      const bjProfit = Math.floor(buyIn * 1.5 * sMul);
+      p.result = `blackjack! (+${bjProfit} mb)`;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + bjProfit);
       winners.push(p);
     } else if (dealerTotal > 21) {
-      p.result = `dealer bust — win (${pt})`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn * 2);
+      const shopMod = require('../shop');
+      const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
+      const profit = Math.floor(buyIn * sMul);
+      p.result = `dealer bust — win (${pt}) +${profit}mb`;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + profit);
       winners.push(p);
     } else if (pt > dealerTotal) {
-      p.result = `win (${pt} vs ${dealerTotal})`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn * 2);
+      const shopMod = require('../shop');
+      const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
+      const profit = Math.floor(buyIn * sMul);
+      p.result = `win (${pt} vs ${dealerTotal}) +${profit}mb`;
+      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + profit);
       winners.push(p);
     } else if (pt === dealerTotal) {
       p.result = `push (${pt})`;

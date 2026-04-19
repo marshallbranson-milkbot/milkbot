@@ -17,7 +17,8 @@ function addToJackpot(amount = 5) {
 
 // Returns true if jackpot was triggered. Call on every game WIN.
 function tryJackpot(userId, username, channel) {
-  if (Math.random() >= 0.001) return false;
+  const shopMul = require('./shop').getJackpotMul(userId);
+  if (Math.random() >= 0.001 * shopMul) return false;
 
   const amount = getJackpot();
   if (amount <= 0) return false;

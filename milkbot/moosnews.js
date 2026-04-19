@@ -653,24 +653,17 @@ async function dropNews(client, headline) {
     `*${headline.text}*\n\n` +
     `*— Moo News, your trusted source for dairy market intelligence* 🥛`;
 
+  // Delete old Moo News message so the new one lands at the bottom
   const savedId = getMooNewsMsgId();
   if (savedId) {
-    try {
-      const existing = await channel.messages.fetch(savedId);
-      await existing.edit(newsText);
-      state.lastNewsAt = Date.now();
-      console.log('[moosnews] Moo News message updated');
-      require('./display').refreshStockBoard(client).catch(console.error);
-      return;
-    } catch (err) {
-      console.error('[moosnews] dropNews: failed to edit saved message:', err.message);
-      // Message was deleted — fall through to send a new one
-    }
+    const old = await channel.messages.fetch(savedId).catch(() => null);
+    if (old) await old.delete().catch(() => {});
   }
 
   const msg = await channel.send(newsText).catch(e => { console.error('[moosnews] dropNews: failed to send:', e.message); return null; });
   if (msg) saveMooNewsMsgId(msg.id);
   state.lastNewsAt = Date.now();
+  console.log('[moosnews] Moo News posted at bottom of channel');
 
   require('./display').refreshStockBoard(client).catch(console.error);
 }

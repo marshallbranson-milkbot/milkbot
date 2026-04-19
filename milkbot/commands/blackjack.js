@@ -360,6 +360,10 @@ function resolveAllHands(userId, channel, gameMsg) {
   }
 
   const hotMul = newStreak >= 3 ? 1.5 : 1;
+  const shopMod = require('../shop');
+  const shopMul = handsWon > 0 ? shopMod.getEarningsMul(userId) : 1;
+  const nextMul = handsWon > 0 ? shopMod.getAndConsumeNextWinMul(userId) : 1;
+  const shopXpMul = shopMod.getXpMul(userId);
 
   let totalNetWin = 0;
   let totalXpGain = 0;
@@ -379,9 +383,9 @@ function resolveAllHands(userId, channel, gameMsg) {
       hand.result = `dealer BJ`;
       totalNetWin -= hand.bet;
     } else if (result === 'win' || result === 'dealer_bust') {
-      const winnings = Math.floor(hand.bet * hotMul * pm);
+      const winnings = Math.floor(hand.bet * hotMul * pm * shopMul * nextMul);
       balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + hand.bet + winnings);
-      const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm));
+      const xpGain = Math.min(200, Math.floor(50 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul));
       xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
       totalXpGain += xpGain;
       totalNetWin += winnings;
@@ -643,11 +647,15 @@ module.exports = {
         const newStreak = ws.recordWin(userId);
         const hotMul = newStreak >= 3 ? 1.5 : 1;
         const pm = prestige.getMultiplier(userId);
-        const winnings = Math.floor(bjPayout * hotMul * pm);
+        const bjShopMod = require('../shop');
+        const bjShopMul = bjShopMod.getEarningsMul(userId);
+        const bjNextMul = bjShopMod.getAndConsumeNextWinMul(userId);
+        const winnings = Math.floor(bjPayout * hotMul * pm * bjShopMul * bjNextMul);
         balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + bet + winnings);
-        xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * hotMul * pm);
+        const bjXpMul = bjShopMod.getXpMul(userId);
+        xpGain = Math.floor(Math.max(10, bet / 5) * (state.doubleXp ? 2 : 1) * hotMul * pm * bjXpMul);
         const xp = getData(xpPath);
-        xp[userId] = (xp[userId] || 0) + xpGain;
+        xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
         saveData(xpPath, xp);
         saveData(balancesPath, balances);
         quip = randQuip(BLACKJACK_QUIPS);
