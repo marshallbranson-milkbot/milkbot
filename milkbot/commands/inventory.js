@@ -72,15 +72,14 @@ function buildInvPayload(userId) {
     lines.push(`**📦 USABLE ITEMS** — click to use`);
     const rows = [];
     let currentRow = new ActionRowBuilder();
-    let count = 0;
 
     for (const [itemId, qty] of invEntries) {
       const item = shop.ITEMS[itemId];
       if (!item) continue;
-      if (count > 0 && count % 5 === 0) {
+      if (currentRow.components.length === 5) {
         rows.push(currentRow);
         currentRow = new ActionRowBuilder();
-        if (rows.length >= 3) break; // leave room for bottom row
+        if (rows.length >= 4) break; // max 4 item rows + 1 bottom = 5 total
       }
       const label = `${item.emoji} ${item.name}${qty > 1 ? ` ×${qty}` : ''}`;
       currentRow.addComponents(
@@ -89,9 +88,8 @@ function buildInvPayload(userId) {
           .setLabel(label.slice(0, 80))
           .setStyle(ButtonStyle.Primary)
       );
-      count++;
     }
-    if (count > 0) rows.push(currentRow);
+    if (currentRow.components.length > 0) rows.push(currentRow);
 
     rows.push(new ActionRowBuilder().addComponents(...bottomRowBtns));
     components.push(...rows);
@@ -139,6 +137,7 @@ function buildManageBuffsPayload(userId) {
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
+  let capped = false;
   activeBuffs.forEach((b, i) => {
     const item = shop.ITEMS[b.itemId];
     const emoji = item?.emoji ?? '🧴';
@@ -147,9 +146,11 @@ function buildManageBuffsPayload(userId) {
     else if (b.uses !== null) status = ` (${b.uses} use${b.uses !== 1 ? 's' : ''} left)`;
     lines.push(`${emoji} **${b.label}**${status}`);
 
-    if (i > 0 && i % 5 === 0) {
+    if (capped) return;
+    if (currentRow.components.length === 5) {
       rows.push(currentRow);
       currentRow = new ActionRowBuilder();
+      if (rows.length >= 4) { capped = true; return; } // max 4 buff rows + 1 back = 5
     }
     currentRow.addComponents(
       new ButtonBuilder()
@@ -158,7 +159,7 @@ function buildManageBuffsPayload(userId) {
         .setStyle(ButtonStyle.Danger)
     );
   });
-  rows.push(currentRow);
+  if (currentRow.components.length > 0) rows.push(currentRow);
   rows.push(new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary)));
 
   return { content: lines.join('\n'), components: rows, ephemeral: true };
