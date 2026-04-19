@@ -108,7 +108,11 @@ module.exports = {
     const portfolios = getPortfolios();
     const holdings = portfolios[userId];
 
-    if (!holdings || Object.keys(holdings).length === 0) {
+    const validHoldings = holdings && typeof holdings === 'object'
+      ? Object.entries(holdings).filter(([, h]) => h && typeof h === 'object' && (h.shares || 0) > 0)
+      : [];
+
+    if (validHoldings.length === 0) {
       return { empty: true };
     }
 
@@ -116,7 +120,9 @@ module.exports = {
     let totalValue = 0;
     let totalSpent = 0;
 
-    const lines = Object.entries(holdings).map(([ticker, { shares, spent }]) => {
+    const lines = validHoldings.map(([ticker, holding]) => {
+      const shares = holding.shares || 0;
+      const spent = holding.spent || 0;
       const price = prices[ticker]?.price || 0;
       const currentValue = shares * price;
       const profit = currentValue - spent;
@@ -135,10 +141,10 @@ module.exports = {
       .setCustomId(`port_select_${userId}`)
       .setPlaceholder('Pick a stock to act on...')
       .addOptions(
-        Object.entries(holdings).map(([ticker, { shares }]) => {
+        validHoldings.map(([ticker, holding]) => {
           const price = prices[ticker]?.price || 0;
           return new StringSelectMenuOptionBuilder()
-            .setLabel(`${ticker} — ${shares} share(s) @ ${price} 🥛`)
+            .setLabel(`${ticker} — ${holding.shares} share(s) @ ${price} 🥛`)
             .setValue(ticker);
         })
       );
@@ -166,6 +172,7 @@ module.exports = {
       await interaction.reply({ content: payload.content, components: payload.components, ephemeral: true });
     } catch (e) {
       console.error('[port] executeSlash error:', e);
+      interaction.reply({ content: `something went wrong loading your portfolio. 🥛`, ephemeral: true }).catch(() => {});
     }
   },
 
