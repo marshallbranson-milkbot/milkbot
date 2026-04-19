@@ -6,7 +6,6 @@ const { generateScript } = require('./script');
 const { generateVoice } = require('./voice');
 const { renderVideo } = require('./render');
 const { deliverRecap, deliverError } = require('./deliver');
-const { ensureBackgroundPool } = require('./pexels');
 
 const TMP_ROOT = path.join(__dirname, '..', 'data', 'recap-tmp');
 
@@ -67,9 +66,6 @@ async function runDailyRecap(client) {
     phase = 'voice';
     const voice = await generateVoice(scriptResult.script, tmpDir);
     console.log(`[recap] voice: ${voice.totalDuration.toFixed(1)}s, ${voice.words.length} words`);
-
-    phase = 'background_pool';
-    await ensureBackgroundPool(5);
 
     phase = 'render';
     const render = await renderVideo({

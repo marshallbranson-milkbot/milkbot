@@ -525,4 +525,11 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     }
   }
 
+  // Graceful shutdown — log SIGTERM so Railway restarts are visible in history.
+  process.on('SIGTERM', () => {
+    console.log('[main] SIGTERM received — shutting down cleanly');
+    client.destroy().catch(() => {});
+    setTimeout(() => process.exit(0), 500).unref();
+  });
+
   client.login(TOKEN);
