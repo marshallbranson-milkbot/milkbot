@@ -111,6 +111,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         shopCommand.handleButtonInteraction(interaction).catch(console.error);
       } else if (interaction.customId.startsWith('inv_') && inventoryCommand) {
         inventoryCommand.handleButtonInteraction(interaction).catch(console.error);
+      } else if (interaction.customId.startsWith('dun_')) {
+        require('./commands/dungeon').handleButtonInteraction(interaction).catch(console.error);
       }
     } else if (interaction.isChatInputCommand()) {
       const cmdName = interaction.commandName;
@@ -134,6 +136,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       }
       if (cmdName === 'inv' && inventoryCommand) {
         inventoryCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+
+      // /dun — ephemeral, points users to #milkbot-dungeon
+      if (cmdName === 'dun') {
+        require('./commands/dungeon').executeSlash(interaction).catch(console.error);
         return;
       }
 
@@ -384,6 +392,13 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     // Daily TikTok recap pipeline (midnight snapshot, 6am recap)
     await captureMidnightSnapshot();
     scheduleRecap(client);
+
+    // Dungeon feature (only initializes if DUNGEON_ENABLED=1)
+    try {
+      await require('./dungeon').init(client);
+    } catch (e) {
+      console.error('[dungeon] init failed:', e.message);
+    }
     if (process.env.RECAP_RUN_ON_START === '1') {
       console.log('[recap] RECAP_RUN_ON_START set — running recap once');
       setTimeout(() => runDailyRecap(client).catch(e => console.error('[recap] startup run failed:', e)), 10000);
