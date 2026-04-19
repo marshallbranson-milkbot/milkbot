@@ -136,6 +136,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
+      // /port — ephemeral direct handler (bypass slash bridge to avoid timeout)
+      if (cmdName === 'port' && portfolioCommand) {
+        portfolioCommand.executeSlash(interaction).catch(console.error);
+        return;
+      }
+
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {

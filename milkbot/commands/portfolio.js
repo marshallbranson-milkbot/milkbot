@@ -104,13 +104,12 @@ module.exports = {
   description: 'View your stock portfolio.',
   slashOptions: [],
 
-  async execute(message) {
-    const userId = message.author.id;
+  _buildPortfolioPayload(userId, username) {
     const portfolios = getPortfolios();
     const holdings = portfolios[userId];
 
     if (!holdings || Object.keys(holdings).length === 0) {
-      return message.reply(`You don't own any stocks. Use \`!b TICKER shares\` to invest. 🥛`);
+      return { empty: true };
     }
 
     const prices = getPrices();
@@ -144,16 +143,36 @@ module.exports = {
         })
       );
 
-    const reply = await message.reply({
+    return {
+      empty: false,
       content:
-        `**📊 ${message.author.username}'s Portfolio** 🥛\n\n` +
+        `**📊 ${username}'s Portfolio** 🥛\n\n` +
         lines.join('\n') +
         `\n\n**Total Value:** ${totalValue} milk bucks | **Total P&L:** ${totalStr} milk bucks` +
         `\n**Balance:** ${balance} milk bucks 🥛` +
         `\n\n*Select a stock below to buy more or sell:*`,
       components: [new ActionRowBuilder().addComponents(selectMenu)],
-    });
+    };
+  },
 
+  async executeSlash(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    const userId = interaction.user.id;
+    const username = interaction.user.username;
+    const payload = this._buildPortfolioPayload(userId, username);
+    if (payload.empty) {
+      return interaction.editReply(`You don't own any stocks. Use \`/b\` to invest. 🥛`);
+    }
+    await interaction.editReply({ content: payload.content, components: payload.components });
+  },
+
+  async execute(message) {
+    const userId = message.author.id;
+    const payload = this._buildPortfolioPayload(userId, message.author.username);
+    if (payload.empty) {
+      return message.reply(`You don't own any stocks. Use \`/b\` to invest. 🥛`);
+    }
+    const reply = await message.reply({ content: payload.content, components: payload.components });
     setTimeout(() => {
       reply.edit({ components: [] }).catch(() => {});
       reply.delete().catch(() => {});
