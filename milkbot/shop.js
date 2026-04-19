@@ -124,6 +124,37 @@ function _activeOnly(buffs) {
   });
 }
 
+// Removes the active buff at the given index (among currently-active buffs).
+// Returns the removed buff, or null if index is out of range.
+function removeActiveBuff(userId, index) {
+  const raw = _readBuffs(userId);
+  const active = _activeOnly(raw);
+  const target = active[index];
+  if (!target) return null;
+  // Find and splice the first raw buff that matches the target by identity
+  const rawIdx = raw.findIndex(b =>
+    b.itemId === target.itemId &&
+    b.type === target.type &&
+    b.expiresAt === target.expiresAt &&
+    b.uses === target.uses
+  );
+  if (rawIdx === -1) return null;
+  raw.splice(rawIdx, 1);
+  _saveBuffs(userId, raw);
+  return target;
+}
+
+// Removes one unit of an inventory item without activating it.
+function discardInventoryItem(userId, itemId) {
+  const inv = readData(inventoryPath);
+  const qty = (inv[userId] || {})[itemId] || 0;
+  if (qty <= 0) return false;
+  inv[userId][itemId] = qty - 1;
+  if (inv[userId][itemId] <= 0) delete inv[userId][itemId];
+  writeData(inventoryPath, inv);
+  return true;
+}
+
 function getActiveBuffs(userId, type = null) {
   const raw = _readBuffs(userId);
   const active = _activeOnly(raw);
@@ -506,4 +537,5 @@ module.exports = {
   getBuffSummary, getInventory,
   getTodaySlots, regenerateSlots, buildShopBoardText,
   getDailyBought, getDailyCap, getDailyRemaining, recordDailyPurchase,
+  removeActiveBuff, discardInventoryItem,
 };

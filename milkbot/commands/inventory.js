@@ -60,11 +60,14 @@ function buildInvPayload(userId) {
   const invEntries = Object.entries(inv).filter(([, q]) => q > 0);
   const components = [];
 
+  const bottomRowBtns = [btn(`inv_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger)];
+  if (activeBuffs.length > 0) {
+    bottomRowBtns.unshift(btn(`inv_managebuffs_${userId}`, '🗑️ Remove Buff', ButtonStyle.Secondary));
+  }
+
   if (invEntries.length === 0) {
     lines.push(`**📦 USABLE ITEMS** — empty. nothing here. go buy something. 🥛`);
-    components.push(new ActionRowBuilder().addComponents(
-      btn(`inv_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger)
-    ));
+    components.push(new ActionRowBuilder().addComponents(...bottomRowBtns));
   } else {
     lines.push(`**📦 USABLE ITEMS** — click to use`);
     const rows = [];
@@ -77,7 +80,7 @@ function buildInvPayload(userId) {
       if (count > 0 && count % 5 === 0) {
         rows.push(currentRow);
         currentRow = new ActionRowBuilder();
-        if (rows.length >= 4) break; // max 4 rows of items + 1 dismiss row
+        if (rows.length >= 3) break; // leave room for bottom row
       }
       const label = `${item.emoji} ${item.name}${qty > 1 ? ` ×${qty}` : ''}`;
       currentRow.addComponents(
@@ -90,9 +93,7 @@ function buildInvPayload(userId) {
     }
     if (count > 0) rows.push(currentRow);
 
-    rows.push(new ActionRowBuilder().addComponents(
-      btn(`inv_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger)
-    ));
+    rows.push(new ActionRowBuilder().addComponents(...bottomRowBtns));
     components.push(...rows);
   }
 
@@ -114,8 +115,81 @@ function buildUseConfirmPayload(userId, itemId) {
   ].join('\n');
 
   const row = new ActionRowBuilder().addComponents(
-    btn(`inv_confirm_${itemId}_${userId}`, '✅ Use It', ButtonStyle.Danger),
-    btn(`inv_back_${userId}`,              '❌ Never Mind', ButtonStyle.Secondary),
+    btn(`inv_confirm_${itemId}_${userId}`,  '✅ Use It',     ButtonStyle.Success),
+    btn(`inv_discard_${itemId}_${userId}`,  '🗑️ Discard',   ButtonStyle.Danger),
+    btn(`inv_back_${userId}`,               '⬅️ Never Mind', ButtonStyle.Secondary),
+  );
+
+  return { content, components: [row], ephemeral: true };
+}
+
+// ── Buff management screen ─────────────────────────────────────────────────────
+function buildManageBuffsPayload(userId) {
+  const activeBuffs = shop.getActiveBuffs(userId);
+
+  if (activeBuffs.length === 0) {
+    return {
+      content: `no active buffs to remove. 🥛`,
+      components: [new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
+      ephemeral: true,
+    };
+  }
+
+  const lines = [`🗑️ **REMOVE A BUFF** — pick one to cancel it. no refunds. 🥛`, ``];
+  const rows = [];
+  let currentRow = new ActionRowBuilder();
+
+  activeBuffs.forEach((b, i) => {
+    const item = shop.ITEMS[b.itemId];
+    const emoji = item?.emoji ?? '🧴';
+    let status = '';
+    if (b.expiresAt !== null) status = ` (${formatTimeLeft(b.expiresAt)} left)`;
+    else if (b.uses !== null) status = ` (${b.uses} use${b.uses !== 1 ? 's' : ''} left)`;
+    lines.push(`${emoji} **${b.label}**${status}`);
+
+    if (i > 0 && i % 5 === 0) {
+      rows.push(currentRow);
+      currentRow = new ActionRowBuilder();
+    }
+    currentRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`inv_rmbuff_${i}_${userId}`)
+        .setLabel(`🗑️ ${b.label}`.slice(0, 80))
+        .setStyle(ButtonStyle.Danger)
+    );
+  });
+  rows.push(currentRow);
+  rows.push(new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary)));
+
+  return { content: lines.join('\n'), components: rows, ephemeral: true };
+}
+
+// ── Buff remove confirm screen ─────────────────────────────────────────────────
+function buildRemoveBuffConfirmPayload(userId, index) {
+  const activeBuffs = shop.getActiveBuffs(userId);
+  const b = activeBuffs[index];
+  if (!b) {
+    return {
+      content: `that buff already expired. 🥛`,
+      components: [new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
+      ephemeral: true,
+    };
+  }
+  const item = shop.ITEMS[b.itemId];
+  const emoji = item?.emoji ?? '🧴';
+  let status = '';
+  if (b.expiresAt !== null) status = ` — ${formatTimeLeft(b.expiresAt)} remaining`;
+  else if (b.uses !== null) status = ` — ${b.uses} use${b.uses !== 1 ? 's' : ''} left`;
+
+  const content = [
+    `🗑️ **Remove ${emoji} ${b.label}?**${status}`,
+    ``,
+    `this buff will be **permanently cancelled**. no milk bucks refunded.`,
+  ].join('\n');
+
+  const row = new ActionRowBuilder().addComponents(
+    btn(`inv_confirm_rmbuff_${index}_${userId}`, '✅ Remove It', ButtonStyle.Danger),
+    btn(`inv_managebuffs_${userId}`,             '⬅️ Back',      ButtonStyle.Secondary),
   );
 
   return { content, components: [row], ephemeral: true };
@@ -218,6 +292,49 @@ module.exports = {
       // inv_use_{itemId}_{userId}
       const itemId = parts.slice(2, -1).join('_');
       return interaction.update(buildUseConfirmPayload(userId, itemId));
+    }
+
+    if (id.startsWith('inv_discard_')) {
+      // inv_discard_{itemId}_{userId}
+      const itemId = parts.slice(2, -1).join('_');
+      const item = shop.ITEMS[itemId];
+      const ok = shop.discardInventoryItem(userId, itemId);
+      return interaction.update({
+        content: ok
+          ? `🗑️ **${item?.name ?? itemId}** discarded. gone forever. hope it was worth it. 🥛`
+          : `you don't have that item anymore. 🥛`,
+        components: [new ActionRowBuilder().addComponents(
+          btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary),
+          btn(`inv_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger),
+        )],
+      });
+    }
+
+    if (id.startsWith('inv_managebuffs_')) {
+      return interaction.update(buildManageBuffsPayload(userId));
+    }
+
+    if (id.startsWith('inv_rmbuff_')) {
+      // inv_rmbuff_{index}_{userId}
+      const index = parseInt(parts[parts.length - 2], 10);
+      return interaction.update(buildRemoveBuffConfirmPayload(userId, index));
+    }
+
+    if (id.startsWith('inv_confirm_rmbuff_')) {
+      // inv_confirm_rmbuff_{index}_{userId}
+      const index = parseInt(parts[parts.length - 2], 10);
+      const removed = shop.removeActiveBuff(userId, index);
+      const item = removed ? shop.ITEMS[removed.itemId] : null;
+      const emoji = item?.emoji ?? '🧴';
+      return interaction.update({
+        content: removed
+          ? `🗑️ **${emoji} ${removed.label}** has been removed. the buff is gone. 🥛`
+          : `that buff already expired on its own. 🥛`,
+        components: [new ActionRowBuilder().addComponents(
+          btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary),
+          btn(`inv_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger),
+        )],
+      });
     }
 
     if (id.startsWith('inv_confirm_')) {
