@@ -261,7 +261,7 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v28b-milk-market',
+    id: 'v28c-milk-market',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `🥛 **MILKBOT PATCH — THE MILK MARKET UPDATE** 🥛`,
@@ -275,7 +275,9 @@ const UPDATES = [
       ``,
       `☠️ **BOSS NUKE ITEMS** — Boss Plague Vial (800 HP) and The Dairy Plague (5,000 HP) deal instant server-wide damage. anyone who nukes it gets credit toward the kill reward.`,
       ``,
-      `📊 **\`/port\` FIXED** — portfolio slash command now works for everyone, not just the bot owner.`,
+      `🗑️ **BUFF & ITEM MANAGEMENT** — you can now delete active buffs and discard inventory items you don't want. open \`/inv\` → **Remove Buff** to cancel any active buff early. click any inventory item → **Discard** to throw it out. no refunds. obviously.`,
+      ``,
+      `📦 **DAILY PURCHASE LIMITS** — the shop now has per-tier caps. Common: 10/day. Uncommon: 5/day. Rare: 3/day. Legendary: 1/day. resets at midnight EST with the shop rotation.`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `*— MilkBot Management. the dairy economy never sleeps. 🥛*`,
