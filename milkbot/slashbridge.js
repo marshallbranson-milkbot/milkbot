@@ -1,21 +1,19 @@
-/**
- * makeSlashBridge — builds a fake prefix-command-style message object from a
- * slash interaction so existing execute(message, args) handlers work unchanged.
- *
- * @param {import('discord.js').ChatInputCommandInteraction} interaction
- * @param {import('discord.js').User|null} mentionedUser  — populated for commands that take a @user option
- */
 function makeSlashBridge(interaction, mentionedUser = null, commandPrefix = '') {
-  let replied = false;
+  let replyPromise = null;
 
   const doSend = async (content) => {
     const payload = typeof content === 'string' ? { content } : content;
-    if (!replied) {
-      replied = true;
-      await interaction.reply(payload);
-      return interaction.fetchReply();
+    try {
+      if (!replyPromise) {
+        replyPromise = interaction.reply(payload);
+        await replyPromise;
+        return interaction.fetchReply().catch(() => null);
+      }
+      await replyPromise;
+      return interaction.followUp(payload);
+    } catch (e) {
+      console.error('[slashbridge] send error:', e.message);
     }
-    return interaction.followUp(payload);
   };
 
   const channelProxy = new Proxy(interaction.channel, {

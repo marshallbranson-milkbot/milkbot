@@ -161,7 +161,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       // Pass !cmdName as content so commands that check message.content.startsWith('!a') etc. work
       const fakeMsg = makeSlashBridge(interaction, null, `!${cmdName}`);
       const args = buildSlashArgs(interaction, cmdName);
-      cmd.execute(fakeMsg, args, client);
+      cmd.execute(fakeMsg, args, client).catch(e => console.error('[index] execute error:', e.message));
 
     } else if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith('port_select_') && portfolioCommand) {
