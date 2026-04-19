@@ -23,6 +23,7 @@ HARD RULES — violating these means the script is rejected:
 - No emojis in the spoken script (they get spoken aloud).
 - Do not invent facts the user didn't give you. Stick to the event data.
 - Only mention ONE player. Drop the milk lord, drop secondary characters. The main event is the whole video.
+- FORBIDDEN metaphors: "hostage situation", "ransom", "kidnap". Find a different punchline every time. These are overused and weird spoken aloud.
 - The onScreenText field CAN use digits (they show visually, not spoken). Numbers in the spoken script field — words only.
 
 OUTPUT FORMAT (JSON only, no prose around it):
