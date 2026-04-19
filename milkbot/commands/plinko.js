@@ -10,8 +10,8 @@ const prestige = require('../prestige');
 
 const MIN_BET = 10;
 const ROWS = 10;
-const MULTIPLIERS = [15, 8, 3, 0.8, 0.3, 0.01, 0.3, 0.8, 3, 8, 15];
-const MUL_LABELS  = ['15x','8x','3x','0.8x','0.3x','0.01x','0.3x','0.8x','3x','8x','15x'];
+const MULTIPLIERS = [15, 8, 3, 0.8, 0.3, 0.2, 0.3, 0.8, 3, 8, 15];
+const MUL_LABELS  = ['15x','8x','3x','0.8x','0.3x','0.2x','0.3x','0.8x','3x','8x','15x'];
 const XP_WIN = 30;
 const XP_LOSS = 5;
 
@@ -113,7 +113,7 @@ module.exports = {
 
     // Animate every 2 rows at 250ms — 5 edits total instead of 10
     for (let step = 2; step <= ROWS; step += 2) {
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 375));
       const isDone = step === ROWS;
       await msg.edit({
         embeds: [buildEmbed(positions, step, isDone, amount, username, payout, multiplier, won, bonuses)],
