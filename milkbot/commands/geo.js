@@ -271,7 +271,7 @@ function check(message) {
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);
-  xp[userId] = (xp[userId] || 0) + xpGain;
+  xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
   saveData(xpPath, xp);
 
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');

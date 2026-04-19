@@ -412,7 +412,7 @@ function check(message) {
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);
-  xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm);
+  xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm));
   saveData(xpPath, xp);
 
   const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');

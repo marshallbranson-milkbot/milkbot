@@ -157,7 +157,7 @@ function check(message) {
     saveData(balancesPath, balances);
 
     const xp = getData(xpPath);
-    xp[message.author.id] = (xp[message.author.id] || 0) + Math.floor(10 * (state.doubleXp ? 2 : 1) * hotMul * pm);
+    xp[message.author.id] = Math.min(require('../prestige').getXpCap(message.author.id), (xp[message.author.id] || 0) + Math.floor(10 * (state.doubleXp ? 2 : 1) * hotMul * pm));
     saveData(xpPath, xp);
 
     clearTimeout(activeTrivia.timeout);

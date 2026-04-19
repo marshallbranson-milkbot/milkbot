@@ -107,7 +107,7 @@ const prestige = require('../prestige');
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);
-      xp[message.author.id] = (xp[message.author.id] || 0) + xpGain;
+      xp[message.author.id] = Math.min(require('../prestige').getXpCap(message.author.id), (xp[message.author.id] || 0) + xpGain);
       saveData(xpPath, xp);
 
       clearTimeout(activeScramble.timeout);

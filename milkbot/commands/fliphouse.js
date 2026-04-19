@@ -53,7 +53,7 @@
 
         const xp = getData(xpPath);
         const shopXpMul = shopMod.getXpMul(userId);
-        xp[userId] = (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul);
+        xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + Math.floor(15 * (state.doubleXp ? 2 : 1) * hotMul * pm * shopXpMul));
         saveData(xpPath, xp);
 
         const bonuses = [hotMul > 1 ? '🔥 1.5x streak' : '', pm > 1 ? `🌟 ${pm}x prestige` : ''].filter(Boolean).join(' · ');
