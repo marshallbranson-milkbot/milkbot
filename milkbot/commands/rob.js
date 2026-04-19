@@ -79,7 +79,7 @@ module.exports = {
       const nextMul = shopMod.getAndConsumeNextWinMul(message.author.id);
       const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm * shopMul * nextMul));
 
-      balances[message.author.id] = Math.min(10_000_000, robberBalance + stolen);
+      balances[message.author.id] = Math.min(100_000_000, robberBalance + stolen);
       balances[target.id] = targetBalance - stolen;
       saveData(balancesPath, balances);
 

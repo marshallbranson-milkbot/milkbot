@@ -110,7 +110,7 @@ module.exports = {
     const shopMul = winnings > 0 ? shopMod.getEarningsMul(userId) : 1;
     const nextMul = winnings > 0 ? shopMod.getAndConsumeNextWinMul(userId) : 1;
     const actualWinnings = Math.floor(winnings * multiplier * shopMul * nextMul);
-    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + actualWinnings);
+    balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + actualWinnings);
     saveData(balancesPath, balances);
 
     let xpGain = 0;
@@ -145,7 +145,7 @@ module.exports = {
           `🎰 | ${a} ${b} ${c} | 🎰\n` +
           (lordTag && winnings > 0 ? `👑 **MilkLord** spins...\n` : '') +
           `${resultLine}\n` +
-          `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''}${balances[userId] >= 10_000_000 ? ' — 🏦 balance cap reached' : ''})*`
+          `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''}${balances[userId] >= 100_000_000 ? ' — 🏦 balance cap reached' : ''})*`
         );
       }
       if (hotStreak >= 3) ws.announceStreak(message.channel, message.author.username, hotStreak);

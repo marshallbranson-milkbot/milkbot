@@ -104,7 +104,7 @@ const prestige = require('../prestige');
       const responseMs = Date.now() - activeScramble.startedAt;
 
       const balances = getData(balancesPath);
-      balances[message.author.id] = Math.min(10_000_000, (balances[message.author.id] || 0) + reward);
+      balances[message.author.id] = Math.min(100_000_000, (balances[message.author.id] || 0) + reward);
       saveData(balancesPath, balances);
 
       const xp = getData(xpPath);

@@ -133,7 +133,7 @@ async function handleBuy(interaction, itemId, qty, userId) {
   for (let i = 0; i < actualQty; i++) {
     const result = shop.applyItemPurchase(userId, itemId);
     if (result.instant) {
-      balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + result.instant);
+      balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + result.instant);
       resultLines.push(`💸 ${result.message}`);
     } else if (i === 0) {
       resultLines.push(result.queued ? `📦 ${result.message}` : `🧴 ${result.message}`);

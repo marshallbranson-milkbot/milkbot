@@ -154,7 +154,7 @@ function resolveTournament() {
       losers.push(p);
     } else if (playerBJ && dealerBJ) {
       p.result = `push — both blackjack`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn);
+      balances[p.userId] = Math.min(100_000_000, (balances[p.userId] || 0) + buyIn);
       pushers.push(p);
     } else if (playerBJ) {
       // Natural blackjack beats dealer — 3:2 payout
@@ -162,25 +162,25 @@ function resolveTournament() {
       const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
       const bjProfit = Math.floor(buyIn * 1.5 * sMul);
       p.result = `blackjack! (+${bjProfit} mb)`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + bjProfit);
+      balances[p.userId] = Math.min(100_000_000, (balances[p.userId] || 0) + buyIn + bjProfit);
       winners.push(p);
     } else if (dealerTotal > 21) {
       const shopMod = require('../shop');
       const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
       const profit = Math.floor(buyIn * sMul);
       p.result = `dealer bust — win (${pt}) +${profit}mb`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + profit);
+      balances[p.userId] = Math.min(100_000_000, (balances[p.userId] || 0) + buyIn + profit);
       winners.push(p);
     } else if (pt > dealerTotal) {
       const shopMod = require('../shop');
       const sMul = shopMod.getEarningsMul(p.userId) * shopMod.getAndConsumeNextWinMul(p.userId);
       const profit = Math.floor(buyIn * sMul);
       p.result = `win (${pt} vs ${dealerTotal}) +${profit}mb`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn + profit);
+      balances[p.userId] = Math.min(100_000_000, (balances[p.userId] || 0) + buyIn + profit);
       winners.push(p);
     } else if (pt === dealerTotal) {
       p.result = `push (${pt})`;
-      balances[p.userId] = Math.min(10_000_000, (balances[p.userId] || 0) + buyIn);
+      balances[p.userId] = Math.min(100_000_000, (balances[p.userId] || 0) + buyIn);
       pushers.push(p);
     } else {
       p.result = `loss (${pt} vs ${dealerTotal})`;

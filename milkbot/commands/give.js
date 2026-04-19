@@ -28,7 +28,7 @@ module.exports = {
       return message.reply(`you only have **${senderBal} milk bucks**. can't give what you don't have. 🥛`);
     }
 
-    const BAL_CAP = 10_000_000;
+    const BAL_CAP = 100_000_000;
     const recipientBal = balances[target.id] || 0;
     const headroom = BAL_CAP - recipientBal;
     if (headroom <= 0) return message.reply(`**${target.username}** is already at the balance cap. 🥛`);

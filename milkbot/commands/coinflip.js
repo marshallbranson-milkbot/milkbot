@@ -70,7 +70,7 @@
         const nextMul = shopMod.getAndConsumeNextWinMul(winnerId);
         const bonus = Math.floor(bet * (hotMul * pm * shopMul * nextMul - 1));
 
-        balances[winnerId] = Math.min(10_000_000, (balances[winnerId] || 0) + bet + bonus);
+        balances[winnerId] = Math.min(100_000_000, (balances[winnerId] || 0) + bet + bonus);
         balances[loserId] = Math.max(0, (balances[loserId] || 0) - bet);
         saveData(balancesPath, balances);
 

@@ -78,7 +78,7 @@ module.exports = {
 
     // Update balance
     const balances = getData(balancesPath);
-    balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + revenue);
+    balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + revenue);
     saveData(balancesPath, balances);
 
     const bigTrades = getData(bigTradesPath);

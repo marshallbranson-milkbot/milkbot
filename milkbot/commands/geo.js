@@ -267,7 +267,7 @@ function check(message) {
   const xpGain    = Math.floor(XP_REWARD * (state.doubleXp ? 2 : 1) * hotMul * pm);
 
   const balances = getData(balancesPath);
-  balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + reward);
+  balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + reward);
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);

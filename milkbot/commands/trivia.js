@@ -408,7 +408,7 @@ function check(message) {
   const reward = Math.floor(REWARD * hotMul * pm);
 
   const balances = getData(balancesPath);
-  balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + reward);
+  balances[userId] = Math.min(100_000_000, (balances[userId] || 0) + reward);
   saveData(balancesPath, balances);
 
   const xp = getData(xpPath);
