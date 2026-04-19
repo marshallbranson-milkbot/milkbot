@@ -359,7 +359,7 @@ function _seededShuffle(arr, rng) {
 function getTodaySlots() {
   const today = _todayEST();
   const state = readData(shopstatePath);
-  if (state.date === today && Array.isArray(state.slots) && state.slots.length === 6) {
+  if (state.date === today && Array.isArray(state.slots) && state.slots.length === 10) {
     return state.slots;
   }
 
@@ -370,17 +370,20 @@ function getTodaySlots() {
     if (item.effect.type !== 'boss_nuke') byTier[item.tier].push(id);
   }
 
-  const commons   = _seededShuffle(byTier.COMMON,   rng).slice(0, 2);
-  const uncommons = _seededShuffle(byTier.UNCOMMON,  rng).slice(0, 2);
+  const commons   = _seededShuffle(byTier.COMMON,   rng).slice(0, 3);
+  const uncommons = _seededShuffle(byTier.UNCOMMON,  rng).slice(0, 3);
   const rarePool  = _seededShuffle(byTier.RARE, rng);
   const rare1     = rarePool[0];
-  // Slot 6: 25% legendary, 75% rare (different item)
-  const isLeg     = rng() < 0.25;
-  const slot6     = isLeg
+  const rare2     = rarePool[1] ?? rarePool[0];
+  // Slot 9: 30% legendary, 70% rare
+  const isLeg9    = rng() < 0.30;
+  const slot9     = isLeg9
     ? _seededShuffle(byTier.LEGENDARY, rng)[0]
-    : (rarePool[1] ?? rarePool[0]);
+    : (rarePool[2] ?? rarePool[1] ?? rarePool[0]);
+  // Slot 10: always legendary
+  const slot10    = _seededShuffle(byTier.LEGENDARY, rng)[0];
 
-  const slots = [...commons, ...uncommons, rare1, slot6];
+  const slots = [...commons, ...uncommons, rare1, rare2, slot9, slot10];
   writeData(shopstatePath, { date: today, slots });
   return slots;
 }
@@ -399,19 +402,21 @@ function buildShopBoardText() {
     hour: '2-digit', minute: '2-digit',
   });
   const lines = [
-    `🏪 **THE MILK MARKET — DAILY DEALS** 🏪`,
-    `*the dairy economy does not sleep. 🥛*`,
+    `🥛 **THE MILK MARKET** 🥛`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `ten fresh deals. hand-churned daily by the dairy gods.`,
+    `spend your milk bucks or watch them curdle. your call. 🧈`,
     ``,
   ];
   for (const id of slots) {
     const item = ITEMS[id];
     if (!item) continue;
-    lines.push(`${TIER_EMOJI[item.tier]} **${item.tier}**  ·  ${item.emoji} ${item.name}  —  **${item.price.toLocaleString()} 🥛**`);
-    lines.push(`> *${item.description}*`);
+    lines.push(`${TIER_EMOJI[item.tier]} **${item.name}** — **${item.price.toLocaleString()} 🥛**`);
+    lines.push(`> ${item.description}`);
+    lines.push(``);
   }
-  lines.push(``);
-  lines.push(`refreshes at midnight EST · use \`/shop\` to browse · \`/inv\` for your stash 🥛`);
-  lines.push(`*updated: ${now} EST*`);
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`🛒 \`/shop\` to buy  ·  🎒 \`/inv\` for your stash  ·  resets midnight EST`);
   return lines.join('\n');
 }
 
