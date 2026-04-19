@@ -10,8 +10,8 @@ const prestige = require('../prestige');
 
 const MIN_BET = 10;
 const ROWS = 12;
-const MULTIPLIERS = [10, 5, 3, 1.5, 0.08, 0.05, 0.03, 0.05, 0.08, 1.5, 3, 5, 10];
-const MUL_LABELS  = ['10x','5x','3x','1.5x','0.08x','0.05x','0.03x','0.05x','0.08x','1.5x','3x','5x','10x'];
+const MULTIPLIERS = [10, 5, 3, 1.5, 0.8, 0.5, 0.3, 0.5, 0.8, 1.5, 3, 5, 10];
+const MUL_LABELS  = ['10x','5x','3x','1.5x','0.8x','0.5x','0.3x','0.5x','0.8x','1.5x','3x','5x','10x'];
 const XP_WIN = 30;
 const XP_LOSS = 5;
 
