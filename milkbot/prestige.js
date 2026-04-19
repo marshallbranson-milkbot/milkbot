@@ -15,7 +15,8 @@ function getPrestige(userId) {
 
 // prestige 0 → 1x, prestige 1 → 2x, prestige 2 → 3x, etc.
 function getMultiplier(userId) {
-  return getPrestige(userId) + 1;
+  const m = getPrestige(userId) + 1;
+  return Number.isFinite(m) && m >= 1 ? Math.min(m, 6) : 1;
 }
 
 // Resets XP, increments prestige, resets stored level so DMs fire again.

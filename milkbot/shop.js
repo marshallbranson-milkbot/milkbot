@@ -94,7 +94,11 @@ function readData(p) {
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
   catch { return {}; }
 }
-function writeData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
+function writeData(p, d) {
+  const tmp = p + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(d, null, 2));
+  fs.renameSync(tmp, p);
+}
 
 // ── Buff helpers ──────────────────────────────────────────────────────────────
 function _readBuffs(userId) {

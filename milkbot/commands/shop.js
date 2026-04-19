@@ -10,7 +10,11 @@ function readBalances() {
   try { return JSON.parse(fs.readFileSync(balancesPath, 'utf8')); }
   catch { return {}; }
 }
-function saveBalances(d) { fs.writeFileSync(balancesPath, JSON.stringify(d, null, 2)); }
+function saveBalances(d) {
+  const tmp = balancesPath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(d, null, 2));
+  fs.renameSync(tmp, balancesPath);
+}
 
 function btn(id, label, style, disabled = false) {
   return new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style).setDisabled(disabled);
@@ -181,7 +185,9 @@ module.exports = {
     if (id.startsWith('shop_buy_')) {
       // shop_buy_{itemId}_{qty}_{userId}
       const qty = parseInt(parts[parts.length - 2], 10);
+      if (![1, 5, 10].includes(qty)) return interaction.update({ content: `invalid quantity 🥛`, components: [] });
       const itemId = parts.slice(2, -2).join('_');
+      if (!shop.ITEMS[itemId]) return interaction.update({ content: `unknown item 🥛`, components: [] });
       return handleBuy(interaction, itemId, qty, userId);
     }
   },

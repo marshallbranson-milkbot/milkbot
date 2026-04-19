@@ -72,6 +72,7 @@ module.exports = {
     const reels = spin();
     const [a, b, c] = reels;
 
+    activeSpins.add(userId);
     balances[userId] = balance - COST;
     jackpot.addToJackpot(10);
 
@@ -131,7 +132,6 @@ module.exports = {
     const isJackpot = a === b && b === c && a === '👑';
 
     // Send spinning message then edit with result after delay
-    activeSpins.add(userId);
     const spinMsg = await message.reply(`🎰 | ⬛ ⬛ ⬛ | 🎰\n*Spinning...*`);
 
     setTimeout(() => {
