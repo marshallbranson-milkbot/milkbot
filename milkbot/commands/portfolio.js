@@ -167,12 +167,12 @@ module.exports = {
       const username = interaction.user.username;
       const payload = this._buildPortfolioPayload(userId, username);
       if (payload.empty) {
-        return interaction.reply({ content: `You don't own any stocks. Use \`/b\` to invest. 🥛`, ephemeral: true });
+        return interaction.reply({ content: `You don't own any stocks. Use \`/b\` to invest. 🥛`, flags: 64 });
       }
-      await interaction.reply({ content: payload.content, components: payload.components, ephemeral: true });
+      await interaction.reply({ content: payload.content, components: payload.components, flags: 64 });
     } catch (e) {
       console.error('[port] executeSlash error:', e);
-      interaction.reply({ content: `something went wrong loading your portfolio. 🥛`, ephemeral: true }).catch(() => {});
+      interaction.reply({ content: `something went wrong loading your portfolio. 🥛`, flags: 64 }).catch(() => {});
     }
   },
 
@@ -196,11 +196,11 @@ module.exports = {
     const ownerId = parts[2];
 
     if (interaction.user.id !== ownerId) {
-      return interaction.reply({ content: `that's not your portfolio chief 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your portfolio chief 🥛`, flags: 64 });
     }
 
     const ticker = interaction.values[0];
-    if (!VALID_TICKERS.has(ticker)) return interaction.reply({ content: `invalid stock 🥛`, ephemeral: true });
+    if (!VALID_TICKERS.has(ticker)) return interaction.reply({ content: `invalid stock 🥛`, flags: 64 });
     const userId = ownerId;
     const prices = getPrices();
     const price = prices[ticker]?.price || 0;
@@ -235,7 +235,7 @@ module.exports = {
     await interaction.reply({
       content: `**${ticker}** — Price: **${price} 🥛** | Balance: **${balance} milk bucks**`,
       components: [buttons],
-      ephemeral: true,
+      flags: 64,
     });
   },
 
@@ -248,7 +248,7 @@ module.exports = {
 
     if (!VALID_TICKERS.has(ticker)) return interaction.deferUpdate();
     if (interaction.user.id !== ownerId) {
-      return interaction.reply({ content: `that's not your portfolio chief 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your portfolio chief 🥛`, flags: 64 });
     }
 
     await interaction.deferUpdate();
@@ -263,31 +263,31 @@ module.exports = {
       const shares = price > 0 ? Math.floor(balance / price) : 0;
 
       if (shares === 0) {
-        return interaction.followUp({ content: `Not enough milk bucks to buy any **${ticker}** at **${price} 🥛**. 🥛`, ephemeral: true });
+        return interaction.followUp({ content: `Not enough milk bucks to buy any **${ticker}** at **${price} 🥛**. 🥛`, flags: 64 });
       }
 
       const result = executeBuy(userId, username, ticker, shares, channel);
-      interaction.followUp({ content: result.msg, ephemeral: true });
+      interaction.followUp({ content: result.msg, flags: 64 });
 
     } else if (action === 'sellall') {
       const portfolios = getPortfolios();
       const holding = portfolios[userId]?.[ticker];
 
       if (!holding || holding.shares <= 0) {
-        return interaction.followUp({ content: `You don't own any **${ticker}**. 🥛`, ephemeral: true });
+        return interaction.followUp({ content: `You don't own any **${ticker}**. 🥛`, flags: 64 });
       }
 
       const result = executeSell(userId, username, ticker, holding.shares, channel);
-      interaction.followUp({ content: result.msg, ephemeral: true });
+      interaction.followUp({ content: result.msg, flags: 64 });
 
     } else if (action === 'buyamt' || action === 'sellamt') {
-      await interaction.followUp({ content: `💬 How many shares? Reply with a number in the next 30 seconds.`, ephemeral: true });
+      await interaction.followUp({ content: `💬 How many shares? Reply with a number in the next 30 seconds.`, flags: 64 });
 
       const filter = m => m.author.id === userId;
       const collected = await channel.awaitMessages({ filter, max: 1, time: 30000, errors: ['time'] }).catch(() => null);
 
       if (!collected || collected.size === 0) {
-        return interaction.followUp({ content: `timed out. no trade made. 🥛`, ephemeral: true });
+        return interaction.followUp({ content: `timed out. no trade made. 🥛`, flags: 64 });
       }
 
       const reply = collected.first();
@@ -295,13 +295,13 @@ module.exports = {
       reply.delete().catch(() => {});
 
       if (!shares || shares <= 0 || shares > 1_000_000) {
-        return interaction.followUp({ content: `that's not a valid number. no trade made. 🥛`, ephemeral: true });
+        return interaction.followUp({ content: `that's not a valid number. no trade made. 🥛`, flags: 64 });
       }
 
       const result = action === 'buyamt'
         ? executeBuy(userId, username, ticker, shares, channel)
         : executeSell(userId, username, ticker, shares, channel);
-      interaction.followUp({ content: result.msg, ephemeral: true });
+      interaction.followUp({ content: result.msg, flags: 64 });
     }
   },
 };

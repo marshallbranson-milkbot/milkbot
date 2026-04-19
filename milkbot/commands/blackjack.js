@@ -479,12 +479,12 @@ async function handleInteraction(interaction) {
   const ownerId = parts[2];
 
   if (interaction.user.id !== ownerId) {
-    return interaction.reply({ content: `that's not your game chief 🥛`, ephemeral: true });
+    return interaction.reply({ content: `that's not your game chief 🥛`, flags: 64 });
   }
 
   const game = activeGames.get(ownerId);
   if (!game) {
-    return interaction.reply({ content: `that game is already over 🥛`, ephemeral: true });
+    return interaction.reply({ content: `that game is already over 🥛`, flags: 64 });
   }
 
   if (activeInteractions.has(ownerId)) return;

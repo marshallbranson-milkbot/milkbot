@@ -38,7 +38,7 @@ async function postOptIn(client) {
 }
 
 async function handleInteraction(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const guild = interaction.guild;
   const role  = guild?.roles.cache.find(r => r.name === ROLE_NAME);

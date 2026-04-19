@@ -57,7 +57,7 @@ function buildBrowsePayload(userId) {
   return {
     content: `🛒 **TODAY'S MILK MARKET** — ten items. hand-churned. pick something or keep being broke.\n*prices refresh at midnight EST*`,
     components: [...itemRows, closeRow],
-    ephemeral: true,
+    flags: 64,
   };
 }
 
@@ -94,7 +94,7 @@ function buildItemPayload(userId, itemId) {
     btn(`shop_back_${userId}`,             '⬅️ Back',  ButtonStyle.Secondary),
   );
 
-  return { content, components: [buyRow], ephemeral: true };
+  return { content, components: [buyRow], flags: 64 };
 }
 
 // ── Buy handler ────────────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ module.exports = {
     // All remaining buttons carry userId at the end
     const userId = parts[parts.length - 1];
     if (interaction.user.id !== userId) {
-      return interaction.reply({ content: `that's not your shop menu 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your shop menu 🥛`, flags: 64 });
     }
 
     if (id.startsWith('shop_dismiss_')) {

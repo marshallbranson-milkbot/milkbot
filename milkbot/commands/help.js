@@ -8,7 +8,7 @@ module.exports = {
   // Slash version: reply ephemerally so only the requester sees the help menu
   async executeSlash(interaction) {
     const payload = buildHelpEmbed(interaction.user.id);
-    await interaction.reply({ ...payload, ephemeral: true });
+    await interaction.reply({ ...payload, flags: 64 });
     refreshHelp(interaction.client);
   },
 
@@ -29,7 +29,7 @@ module.exports = {
 
     // Public menu (from milkbot-commands channel) is open to everyone
     if (ownerId !== 'public' && interaction.user.id !== ownerId) {
-      return interaction.reply({ content: `that's not your menu chief 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your menu chief 🥛`, flags: 64 });
     }
 
     const category = interaction.values[0];

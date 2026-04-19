@@ -95,13 +95,13 @@ function buildInvPayload(userId) {
     components.push(...rows);
   }
 
-  return { content: lines.join('\n'), components, ephemeral: true };
+  return { content: lines.join('\n'), components, flags: 64 };
 }
 
 // ── Use item confirm screen ────────────────────────────────────────────────────
 function buildUseConfirmPayload(userId, itemId) {
   const item = shop.ITEMS[itemId];
-  if (!item) return { content: 'unknown item 🥛', components: [], ephemeral: true };
+  if (!item) return { content: 'unknown item 🥛', components: [], flags: 64 };
 
   const content = [
     `${item.emoji} **${item.name}**`,
@@ -118,7 +118,7 @@ function buildUseConfirmPayload(userId, itemId) {
     btn(`inv_back_${userId}`,               '⬅️ Never Mind', ButtonStyle.Secondary),
   );
 
-  return { content, components: [row], ephemeral: true };
+  return { content, components: [row], flags: 64 };
 }
 
 // ── Buff management screen ─────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ function buildManageBuffsPayload(userId) {
     return {
       content: `no active buffs to remove. 🥛`,
       components: [new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
-      ephemeral: true,
+      flags: 64,
     };
   }
 
@@ -162,7 +162,7 @@ function buildManageBuffsPayload(userId) {
   if (currentRow.components.length > 0) rows.push(currentRow);
   rows.push(new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary)));
 
-  return { content: lines.join('\n'), components: rows, ephemeral: true };
+  return { content: lines.join('\n'), components: rows, flags: 64 };
 }
 
 // ── Buff remove confirm screen ─────────────────────────────────────────────────
@@ -173,7 +173,7 @@ function buildRemoveBuffConfirmPayload(userId, index) {
     return {
       content: `that buff already expired. 🥛`,
       components: [new ActionRowBuilder().addComponents(btn(`inv_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
-      ephemeral: true,
+      flags: 64,
     };
   }
   const item = shop.ITEMS[b.itemId];
@@ -193,7 +193,7 @@ function buildRemoveBuffConfirmPayload(userId, index) {
     btn(`inv_managebuffs_${userId}`,             '⬅️ Back',      ButtonStyle.Secondary),
   );
 
-  return { content, components: [row], ephemeral: true };
+  return { content, components: [row], flags: 64 };
 }
 
 // ── Boss nuke handler ─────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ module.exports = {
     const userId = parts[parts.length - 1];
 
     if (interaction.user.id !== userId) {
-      return interaction.reply({ content: `that's not your inventory 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your inventory 🥛`, flags: 64 });
     }
 
     if (id.startsWith('inv_dismiss_')) {

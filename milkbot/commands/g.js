@@ -191,7 +191,7 @@ async function handleGame(interaction, game, userId) {
       const amt = require('../jackpot').getJackpot();
       const content = `🎰 **SERVER JACKPOT: ${amt.toLocaleString()} milk bucks** — win any game for a 0.1% chance to claim it all. 🥛`;
       if (mode === 'ephemeral') {
-        interaction.followUp({ content, ephemeral: true }).catch(() => {});
+        interaction.followUp({ content, flags: 64 }).catch(() => {});
       } else {
         autoDelete(interaction.channel.send(content));
       }
@@ -199,7 +199,7 @@ async function handleGame(interaction, game, userId) {
     bossstatus: async () => {
       const s = require('../state');
       if (!s.activeRaidBoss) {
-        interaction.followUp({ content: `🐄 No raid boss tonight. Check back at midnight EST. 🥛`, ephemeral: true }).catch(() => {});
+        interaction.followUp({ content: `🐄 No raid boss tonight. Check back at midnight EST. 🥛`, flags: 64 }).catch(() => {});
       } else {
         // Bump the full boss embed (with attack button) to the bottom of this channel
         await require('./raidboss').bumpBoss(interaction.client, interaction.channel).catch(console.error);
@@ -299,7 +299,7 @@ module.exports = {
   // Slash command handler — replies ephemerally so only the requester sees the menu
   async executeSlash(interaction) {
     const userId = interaction.user.id;
-    await interaction.reply({ ...buildMain(userId), ephemeral: true });
+    await interaction.reply({ ...buildMain(userId), flags: 64 });
   },
 
   async execute(message) {
@@ -315,7 +315,7 @@ module.exports = {
     const userId = parts[parts.length - 1];
 
     if (interaction.user.id !== userId) {
-      return interaction.reply({ content: `that's not your menu 🥛`, ephemeral: true });
+      return interaction.reply({ content: `that's not your menu 🥛`, flags: 64 });
     }
 
     if (action === 'back') {
@@ -339,7 +339,7 @@ module.exports = {
       if (!VALID_GAMES.has(game)) return interaction.deferUpdate();
       await handleGame(interaction, game, userId).catch(err => {
         console.error(`[g] game error (${game}):`, err);
-        interaction.followUp({ content: `something went wrong. try again. 🥛`, ephemeral: true }).catch(() => {});
+        interaction.followUp({ content: `something went wrong. try again. 🥛`, flags: 64 }).catch(() => {});
       });
     }
   },

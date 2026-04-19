@@ -139,11 +139,11 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {
-        interaction.reply({ content: '📈 stock commands go in **#milkbot-stocks** 🥛', ephemeral: true }).catch(err => console.warn('[index] reply failed:', err.message));
+        interaction.reply({ content: '📈 stock commands go in **#milkbot-stocks** 🥛', flags: 64 }).catch(err => console.warn('[index] reply failed:', err.message));
         return;
       }
       if (!STOCKS_COMMANDS.has(cmdName) && !BOTH_CHANNELS.has(cmdName) && channelName !== 'milkbot-games') {
-        interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', ephemeral: true }).catch(err => console.warn('[index] reply failed:', err.message));
+        interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', flags: 64 }).catch(err => console.warn('[index] reply failed:', err.message));
         return;
       }
 
@@ -172,7 +172,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     }
   });
 
-  client.once('ready', async () => {
+  client.once('clientReady', async () => {
     console.log(`MilkBot is online as ${client.user.tag}`);
 
     // ── Register slash commands (guild-scoped for instant updates) ────────────

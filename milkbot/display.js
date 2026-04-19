@@ -138,10 +138,10 @@ function buildHelpEmbed(userId = 'public') {
 
 function buildCategoryReply(category) {
   const cat = HELP_CATEGORIES[category];
-  if (!cat) return { content: 'unknown category 🥛', ephemeral: true };
+  if (!cat) return { content: 'unknown category 🥛', flags: 64 };
   return {
     content: `**${cat.label}**\n\n${cat.commands.join('\n')}`,
-    ephemeral: true,
+    flags: 64,
   };
 }
 

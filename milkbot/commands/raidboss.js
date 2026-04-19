@@ -861,11 +861,11 @@ async function handleInteraction(interaction) {
   const userId = interaction.user.id;
 
   if (attackingUsers.has(userId)) {
-    return interaction.reply({ content: `⏳ Your attack is still processing. 🥛`, ephemeral: true });
+    return interaction.reply({ content: `⏳ Your attack is still processing. 🥛`, flags: 64 });
   }
   attackingUsers.add(userId);
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const username = interaction.user.username;
