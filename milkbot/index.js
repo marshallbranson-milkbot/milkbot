@@ -9,8 +9,8 @@ const { scheduleNews, initMooNewsMessage } = require('./moosnews');
 const { postUpdates } = require('./updates');
 
 const GUILD_ID        = '562076997979865118';
-const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'ba', 'buyall']);
-const BOTH_CHANNELS   = new Set(['h', 'bal', 'port', 'portfolio']);
+const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
+const BOTH_CHANNELS   = new Set(['h', 'bal']);
 // Commands allowed as text in milkbot-games (everything else → use !g)
 const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
@@ -136,12 +136,6 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
-      // /port — ephemeral direct handler (bypass slash bridge to avoid timeout)
-      if (cmdName === 'port' && portfolioCommand) {
-        portfolioCommand.executeSlash(interaction).catch(console.error);
-        return;
-      }
-
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {
@@ -150,6 +144,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       }
       if (!STOCKS_COMMANDS.has(cmdName) && !BOTH_CHANNELS.has(cmdName) && channelName !== 'milkbot-games') {
         interaction.reply({ content: '🎮 game commands go in **#milkbot-games** 🥛', ephemeral: true }).catch(err => console.warn('[index] reply failed:', err.message));
+        return;
+      }
+
+      // /port — ephemeral direct handler (must run after channel check)
+      if (cmdName === 'port' && portfolioCommand) {
+        portfolioCommand.executeSlash(interaction).catch(console.error);
         return;
       }
 
