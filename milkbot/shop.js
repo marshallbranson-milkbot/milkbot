@@ -1,10 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const buffsPath     = path.join(__dirname, 'data/buffs.json');
-const inventoryPath = path.join(__dirname, 'data/inventory.json');
-const shopstatePath = path.join(__dirname, 'data/shopstate.json');
-const balancesPath  = path.join(__dirname, 'data/balances.json');
+const buffsPath          = path.join(__dirname, 'data/buffs.json');
+const inventoryPath      = path.join(__dirname, 'data/inventory.json');
+const shopstatePath      = path.join(__dirname, 'data/shopstate.json');
+const balancesPath       = path.join(__dirname, 'data/balances.json');
+const dailyPurchasesPath = path.join(__dirname, 'data/dailypurchases.json');
+
+const DAILY_CAPS = { COMMON: 10, UNCOMMON: 5, RARE: 3, LEGENDARY: 1 };
 
 // ── Item Definitions ──────────────────────────────────────────────────────────
 // effect.type values:
@@ -433,9 +436,35 @@ function getTodaySlots() {
   return slots;
 }
 
+// ── Daily purchase cap helpers ────────────────────────────────────────────────
+function _readDailyPurchases() {
+  return readData(dailyPurchasesPath);
+}
+
+function getDailyBought(userId, itemId) {
+  return (_readDailyPurchases()[userId] || {})[itemId] || 0;
+}
+
+function getDailyCap(itemId) {
+  const item = ITEMS[itemId];
+  return item ? (DAILY_CAPS[item.tier] ?? 1) : 1;
+}
+
+function getDailyRemaining(userId, itemId) {
+  return Math.max(0, getDailyCap(itemId) - getDailyBought(userId, itemId));
+}
+
+function recordDailyPurchase(userId, itemId, qty) {
+  const data = _readDailyPurchases();
+  if (!data[userId]) data[userId] = {};
+  data[userId][itemId] = (data[userId][itemId] || 0) + qty;
+  writeData(dailyPurchasesPath, data);
+}
+
 // Regenerate slots for a new day (called at midnight reset).
 function regenerateSlots() {
   if (fs.existsSync(shopstatePath)) fs.unlinkSync(shopstatePath);
+  if (fs.existsSync(dailyPurchasesPath)) fs.unlinkSync(dailyPurchasesPath);
   return getTodaySlots();
 }
 
@@ -476,4 +505,5 @@ module.exports = {
   applyRaidBonuses,
   getBuffSummary, getInventory,
   getTodaySlots, regenerateSlots, buildShopBoardText,
+  getDailyBought, getDailyCap, getDailyRemaining, recordDailyPurchase,
 };

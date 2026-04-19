@@ -66,17 +66,25 @@ function buildItemPayload(userId, itemId) {
   const item = shop.ITEMS[itemId];
   const balances = readBalances();
   const balance = balances[userId] || 0;
-  const canAfford1  = balance >= item.price;
-  const canAfford5  = balance >= item.price * 5;
-  const canAfford10 = balance >= item.price * 10;
+  const remaining = shop.getDailyRemaining(userId, itemId);
+  const cap = shop.getDailyCap(itemId);
+
+  const canAfford1  = balance >= item.price       && remaining >= 1;
+  const canAfford5  = balance >= item.price * 5   && remaining >= 5;
+  const canAfford10 = balance >= item.price * 10  && remaining >= 10;
 
   const tierLabel = `${TIER_COLOR[item.tier]} ${item.tier}`;
+  const capLine = remaining === 0
+    ? `**Daily limit reached** — resets at midnight EST`
+    : `**Today's limit:** ${remaining}/${cap} remaining`;
+
   const content = [
     `${item.emoji} **${item.name}**  ·  ${tierLabel}`,
     `> *"${item.flavorText}"*`,
     ``,
     `**Effect:** ${item.description}`,
     `**Price:** ${item.price.toLocaleString()} 🥛  ·  **Your balance:** ${balance.toLocaleString()} 🥛`,
+    capLine,
   ].join('\n');
 
   const buyRow = new ActionRowBuilder().addComponents(
@@ -94,7 +102,17 @@ async function handleBuy(interaction, itemId, qty, userId) {
   const item = shop.ITEMS[itemId];
   if (!item) return interaction.update({ content: `unknown item. 🥛`, components: [] });
 
-  const cost = item.price * qty;
+  // Daily cap check
+  const remaining = shop.getDailyRemaining(userId, itemId);
+  if (remaining <= 0) {
+    return interaction.update({
+      content: `you've hit the daily limit for **${item.name}**. come back tomorrow. 🥛`,
+      components: [new ActionRowBuilder().addComponents(btn(`shop_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
+    });
+  }
+  const actualQty = Math.min(qty, remaining);
+
+  const cost = item.price * actualQty;
   const balances = readBalances();
   const balance = balances[userId] || 0;
 
@@ -108,10 +126,11 @@ async function handleBuy(interaction, itemId, qty, userId) {
   // Deduct balance
   balances[userId] = balance - cost;
 
-  let resultLines = [`✅ bought **${qty}x ${item.emoji} ${item.name}** for **${cost.toLocaleString()} 🥛**`];
+  const cappedNote = actualQty < qty ? ` *(capped at daily limit — wanted ${qty}, got ${actualQty})*` : '';
+  let resultLines = [`✅ bought **${actualQty}x ${item.emoji} ${item.name}** for **${cost.toLocaleString()} 🥛**${cappedNote}`];
   resultLines.push(`💰 balance: **${balances[userId].toLocaleString()} 🥛**`);
 
-  for (let i = 0; i < qty; i++) {
+  for (let i = 0; i < actualQty; i++) {
     const result = shop.applyItemPurchase(userId, itemId);
     if (result.instant) {
       balances[userId] = Math.min(10_000_000, (balances[userId] || 0) + result.instant);
@@ -122,6 +141,7 @@ async function handleBuy(interaction, itemId, qty, userId) {
   }
 
   saveBalances(balances);
+  shop.recordDailyPurchase(userId, itemId, actualQty);
 
   const backRow = new ActionRowBuilder().addComponents(
     btn(`shop_back_${userId}`, '⬅️ Back to Shop', ButtonStyle.Secondary),
