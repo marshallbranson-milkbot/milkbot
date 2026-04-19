@@ -261,7 +261,7 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v28-milk-market',
+    id: 'v28b-milk-market',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `🥛 **MILKBOT PATCH — THE MILK MARKET UPDATE** 🥛`,
