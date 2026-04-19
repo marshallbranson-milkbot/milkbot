@@ -281,7 +281,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     if (!fs.existsSync(shopLaunchPath)) {
       fs.writeFileSync(shopLaunchPath, JSON.stringify({ done: true }));
       const _guild = client.guilds.cache.get(GUILD_ID);
-      const _gCh = _guild?.channels.cache.find(c => c.name === 'milkbot-games');
+      const _gCh = _guild?.channels.cache.find(c => c.name === 'updates');
       if (_gCh) {
         await _gCh.send(
           `🏪 **THE MILK MARKET IS NOW OPEN** 🏪\n\n` +
