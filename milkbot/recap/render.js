@@ -65,8 +65,8 @@ function buildAss(captions, { introText, outroText, videoDuration }) {
     '',
     '[V4+ Styles]',
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    // Caption: huge bold white, thick black stroke + shadow. Centered mid-screen.
-    'Style: Caption,DejaVu Sans,140,&H00FFFFFF,&H000000FF,&H00000000,&HAA000000,1,0,0,0,100,100,3,0,1,12,6,5,120,120,0,1',
+    // Caption: huge bold white Anton, thick black stroke + shadow. Centered mid-screen.
+    'Style: Caption,Anton,150,&H00FFFFFF,&H000000FF,&H00000000,&HAA000000,1,0,0,0,100,100,3,0,1,12,6,5,120,120,0,1',
     // Banner: bold black text in Anton (condensed TikTok-style), sits on top of a white drawbox.
     'Style: Banner,Anton,82,&H00000000,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,3,0,1,0,0,8,80,80,200,1',
     '',
