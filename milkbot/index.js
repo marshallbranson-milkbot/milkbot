@@ -340,6 +340,18 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       console.log('[restore] grinder_restore_v1 applied — 50k balance set');
     }
 
+    // One-time grinder restoration to 10M after balance disappeared during recap redeploy
+    const grinderRestoreV2Path = path.join(__dirname, 'data/grinder_restore_v2_done.json');
+    if (!fs.existsSync(grinderRestoreV2Path)) {
+      const _balPath = path.join(__dirname, 'data/balances.json');
+      let _bal = {};
+      try { if (fs.existsSync(_balPath)) _bal = JSON.parse(fs.readFileSync(_balPath, 'utf8')); } catch (e) { console.error('[restore] corrupted balances:', e.message); }
+      _bal['879171470700445747'] = 10_000_000;
+      fs.writeFileSync(_balPath, JSON.stringify(_bal, null, 2));
+      fs.writeFileSync(grinderRestoreV2Path, JSON.stringify({ done: true }));
+      console.log('[restore] grinder_restore_v2 applied — 10M balance set');
+    }
+
     // One-time: reset bigtrades leaderboard + set Grinder to level 40
     const lbResetV1Path = path.join(__dirname, 'data/lb_reset_v1_done.json');
     if (!fs.existsSync(lbResetV1Path)) {
