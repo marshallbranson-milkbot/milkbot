@@ -29,8 +29,8 @@ function tryJackpot(userId, username, channel) {
     catch (e) { console.error('[jackpot] corrupted balances:', e.message); }
   }
   balances[userId] = Math.min((balances[userId] || 0) + amount, 10_000_000);
-  fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
   fs.writeFileSync(jackpotPath, JSON.stringify({ amount: 0 }, null, 2));
+  fs.writeFileSync(balancesPath, JSON.stringify(balances, null, 2));
 
   channel.send(
     `🚨🥛🚨 **J A C K P O T** 🚨🥛🚨\n\n` +

@@ -29,8 +29,12 @@ module.exports = {
     }
 
     const BAL_CAP = 10_000_000;
-    balances[message.author.id] = senderBal - amount;
-    balances[target.id] = Math.min((balances[target.id] || 0) + amount, BAL_CAP);
+    const recipientBal = balances[target.id] || 0;
+    const headroom = BAL_CAP - recipientBal;
+    if (headroom <= 0) return message.reply(`**${target.username}** is already at the balance cap. 🥛`);
+    const actualAmount = Math.min(amount, headroom);
+    balances[message.author.id] = senderBal - actualAmount;
+    balances[target.id] = recipientBal + actualAmount;
     saveData(balancesPath, balances);
 
     const targetMember = message.guild?.members.cache.get(target.id);
