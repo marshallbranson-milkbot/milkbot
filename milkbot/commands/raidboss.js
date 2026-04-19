@@ -28,8 +28,8 @@ function getLevel(totalXp, userId) {
 function rollDamage(userId) {
   const xpData = readXp();
   const level = getLevel(xpData[userId] || 0, userId);
-  const base = 30 + level * 4; // level 1 → 34, level 50 → 230, level 100 → 430
-  return Math.max(1, Math.floor(base * (0.8 + Math.random() * 0.4)));
+  const base = 30 + level * 4; // level 1 → 34, level 50 → 230
+  return Math.max(1, Math.min(500, Math.floor(base * (0.8 + Math.random() * 0.4))));
 }
 
 const BOSSES = [

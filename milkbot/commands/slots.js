@@ -145,7 +145,7 @@ module.exports = {
           `🎰 | ${a} ${b} ${c} | 🎰\n` +
           (lordTag && winnings > 0 ? `👑 **MilkLord** spins...\n` : '') +
           `${resultLine}\n` +
-          `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''})*`
+          `*(net: ${netStr} milk bucks${multiplier > 1 ? ' — 🔥 1.5x hot streak' : ''}${balances[userId] >= 10_000_000 ? ' — 🏦 balance cap reached' : ''})*`
         );
       }
       if (hotStreak >= 3) ws.announceStreak(message.channel, message.author.username, hotStreak);

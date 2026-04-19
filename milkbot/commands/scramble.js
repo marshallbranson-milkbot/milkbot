@@ -66,14 +66,15 @@ const prestige = require('../prestige');
     'melancholy', 'philosophical', 'pandemonium', 'serendipity', 'turbulence',
   ];
 
-  function scrambleWord(word) {
+  function scrambleWord(word, depth = 0) {
+    if (depth > 10) return word.split('').reverse().join(''); // fallback after 10 tries
     const arr = word.split('');
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     const scrambled = arr.join('');
-    return scrambled.toLowerCase() === word.toLowerCase() ? scrambleWord(word) : scrambled;
+    return scrambled.toLowerCase() === word.toLowerCase() ? scrambleWord(word, depth + 1) : scrambled;
   }
 
   let activeScramble = null;

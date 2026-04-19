@@ -111,7 +111,7 @@ function _readBuffs(userId) {
 
 function _saveBuffs(userId, buffs) {
   const all = readData(buffsPath);
-  all[userId] = buffs;
+  all[userId] = _activeOnly(buffs); // prune expired on every save
   writeData(buffsPath, all);
 }
 

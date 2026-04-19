@@ -69,7 +69,7 @@ const fs = require('fs');
       message.reply(dailyMsg).then(reply => {
         setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
       });
-      const estHour = parseInt(new Date(now).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));
+      const estHour = parseInt(new Date(now).toLocaleString('en-US', { timeZone: 'America/New_York', hour: '2-digit', hour12: false }), 10) % 24;
       const isEarlyBird = estHour >= 6 && estHour < 9;
       const isNightOwl = estHour >= 0 && estHour < 3;
       ach.check(userId, message.author.username, 'daily_streak', { balance: balances[userId], dailyStreak: streak, isEarlyBird, isNightOwl }, message.channel);
