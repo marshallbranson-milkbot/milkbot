@@ -174,11 +174,24 @@ function pickTopEvent(events) {
   return [...events].sort((a, b) => b.dramaScore - a.dramaScore)[0];
 }
 
+function sanitizeUsername(raw) {
+  if (!raw) return null;
+  // Strip control characters (newlines, tabs, zero-width) — prevents Claude-prompt injection.
+  // Strip backticks/curly-braces — could confuse JSON parsing or ASS subtitle syntax downstream.
+  // Cap length at 32 chars.
+  return String(raw)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/[`{}]/g, '')
+    .slice(0, 32)
+    .trim() || null;
+}
+
 function resolveUsername(client, userId) {
   if (!client || !userId) return null;
   try {
     const user = client.users?.cache?.get(userId);
-    return user ? (user.globalName || user.username) : null;
+    const raw = user ? (user.globalName || user.username) : null;
+    return sanitizeUsername(raw);
   } catch {
     return null;
   }

@@ -46,14 +46,23 @@ function pickBestFile(video) {
   return candidates[0] || null;
 }
 
-function downloadToFile(url, destPath) {
+const MAX_REDIRECTS = 3;
+
+function downloadToFile(url, destPath, redirectsLeft = MAX_REDIRECTS) {
   return new Promise((resolve, reject) => {
+    // Only allow HTTPS — reject downgrade attacks via redirect to HTTP or other schemes.
+    if (!/^https:\/\//i.test(url)) {
+      return reject(new Error(`Refusing non-HTTPS URL: ${url.slice(0, 60)}`));
+    }
     const file = fs.createWriteStream(destPath);
     const req = https.get(url, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         file.close();
         fs.unlink(destPath, () => {});
-        return resolve(downloadToFile(res.headers.location, destPath));
+        if (redirectsLeft <= 0) {
+          return reject(new Error('Too many redirects'));
+        }
+        return resolve(downloadToFile(res.headers.location, destPath, redirectsLeft - 1));
       }
       if (res.statusCode !== 200) {
         file.close();
