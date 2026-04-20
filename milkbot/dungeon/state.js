@@ -40,14 +40,15 @@ function readJson(filePath, fallback) {
 }
 
 // Convert a run to a serializable form. The RNG function is recreated on load from run.seed.
+// Strip anything transient: the RNG closure, timers, discord.js object references, and every
+// underscore-prefixed field (by convention, those are in-memory-only run state).
 function serializeRun(run) {
-  const copy = { ...run };
-  delete copy.rng;            // regenerate from seed on load
-  delete copy.turnTimer;      // timers don't persist
-  delete copy.dirty;
-  delete copy.channel;
-  delete copy.thread;
-  delete copy.message;
+  const copy = {};
+  for (const key of Object.keys(run)) {
+    if (key === 'rng' || key === 'dirty' || key === 'channel' || key === 'thread' || key === 'message') continue;
+    if (key.startsWith('_')) continue;
+    copy[key] = run[key];
+  }
   return copy;
 }
 

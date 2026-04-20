@@ -877,16 +877,7 @@ async function endRun(run, thread, outcome) {
     });
   }
 
-  // Post public run-end embed in #milkbot-games
-  try {
-    const gamesChannel = thread.guild?.channels.cache.find(c => c.name === 'milkbot-games');
-    if (gamesChannel) {
-      const publicEmbed = completed
-        ? display.buildVictoryEmbed(run, { perPlayerBucks, perPlayerXp })
-        : display.buildDefeatEmbed(run);
-      await gamesChannel.send(publicEmbed).catch(() => {});
-    }
-  } catch (e) { console.warn('[dungeon] public post failed:', e.message); }
+  // (Run-end embed stays inside the thread — do NOT cross-post to #milkbot-games.)
 
   // Fire achievements (use thread as channel so announcements land in the thread)
   for (const p of run.party) {
