@@ -332,4 +332,7 @@ module.exports = {
       interaction.followUp({ content: result.msg, flags: 64 });
     }
   },
+  // Exposed for test harness
+  _executeBuy: executeBuy,
+  _executeSell: executeSell,
 };
