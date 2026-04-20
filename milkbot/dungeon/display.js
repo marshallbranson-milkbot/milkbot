@@ -5,6 +5,110 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const { listClasses, getClass } = require('./classes');
 const { getConsumable, getRelic } = require('./loot');
 
+// ─── Visual helpers ─────────────────────────────────────────────────────────
+
+function hpBar(current, max, width = 10) {
+  if (current <= 0) return '░'.repeat(width);
+  const pct = Math.max(0, Math.min(1, current / max));
+  const filled = Math.max(1, Math.round(pct * width));
+  return '█'.repeat(filled) + '░'.repeat(width - filled);
+}
+
+function centerInWidth(s, width) {
+  const len = [...s].length;
+  if (len >= width) return s;
+  const pad = width - len;
+  const left = Math.floor(pad / 2);
+  return ' '.repeat(left) + s + ' '.repeat(pad - left);
+}
+
+// Build a visual scene showing the party on top and enemies below, separated by an attack-line.
+function buildCombatScene(run, titleLine) {
+  const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
+  const enemyEmojis = (run.currentRoom?.enemies || []).filter(e => e.hp > 0).map(e => e.emoji);
+  const SCENE_WIDTH = 32;
+
+  const lines = [];
+  lines.push('╔══════════════════════════════╗');
+  lines.push('║' + centerInWidth(titleLine, 30) + '║');
+  lines.push('╚══════════════════════════════╝');
+  lines.push('');
+  lines.push(centerInWidth(partyEmojis.join('  '), SCENE_WIDTH));
+  lines.push('');
+  lines.push(centerInWidth('⚡ ⚡ ⚡', SCENE_WIDTH));
+  lines.push('');
+  lines.push(centerInWidth(enemyEmojis.join('  ') || '(empty)', SCENE_WIDTH));
+  return '```\n' + lines.join('\n') + '\n```';
+}
+
+function buildBossScene(run, titleLine, subtitleLine) {
+  const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
+  const boss = (run.currentRoom?.enemies || []).find(e => e.isBoss) || run.currentRoom?.enemies?.[0];
+  const SCENE_WIDTH = 32;
+  const lines = [];
+  lines.push('╔══════════════════════════════╗');
+  lines.push('║' + centerInWidth(titleLine, 30) + '║');
+  if (subtitleLine) lines.push('║' + centerInWidth(subtitleLine, 30) + '║');
+  lines.push('╚══════════════════════════════╝');
+  lines.push('');
+  lines.push(centerInWidth(partyEmojis.join('  '), SCENE_WIDTH));
+  lines.push('');
+  lines.push(centerInWidth('⚡⚡⚡', SCENE_WIDTH));
+  lines.push('');
+  lines.push(centerInWidth(boss ? boss.emoji : '???', SCENE_WIDTH));
+  lines.push(centerInWidth(`[ ${boss?.name || 'BOSS'} ]`, SCENE_WIDTH));
+  return '```\n' + lines.join('\n') + '\n```';
+}
+
+function buildRoomBanner(emoji, label) {
+  const lines = [];
+  lines.push('╔══════════════════════════════╗');
+  lines.push('║' + centerInWidth(`${emoji}  ${label}  ${emoji}`, 30) + '║');
+  lines.push('╚══════════════════════════════╝');
+  return '```\n' + lines.join('\n') + '\n```';
+}
+
+function buildRestScene(run) {
+  const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
+  const SCENE_WIDTH = 32;
+  const arranged = [];
+  // Put fire in the middle
+  const half = Math.floor(partyEmojis.length / 2);
+  const left = partyEmojis.slice(0, half);
+  const right = partyEmojis.slice(half);
+  const row = [...left, '🔥', ...right].join('  ');
+  arranged.push(centerInWidth(row, SCENE_WIDTH));
+  arranged.push(centerInWidth('(resting by the fire)', SCENE_WIDTH));
+  return '```\n' +
+    '╔══════════════════════════════╗\n' +
+    '║' + centerInWidth('🏕️  REST STOP  🏕️', 30) + '║\n' +
+    '╚══════════════════════════════╝\n' +
+    '\n' +
+    arranged.join('\n') + '\n' +
+    '```';
+}
+
+function partyStatusLines(run) {
+  return run.party.map(p => {
+    const cls = getClass(p.classKey);
+    const emoji = p.downed ? '💀' : (cls?.emoji || '❔');
+    if (p.downed) return `${emoji} **${p.username}** — CURDLED`;
+    const bar = hpBar(p.hp, p.maxHp);
+    const statuses = p.statuses && p.statuses.length ? ` *[${p.statuses.map(s => s.key).join(', ')}]*` : '';
+    return `${emoji} **${p.username}** \`${bar}\` ${p.hp}/${p.maxHp}${statuses}`;
+  }).join('\n');
+}
+
+function enemyStatusLines(run) {
+  const enemies = (run.currentRoom?.enemies || []).filter(e => e.hp > 0);
+  if (enemies.length === 0) return '*none standing*';
+  return enemies.map(e => {
+    const bar = hpBar(e.hp, e.maxHp);
+    const statuses = e.statuses && e.statuses.length ? ` *[${e.statuses.map(s => s.key).join(', ')}]*` : '';
+    return `${e.emoji} **${e.name}** \`${bar}\` ${e.hp}/${e.maxHp}${statuses}`;
+  }).join('\n');
+}
+
 const COLOR_LOBBY = 0xF5F5DC;        // beige
 const COLOR_COMBAT = 0xD32F2F;       // red
 const COLOR_VICTORY = 0x4CAF50;      // green
@@ -119,19 +223,30 @@ function buildClassPicker(run, userId) {
 // === Persistent party status embed (top of thread, edited each turn) ===
 
 function buildStatusEmbed(run) {
-  const partyField = run.party.map(p => {
-    const cls = getClass(p.classKey);
-    const hp = p.downed ? '💀 Curdled' : `${p.hp}/${p.maxHp} HP`;
-    const statuses = p.statuses && p.statuses.length ? ` [${p.statuses.map(s => s.key).join(', ')}]` : '';
-    return `${cls?.emoji || '❔'} **${p.username}** — ${cls?.name || '?'} — ${hp}${statuses}`;
-  }).join('\n') || '*no party*';
+  const roomKind = run.currentRoom?.kind || 'exploring';
+  const isBoss = roomKind === 'boss' || (run.currentRoom?.enemies || []).some(e => e.isBoss);
+  const isCombat = roomKind === 'combat' || roomKind === 'elite' || isBoss;
 
-  const enemiesField = run.currentRoom?.enemies?.length
-    ? run.currentRoom.enemies.filter(e => e.hp > 0).map(e => {
-        const statuses = e.statuses && e.statuses.length ? ` [${e.statuses.map(s => s.key).join(', ')}]` : '';
-        return `${e.emoji} **${e.name}** — ${e.hp}/${e.maxHp} HP${statuses}`;
-      }).join('\n') || '*none standing*'
-    : '*exploring...*';
+  const embed = new EmbedBuilder()
+    .setColor(isBoss ? 0x8B0000 : COLOR_COMBAT)
+    .setTitle(`🏰 The Spoiled Vault — Floor ${run.floor}`);
+
+  if (isCombat) {
+    const titleLine = isBoss
+      ? `🔥  BOSS FLOOR  🔥`
+      : roomKind === 'elite' ? `⚠️  ELITE — FLOOR ${run.floor}  ⚠️`
+      : `⚔️  FLOOR ${run.floor} · COMBAT  ⚔️`;
+    const subtitleLine = isBoss ? (run.currentRoom?.enemies?.[0]?.name || '') : null;
+    const scene = isBoss ? buildBossScene(run, titleLine, subtitleLine) : buildCombatScene(run, titleLine);
+    embed.setDescription(scene);
+    embed.addFields(
+      { name: '👥 Party', value: partyStatusLines(run), inline: false },
+      { name: '👹 Enemies', value: enemyStatusLines(run), inline: false },
+    );
+  } else {
+    embed.setDescription(buildRoomBanner('🏰', `FLOOR ${run.floor}`));
+    embed.addFields({ name: '👥 Party', value: partyStatusLines(run), inline: false });
+  }
 
   const relicsField = run.relics && run.relics.length
     ? run.relics.map(k => {
@@ -140,17 +255,12 @@ function buildStatusEmbed(run) {
       }).join('\n')
     : '*none*';
 
-  const embed = new EmbedBuilder()
-    .setColor(COLOR_COMBAT)
-    .setTitle(`🏰 The Spoiled Vault — Floor ${run.floor}`)
-    .addFields(
-      { name: 'Party', value: partyField, inline: false },
-      { name: 'Enemies', value: enemiesField, inline: false },
-      { name: 'Relics', value: relicsField, inline: true },
-      { name: 'Pot', value: `${run.pot.toLocaleString()} 🥛`, inline: true },
-    );
+  embed.addFields(
+    { name: '🏺 Relics', value: relicsField, inline: true },
+    { name: '💰 Pot', value: `${run.pot.toLocaleString()} 🥛`, inline: true },
+  );
   if (run.log && run.log.length) {
-    embed.addFields({ name: 'Combat log', value: run.log.slice(-6).join('\n').slice(0, 1024) });
+    embed.addFields({ name: '📜 Recent', value: run.log.slice(-5).join('\n').slice(0, 1024) });
   }
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`dun_abandon_${run.runId}`).setLabel('Abandon Run').setEmoji('🏳️').setStyle(ButtonStyle.Danger),
@@ -232,10 +342,15 @@ function buildDefeatEmbed(run) {
 }
 
 function buildFloorClearedEmbed(run) {
+  const scene = '```\n' +
+    '╔══════════════════════════════╗\n' +
+    '║' + centerInWidth(`✅  FLOOR ${run.floor} CLEARED  ✅`, 30) + '║\n' +
+    '╚══════════════════════════════╝\n' +
+    '```';
   const embed = new EmbedBuilder()
     .setColor(COLOR_VICTORY)
     .setTitle(`✅ Floor ${run.floor} cleared`)
-    .setDescription('Moving to the next floor. The rot runs deeper.');
+    .setDescription(scene + '\nMoving to the next floor. The rot runs deeper.');
   return { embeds: [embed] };
 }
 
@@ -243,6 +358,19 @@ function buildFloorClearedEmbed(run) {
 
 function buildTreasureRoom(run) {
   const room = run.currentRoom;
+  const chestRow = room.chests.map((c, i) => {
+    const claimed = Object.values(room.claimed).includes(i);
+    return claimed ? '🗃️' : '📦';
+  }).join('    ');
+  const SCENE_WIDTH = 32;
+  const scene = '```\n' +
+    '╔══════════════════════════════╗\n' +
+    '║' + centerInWidth('💰  TREASURE ROOM  💰', 30) + '║\n' +
+    '╚══════════════════════════════╝\n' +
+    '\n' +
+    centerInWidth(chestRow, SCENE_WIDTH) + '\n' +
+    centerInWidth(room.chests.map((_, i) => `#${i + 1}`).join('      '), SCENE_WIDTH) + '\n' +
+    '```';
   const desc = room.chests.map((c, i) => {
     const claimedBy = Object.entries(room.claimed).find(([uid, idx]) => idx === i);
     if (claimedBy) {
@@ -254,8 +382,8 @@ function buildTreasureRoom(run) {
   const embed = new EmbedBuilder()
     .setColor(0xFFC107)
     .setTitle(`💰 Treasure Room — Floor ${run.floor}`)
-    .setDescription('Three chests. Each party member picks one. Pick wisely — contents are hidden.')
-    .addFields({ name: 'Chests', value: desc });
+    .setDescription(scene + '\nThree chests. Each party member picks one.')
+    .addFields({ name: 'Status', value: desc });
   const row = new ActionRowBuilder().addComponents(
     ...room.chests.map((_, i) =>
       new ButtonBuilder()
@@ -271,10 +399,26 @@ function buildTreasureRoom(run) {
 // === Event room ===
 
 function buildEventRoom(run, event) {
+  // A themed icon per event (falls back to scroll)
+  const iconByKey = {
+    expired_bottle: '🍼', rusted_fridge: '🧊', milkmaid_ghost: '👻', cheese_vendor: '🧀',
+    shrine_of_curd: '🕯️', trapped_chest: '📦', dreaming_wraith: '😴', runic_vat: '🫙',
+    starved_calf: '🐄', crossroads: '🛤️', broken_bottle: '🍾', ancient_churner: '🗿',
+    sour_spring: '💧', phantom_cow: '🐮', lost_traveler: '🧳',
+  };
+  const icon = iconByKey[event.key] || '📜';
+  const scene = '```\n' +
+    '╔══════════════════════════════╗\n' +
+    '║' + centerInWidth('📜  ENCOUNTER  📜', 30) + '║\n' +
+    '╚══════════════════════════════╝\n' +
+    '\n' +
+    centerInWidth(icon, 32) + '\n' +
+    centerInWidth(event.title, 32) + '\n' +
+    '```';
   const embed = new EmbedBuilder()
     .setColor(0x9C27B0)
     .setTitle(`📜 ${event.title}`)
-    .setDescription(event.description);
+    .setDescription(scene + '\n' + event.description);
   const row = new ActionRowBuilder().addComponents(
     ...event.choices.map((c, i) =>
       new ButtonBuilder()
@@ -291,15 +435,23 @@ function buildEventRoom(run, event) {
 
 function buildMerchantRoom(run) {
   const room = run.currentRoom;
+  const scene = '```\n' +
+    '╔══════════════════════════════╗\n' +
+    '║' + centerInWidth('🛒  MERCHANT  🛒', 30) + '║\n' +
+    '╚══════════════════════════════╝\n' +
+    '\n' +
+    centerInWidth('🧙', 32) + '\n' +
+    centerInWidth('[ 5 wares on offer ]', 32) + '\n' +
+    '```';
   const desc = room.items.map((slot, i) => {
     const bought = room.purchased[i];
     if (bought) return `~~${slot.item.emoji} ${slot.item.name} — ${slot.price}🥛~~ *(bought)*`;
-    return `${slot.item.emoji} **${slot.item.name}** — ${slot.price}🥛`;
+    return `${slot.item.emoji} **${slot.item.name}** — ${slot.price}🥛 — *${slot.item.description}*`;
   }).join('\n');
   const embed = new EmbedBuilder()
     .setColor(0x795548)
     .setTitle(`🛒 Milk Merchant — Floor ${run.floor}`)
-    .setDescription(`Pot: **${run.pot.toLocaleString()}** 🥛\n\n${desc}\n\nClick an item to buy (cost deducted from pot). Click **Leave** when done.`);
+    .setDescription(`${scene}\n**Pot: ${run.pot.toLocaleString()}** 🥛\n\n${desc}\n\nClick an item to buy. **Leave** when done.`);
   const buyRow = new ActionRowBuilder().addComponents(
     ...room.items.map((slot, i) =>
       new ButtonBuilder()
@@ -319,13 +471,12 @@ function buildMerchantRoom(run) {
 // === Rest room ===
 
 function buildRestRoom(run, healedAmount) {
+  const scene = buildRestScene(run);
   const embed = new EmbedBuilder()
     .setColor(0x00BCD4)
-    .setTitle(`🏕️ Rest Room — Floor ${run.floor}`)
-    .setDescription(`The party rests. Everyone recovers **${healedAmount} HP**.`)
-    .addFields({
-      name: 'Party', value: run.party.map(p => `${p.username} — ${p.hp}/${p.maxHp} HP`).join('\n'),
-    });
+    .setTitle(`🏕️ Rest Stop — Floor ${run.floor}`)
+    .setDescription(`${scene}\nThe party rests. Everyone recovers **${healedAmount} HP**.`)
+    .addFields({ name: '👥 Party', value: partyStatusLines(run) });
   return { embeds: [embed] };
 }
 
