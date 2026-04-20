@@ -335,37 +335,26 @@ const UPDATES = [
     ].join('\n'),
   },
   {
-    id: 'v32-creamspire-cosmos',
+    id: 'v32-creamspire-cosmos-v2',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `🥛 **MILKBOT PATCH — THE CREAMSPIRE COSMOS** 🥛`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       ``,
-      `🌌 **THIRD DUNGEON — THE CREAMSPIRE COSMOS** — stacks BELOW the Udder Abyss in \`#milkbot-dungeon\`. Ascend from ancient cheese crypts through cloud kingdoms into literal cosmic space. 10 floors. 8 new enemies (Aged Warden, Rind Crawler, Fossilized Calf, Cream Paladin, Cloud Calf, Halo Wraith, Starlight Yak, Nebula Wisp) + 2 bosses: **Lord Parmigiano** (floor 5) and **Mother Galaxy** (floor 10 — 4 phases, summons weakened Curdfather + Udder God as callbacks). Unlock it by beating the Udder God.`,
+      `🌌 **NEW DUNGEON — THE CREAMSPIRE COSMOS** — a third dungeon stacks below the Udder Abyss in \`#milkbot-dungeon\`. Climb from ancient cheese crypts to literal cosmic space. 8 new enemies, 2 new bosses: **Lord Parmigiano** (f5) and **Mother Galaxy** (f10 — summons mini-Curdfather + mini-Udder-God as callbacks). Unlock by beating the Udder God.`,
       ``,
       `🎭 **2 NEW CLASSES**`,
-      `🎵 **Cream Bard** — support/buffer. Rally Song, Curdcall, Anthem of the Herd. Unlocks by beating Lord Parmigiano.`,
-      `🐄 **Herder** — beastmaster. Sic 'Em, Guard Bond, Stampede. Unlocks by beating Mother Galaxy.`,
+      `🎵 **Cream Bard** — buffer/healer. Unlocks by beating Lord Parmigiano.`,
+      `🐄 **Herder** — beastmaster with a Dairy Calf. Unlocks by beating Mother Galaxy.`,
       ``,
-      `💎 **NEW RELICS** — 10 regular + 4 mythic Creamspire relics. Mythics are divine-scale: **Halo of Cream** (revive the whole party on wipe), **Cosmic Ledger** (pot doubles on victory), **Milkgod's Tear** (first hit every combat is a guaranteed 5× crit), **The First Drop** (+50% party stats; pot halved). Hardcore runs only.`,
+      `🔮 **MYTHICS ARE PERMANENT NOW** — every mythic relic you collect from a hardcore boss stays in your ledger forever and AUTO-APPLIES on every future run. Party pools their collections together, so bringing a friend with mythics benefits everyone. 14 mythics total across the three dungeons. Hardcore drops only.`,
       ``,
-      `🔧 **MASSIVE STABILITY PASS**`,
-      `• Class picker no longer crashes with 6+ classes (Discord row-limit fix)`,
-      `• Unblockable damage no longer turns HP into NaN (Milkmaid Ghost bug)`,
-      `• Stalled boss fights — turn loop now skips invalid actors instead of halting`,
-      `• Runs with NaN / null HP auto-repair on boot`,
-      `• Ability buttons no longer grey out spuriously from edge-case \`undefined\``,
-      `• Revive Tokens now target downed allies instead of fizzling on yourself`,
-      `• Floor-cleared message no longer off-by-one`,
-      `• Classes unlocked via completion are now actually clickable in the picker (was the "I beat it but the class is locked" bug)`,
-      `• Stock board no longer crashes the bot on boot (2000-char content limit bypassed via embed)`,
+      `📜 **UPGRADED LEDGER** — \`Open Your Ledger\` at the bottom of \`#milkbot-dungeon\` now shows per-dungeon completions, hardcore kills, fastest clear, your class roster, mastery badges, and every mythic you own.`,
       ``,
-      `🗺️ **DUNGEON CHANNEL POLISH** — three stacked panels (Vault → Abyss → Creamspire), explainer always at the top, stats row always at the bottom. Misorder detection wipes and re-posts if anything drifts out of place.`,
-      ``,
-      `⚙️ **UNDER THE HOOD** — dungeon unlock gates and class unlocks are now data-table driven (\`unlocks.js\`). Per-dungeon completion tracking. Bot auto-resumes your mid-combat turn after a restart — no more "click your button" ghost prompts.`,
+      `🔧 **HEAVY STABILITY PASS** — fixed stalled boss fights, NaN HP bugs, class picker crashes with 6+ classes, greyed-out ability buttons, revive tokens fizzling on the caster, off-by-one floor messages, classes not clickable after unlock, stock board crashing on boot, turn prompts not reappearing after restart. A lot of dungeons worked poorly; they work now.`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
-      `*— MilkBot Management. three dungeons. eight classes. the spire is open. climb. 🥛*`,
+      `*— three dungeons. eight classes. the spire is open. climb. 🥛*`,
     ].join('\n'),
   },
   {
@@ -443,6 +432,10 @@ async function postUpdates(client) {
   // buildUpdatePayload auto-wraps long notes as embeds.
   await forceRetryV32Once();
 
+  // One-time cleanup: delete the old embed-wrapped v32 post so the shorter
+  // plain-content v32-v2 takes its place. Embed matched by title.
+  await cleanupOldV32EmbedOnce(channel).catch(e => console.warn('[updates] v32 cleanup skipped:', e.message));
+
   const posted = getPosted();
   const toPost = UPDATES.filter(u => !posted.includes(u.id));
   if (toPost.length === 0) return;
@@ -480,6 +473,30 @@ async function forceRetryV32Once() {
     fs.writeFileSync(flagPath, JSON.stringify({ done: Date.now() }));
   } catch (e) {
     console.warn('[updates] v32 retry setup failed:', e.message);
+  }
+}
+
+// Deletes the embed-wrapped v32 post from a prior boot so the shorter
+// plain-content v2 can stand alone. Flag-guarded to run exactly once.
+async function cleanupOldV32EmbedOnce(channel) {
+  const flagPath = path.join(__dirname, 'data/updates_v32_embed_cleanup_done.json');
+  if (fs.existsSync(flagPath)) return;
+  try {
+    const msgs = await channel.messages.fetch({ limit: 50 });
+    let deleted = 0;
+    for (const msg of msgs.values()) {
+      if (msg.author.id !== channel.client.user.id) continue;
+      const embedTitle = msg.embeds?.[0]?.title || '';
+      // Old v32 embed had "MILKBOT PATCH — THE CREAMSPIRE COSMOS" in the title.
+      if (embedTitle.includes('CREAMSPIRE COSMOS')) {
+        await msg.delete().catch(() => {});
+        deleted++;
+      }
+    }
+    fs.writeFileSync(flagPath, JSON.stringify({ done: Date.now(), deleted }));
+    console.log(`[updates] old v32 embed cleanup: deleted ${deleted}`);
+  } catch (e) {
+    console.warn('[updates] v32 embed cleanup failed:', e.message);
   }
 }
 
