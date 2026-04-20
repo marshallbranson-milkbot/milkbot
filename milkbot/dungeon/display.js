@@ -333,20 +333,23 @@ function buildClassPicker(run, userId, userAbilityUnlocks = []) {
       })),
     );
 
-  // One button per class, 4 per row
+  // One button per class, max 4 per row (Discord caps at 5; leave headroom).
   const rows = [];
-  let currentRow = new ActionRowBuilder();
-  for (const cls of listClasses()) {
-    currentRow.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`dun_pick_${run.runId}_${cls.key}`)
-        .setLabel(cls.name)
-        .setEmoji(cls.emoji)
-        .setStyle(picked === cls.key ? ButtonStyle.Success : ButtonStyle.Primary)
-        .setDisabled(!!picked || !cls.unlockedByDefault),
+  const all = listClasses();
+  for (let i = 0; i < all.length; i += 4) {
+    const slice = all.slice(i, i + 4);
+    const row = new ActionRowBuilder().addComponents(
+      ...slice.map(cls =>
+        new ButtonBuilder()
+          .setCustomId(`dun_pick_${run.runId}_${cls.key}`)
+          .setLabel(cls.name)
+          .setEmoji(cls.emoji)
+          .setStyle(picked === cls.key ? ButtonStyle.Success : ButtonStyle.Primary)
+          .setDisabled(!!picked || !cls.unlockedByDefault),
+      ),
     );
+    rows.push(row);
   }
-  rows.push(currentRow);
   return { embeds: [embed], components: rows };
 }
 
