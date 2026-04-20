@@ -110,6 +110,7 @@ function executeSell(userId, username, ticker, sharesToSell, channel) {
 
 module.exports = {
   name: 'port',
+  slashAliases: ['portfolio'],
   aliases: ['portfolio'],
   description: 'View your stock portfolio.',
   slashOptions: [],

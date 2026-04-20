@@ -10,7 +10,7 @@ const { postUpdates } = require('./updates');
 const { scheduleRecap, captureMidnightSnapshot, runDailyRecap } = require('./recap');
 
 const GUILD_ID        = '562076997979865118';
-const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall']);
+const STOCKS_COMMANDS = new Set(['b', 'buy', 's', 'sell', 'port', 'portfolio', 'ba', 'buyall', 'sa', 'sellall']);
 const BOTH_CHANNELS   = new Set(['h', 'bal']);
 // Commands allowed as text in milkbot-games (everything else → use !g)
 const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
@@ -162,8 +162,8 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
-      // /port — ephemeral direct handler (must run after channel check)
-      if (cmdName === 'port' && portfolioCommand) {
+      // /port or /portfolio — ephemeral direct handler (must run after channel check)
+      if ((cmdName === 'port' || cmdName === 'portfolio') && portfolioCommand) {
         portfolioCommand.executeSlash(interaction).catch(console.error);
         return;
       }
