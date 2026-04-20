@@ -72,6 +72,10 @@ async function payout(userId, bucks, xp) {
 async function refreshChannelPanels(client, channel) {
   // One persistent message per dungeon (plus explainer + stats). Data-driven:
   // adding a dungeon is a DUNGEON_META entry, no edits here.
+  //
+  // Order matters — the explainer MUST be the oldest (top) message, followed
+  // by each dungeon panel in DUNGEON_META order, then the stats row. Discord
+  // snowflake IDs are time-ordered: smaller = older = higher in channel.
   const dungeonIds = Object.keys(display.DUNGEON_META);
 
   let explainerMsg = null, statsMsg = null;
@@ -107,11 +111,35 @@ async function refreshChannelPanels(client, channel) {
     console.warn('[dungeon] fetch panels failed:', e.message);
   }
 
+  // Check order: explainer must be the oldest of the tracked messages. If any
+  // panel / stats row is older than the explainer, the panels were re-posted
+  // in the wrong order at some point — wipe and re-send everything fresh.
+  const orderBroken = (() => {
+    if (!explainerMsg) return false;
+    const explainerTs = BigInt(explainerMsg.id);
+    for (const m of Object.values(dungeonMsgs)) {
+      if (m && BigInt(m.id) < explainerTs) return true;
+    }
+    if (statsMsg && BigInt(statsMsg.id) < explainerTs) return true;
+    return false;
+  })();
+
+  if (orderBroken) {
+    console.log('[dungeon] panel order broken — wiping and re-posting');
+    const all = [explainerMsg, ...Object.values(dungeonMsgs), statsMsg].filter(Boolean);
+    for (const m of all) await m.delete().catch(() => {});
+    explainerMsg = null;
+    for (const k of Object.keys(dungeonMsgs)) delete dungeonMsgs[k];
+    statsMsg = null;
+  }
+
   for (const m of orphansToDelete) {
     await m.delete().catch(() => {});
     console.log('[dungeon] deleted orphan panel:', m.embeds[0]?.title || '(no title)');
   }
 
+  // Post/edit in strict top-to-bottom order. When a message is missing we
+  // send fresh; when it exists we edit in place so its position is preserved.
   const explainerPayload = display.buildExplainerEmbed();
   if (explainerMsg) await explainerMsg.edit(explainerPayload).catch(() => {});
   else explainerMsg = await channel.send(explainerPayload).catch(() => null);
