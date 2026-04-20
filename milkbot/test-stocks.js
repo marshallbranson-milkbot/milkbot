@@ -4,13 +4,16 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 // Swap in temp data files for isolation — restore originals on exit.
+// Backups go to OS tempdir so leaked backups never clutter the repo's data/.
 const DATA_DIR = path.join(__dirname, 'data');
 const REAL_BAL = path.join(DATA_DIR, 'balances.json');
 const REAL_PORT = path.join(DATA_DIR, 'portfolios.json');
-const BACKUP_BAL = REAL_BAL + '.bak-test';
-const BACKUP_PORT = REAL_PORT + '.bak-test';
+const TMP_PREFIX = path.join(os.tmpdir(), `milkbot-test-${process.pid}-${Date.now()}`);
+const BACKUP_BAL = TMP_PREFIX + '-balances.json';
+const BACKUP_PORT = TMP_PREFIX + '-portfolios.json';
 
 function backup() {
   if (fs.existsSync(REAL_BAL)) fs.copyFileSync(REAL_BAL, BACKUP_BAL);

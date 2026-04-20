@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { withLock } = require('../balancelock');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 
@@ -9,6 +10,11 @@ function getData(p) {
   catch (e) { console.error('[getData] corrupted:', p); return {}; }
 }
 function saveData(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
+
+async function withPairLock(idA, idB, fn) {
+  const [first, second] = [idA, idB].sort();
+  return withLock('bal:' + first, () => withLock('bal:' + second, fn));
+}
 
 module.exports = {
   name: 'give',
@@ -22,26 +28,36 @@ module.exports = {
     const amount = parseInt(args[1], 10);
     if (!amount || amount < 1) return message.reply(`how much? \`!give @user amount\` 🥛`);
 
-    const balances = getData(balancesPath);
-    const senderBal = balances[message.author.id] || 0;
-    if (senderBal < amount) {
-      return message.reply(`you only have **${senderBal} milk bucks**. can't give what you don't have. 🥛`);
-    }
-
     const BAL_CAP = 1_000_000_000;
-    const recipientBal = balances[target.id] || 0;
-    const headroom = BAL_CAP - recipientBal;
-    if (headroom <= 0) return message.reply(`**${target.username}** is already at the balance cap. 🥛`);
-    const actualAmount = Math.min(amount, headroom);
-    balances[message.author.id] = senderBal - actualAmount;
-    balances[target.id] = recipientBal + actualAmount;
-    saveData(balancesPath, balances);
+    let result;
+    await withPairLock(message.author.id, target.id, async () => {
+      const balances = getData(balancesPath);
+      const senderBal = balances[message.author.id] || 0;
+      if (senderBal < amount) {
+        result = { error: `you only have **${senderBal} milk bucks**. can't give what you don't have. 🥛` };
+        return;
+      }
+      const recipientBal = balances[target.id] || 0;
+      const headroom = BAL_CAP - recipientBal;
+      if (headroom <= 0) {
+        result = { error: `**${target.username}** is already at the balance cap. 🥛` };
+        return;
+      }
+      const actualAmount = Math.min(amount, headroom);
+      balances[message.author.id] = senderBal - actualAmount;
+      balances[target.id] = recipientBal + actualAmount;
+      saveData(balancesPath, balances);
+      result = { ok: true, actualAmount };
+    });
+
+    if (result?.error) return message.reply(result.error);
+    if (!result?.ok) return message.reply(`something went wrong. 🥛`);
 
     const targetMember = message.guild?.members.cache.get(target.id);
     const targetName = targetMember?.displayName ?? target.username;
 
     message.channel.send(
-      `💸 **${message.author.username}** sent **${actualAmount.toLocaleString()} milk bucks** to **${targetName}**. generous. or suspicious. 🥛`
+      `💸 **${message.author.username}** sent **${result.actualAmount.toLocaleString()} milk bucks** to **${targetName}**. generous. or suspicious. 🥛`
     ).catch(console.error);
   },
 };

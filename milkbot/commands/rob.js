@@ -9,6 +9,13 @@ const ws = require('../winstreak');
 const ach = require('../achievements');
 const jackpot = require('../jackpot');
 const prestige = require('../prestige');
+const { withLock } = require('../balancelock');
+
+// Acquire both users' balance locks in sorted order to avoid deadlock, then run fn.
+async function withPairLock(idA, idB, fn) {
+  const [first, second] = [idA, idB].sort();
+  return withLock('bal:' + first, () => withLock('bal:' + second, fn));
+}
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -27,7 +34,7 @@ module.exports = {
   name: 'ro',
   aliases: ['rob'],
   description: 'Rob someone. Usage: !ro @user',
-  execute(message, args) {
+  async execute(message, args) {
     const target = message.mentions.users.first();
 
     if (!target) {
@@ -89,11 +96,24 @@ module.exports = {
       const shopMul = shopMod.getEarningsMul(message.author.id);
       const nextMul = shopMod.getAndConsumeNextWinMul(message.author.id);
       const robBoostMul = shopMod.getAndConsumeRobBoost(message.author.id);
-      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm * shopMul * nextMul * robBoostMul));
 
-      balances[message.author.id] = Math.min(1_000_000_000, robberBalance + stolen);
-      balances[target.id] = targetBalance - stolen;
-      saveData(balancesPath, balances);
+      // Serialize the read-modify-write across both users' balance files to prevent TOCTOU races.
+      var stolen;
+      await withPairLock(message.author.id, target.id, async () => {
+        const freshBals = getData(balancesPath);
+        const freshRobberBal = freshBals[message.author.id] || 0;
+        const freshTargetBal = freshBals[target.id] || 0;
+        if (freshTargetBal <= 0) { stolen = 0; return; }
+        stolen = Math.max(1, Math.floor(freshTargetBal * 0.05 * hotMul * pm * shopMul * nextMul * robBoostMul));
+        freshBals[message.author.id] = Math.min(1_000_000_000, freshRobberBal + stolen);
+        freshBals[target.id] = Math.max(0, freshTargetBal - stolen);
+        saveData(balancesPath, freshBals);
+        balances[message.author.id] = freshBals[message.author.id];
+        balances[target.id] = freshBals[target.id];
+      });
+      if (!stolen) {
+        return message.reply(`${target.username} is broke now. Nothing to take. 🥛`);
+      }
 
       const xp = getData(xpPath);
       const shopXpMul = shopMod.getXpMul(message.author.id);

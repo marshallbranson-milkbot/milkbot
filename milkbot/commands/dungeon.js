@@ -116,7 +116,8 @@ async function refreshLobby(client) {
 async function createDungeonThread(channel, creatorName, runId) {
   // Prefer private thread. Fall back to public if guild lacks Community features.
   const privateAllowed = channel.guild.features.includes('COMMUNITY');
-  const threadName = `${creatorName}'s Descent — ${runId.slice(0, 6)}`;
+  const safeName = sanitizeUsername(creatorName);
+  const threadName = `${safeName}'s Descent — ${runId.slice(0, 6)}`;
   const type = privateAllowed ? ChannelType.PrivateThread : ChannelType.PublicThread;
   const thread = await channel.threads.create({
     name: threadName,
@@ -199,7 +200,7 @@ async function handleButtonInteraction(interaction) {
 
 async function handleStart(interaction) {
   const userId = interaction.user.id;
-  const username = interaction.user.globalName || interaction.user.username;
+  const username = sanitizeUsername(interaction.user.globalName || interaction.user.username);
 
   // Check if user already in an active run
   const existing = state.allRuns().find(r => r.party.some(p => p.userId === userId));
@@ -250,7 +251,7 @@ async function handleStart(interaction) {
 
 async function handleJoin(interaction, runId) {
   const userId = interaction.user.id;
-  const username = interaction.user.globalName || interaction.user.username;
+  const username = sanitizeUsername(interaction.user.globalName || interaction.user.username);
 
   const result = await withLock('dun:' + runId, async () => {
     const run = state.getRun(runId);
@@ -332,8 +333,21 @@ async function handleClassPick(interaction, runId, classKey) {
   }
 }
 
+// Strip control chars, markdown formatting, and Discord mentions; cap 32 chars.
+// Prevents markdown injection into embeds + keeps thread names well-formed.
+function sanitizeUsername(raw) {
+  if (!raw) return 'Player';
+  return String(raw)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/[*_~`|\\]/g, '')
+    .replace(/@(everyone|here)/gi, '$1')
+    .replace(/<@[!&]?\d+>/g, '')
+    .slice(0, 32)
+    .trim() || 'Player';
+}
+
 function makePartySlot(userId, username) {
-  return { userId, username, classKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, spd: 0, statuses: [], cooldowns: {}, items: [], buffs: [], downed: false, defending: false };
+  return { userId, username: sanitizeUsername(username), classKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, spd: 0, statuses: [], cooldowns: {}, items: [], buffs: [], downed: false, defending: false };
 }
 
 // ========= Game loop =========
