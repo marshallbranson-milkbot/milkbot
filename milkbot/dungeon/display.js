@@ -190,22 +190,30 @@ const COLOR_INFO = 0x3F51B5;         // indigo
 // === Channel top: pinned game explainer ===
 
 function buildExplainerEmbed() {
+  const classFields = listClasses().map(c => {
+    const lockLine = c.unlockedByDefault
+      ? ''
+      : `\n🔒 **UNLOCK:** ${c.unlockLabel || 'hidden requirement'}`;
+    return {
+      name: `${c.emoji} ${c.name} — ${c.role}`,
+      value: `*${c.description}*${lockLine}`,
+      inline: false,
+    };
+  });
+
   const embed = new EmbedBuilder()
     .setColor(COLOR_INFO)
     .setTitle('🏰 MilkBot Dungeon — The Spoiled Vault')
     .setDescription(
-      'Descend into the Spoiled Vault with up to 3 friends. Beat 10 floors of curdled horrors to reclaim the stolen milk bucks.\n\n' +
+      'Descend with up to 3 friends. Beat 10 floors of curdled horrors to reclaim the stolen milk bucks.\n\n' +
       '**Entry:** 1,000 milk bucks per player (pooled into the reward pot)\n' +
       '**Rewards:** milk bucks, XP, rare relics, achievements, and bragging rights\n' +
       '**Death:** get curdled at 0 HP — teammates can revive. Party wipe ends the run.'
     )
     .addFields(
+      ...classFields,
       {
-        name: 'Classes',
-        value: listClasses().map(c => `${c.emoji} **${c.name}** — ${c.role}${c.unlockedByDefault ? '' : ' *(locked)*'}`).join('\n'),
-      },
-      {
-        name: 'How to play',
+        name: '▶️ How to play',
         value: 'Click **🏰 Start a Run** below to create a party. Others can click **Join** on any active party. When full (or you click Begin), a private thread opens and the descent begins.',
       },
     )
