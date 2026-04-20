@@ -2,8 +2,11 @@
 // The run object carries all combat state; this module mutates run.party / run.currentRoom.enemies.
 
 const { getEnemy } = require('./enemies');
+const { getBoss } = require('./bosses');
 const { getClass } = require('./classes');
 const { getRelic } = require('./loot');
+
+function getEnemyOrBoss(key) { return getBoss(key) || getEnemy(key); }
 
 const BASE_CRIT_CHANCE = 0.15;
 const CRIT_MULTIPLIER = 2;
@@ -47,17 +50,21 @@ function initPlayer({ userId, username, classKey }) {
   };
 }
 
-// Spawn enemies for a combat room
+// Spawn enemies for a combat room (bosses included)
 function spawnEnemies(enemyKeys, floor, difficulty, rng) {
   return enemyKeys.map((key, idx) => {
-    const def = getEnemy(key);
+    const def = getEnemyOrBoss(key);
     if (!def) throw new Error(`Unknown enemy: ${key}`);
-    const stats = scaleEnemyStats(def, floor, difficulty);
+    // Bosses use their exact base stats (not per-floor scaled) — they're already floor-specific.
+    const stats = def.isBoss
+      ? { hp: def.base.hp, maxHp: def.base.hp, atk: def.base.atk, def: def.base.def, spd: def.base.spd }
+      : scaleEnemyStats(def, floor, difficulty);
     return {
       id: `e${idx}_${key}`,
       key,
       name: def.name,
       emoji: def.emoji,
+      isBoss: !!def.isBoss,
       ...stats,
       statuses: [],
       buffs: [],
@@ -210,6 +217,7 @@ function processEffect(run, effect, sourceName, rng) {
       target.downed = false;
       target.hp = Math.floor(target.maxHp * (effect.hpPct || 0.5));
       target.statuses = [];
+      run._revivesUsed = (run._revivesUsed || 0) + 1;
       logs.push(`💫 ${target.username} is revived at ${target.hp}/${target.maxHp} HP!`);
       break;
     }
@@ -226,6 +234,30 @@ function processEffect(run, effect, sourceName, rng) {
     case 'flee_combat': {
       run._fleeing = true;
       logs.push('💨 The party escaped the fight.');
+      break;
+    }
+    case 'summon': {
+      // Boss summons a new enemy mid-combat
+      if (run.currentRoom.enemies.length >= 4) break;
+      const def = getEnemyOrBoss(effect.enemyKey);
+      if (!def) break;
+      const stats = def.isBoss
+        ? { hp: def.base.hp, maxHp: def.base.hp, atk: def.base.atk, def: def.base.def, spd: def.base.spd }
+        : scaleEnemyStats(def, run.floor, run.difficulty);
+      const newEnemy = {
+        id: `e${run.currentRoom.enemies.length}_${def.key}_summon`,
+        key: def.key,
+        name: def.name,
+        emoji: def.emoji,
+        isBoss: false,
+        ...stats,
+        statuses: [],
+        buffs: [],
+        extras: def.extras || {},
+      };
+      run.currentRoom.enemies.push(newEnemy);
+      run.turnOrder.push({ kind: 'enemy', id: newEnemy.id, initiative: 0 });
+      logs.push(`👹 **${def.name}** is summoned!`);
       break;
     }
     default:
@@ -399,7 +431,7 @@ function playerAbility(run, player, abilityKey, targetId) {
 
 // Enemy AI — call behavior() and return effects
 function enemyTurn(run, enemy) {
-  const def = getEnemy(enemy.key);
+  const def = getEnemyOrBoss(enemy.key);
   if (!def) return [];
   // Curdled = skip this turn
   if (enemy.statuses.some(s => s.key === 'curdled')) {
@@ -408,7 +440,9 @@ function enemyTurn(run, enemy) {
   const ctx = {
     atk: enemy.atk,
     enemies: run.currentRoom.enemies,
+    party: run.party,
     selfId: enemy.id,
+    self: enemy,
     rng: run.rng,
     pickLivingPlayer: () => {
       const living = run.party.filter(p => !p.downed);

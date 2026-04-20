@@ -339,11 +339,13 @@ async function beginFloor(run, thread) {
   run.currentRoom = room;
   state.markDirty(run);
 
-  if (room.kind === 'combat' || room.kind === 'elite') {
+  if (room.kind === 'combat' || room.kind === 'elite' || room.kind === 'boss') {
     combat.startCombat(run, room.enemyKeys);
     state.markDirty(run);
     await postStatus(run, thread, true);
-    const intro = room.kind === 'elite' ? `⚠️ **Floor ${run.floor}** — elite encounter!` : `⬇️ **Floor ${run.floor}** begins.`;
+    let intro = `⬇️ **Floor ${run.floor}** begins.`;
+    if (room.kind === 'elite') intro = `⚠️ **Floor ${run.floor}** — elite encounter!`;
+    if (room.kind === 'boss') intro = `🔥 **Floor ${run.floor} — BOSS FIGHT.** ${run.currentRoom.enemyKeys.join(', ')}`;
     await thread.send({ content: intro }).catch(() => {});
     await processTurn(run, thread);
     return;
@@ -386,9 +388,25 @@ async function enterRestRoom(run, thread) {
 }
 
 async function advanceToNextFloor(run, thread) {
+  // Track deepest floor reached
+  if (run.floor > (run.deepestFloor || 0)) run.deepestFloor = run.floor;
+
+  // Class unlock: clearing floor 5 unlocks Curd Medic for the party
+  if (run.floor === 5) {
+    for (const p of run.party) {
+      const stats = state.getUserStats(p.userId);
+      if (!stats.classUnlocks.includes('curd_medic')) {
+        state.updateUserStats(p.userId, s => {
+          if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+        });
+        run.log.push(`🗝️ ${p.username} unlocked **Curd Medic**!`);
+      }
+    }
+  }
+
   if (run.floor >= FINAL_FLOOR) return endRun(run, thread, 'victory');
   run.floor += 1;
-  // Auto-revive between floors
+  // Auto-revive between floors (doesn't count as a revive for the achievement)
   for (const p of run.party) {
     if (p.downed) {
       p.downed = false;
@@ -797,17 +815,77 @@ async function endRun(run, thread, outcome) {
   run.state = 'ENDED';
   state.markDirty(run);
 
+  const client = thread.client;
+  const noRevives = !run._revivesUsed;
+  const deepestFloor = Math.max(run.deepestFloor || 0, run.floor);
+  const runDurationMs = Date.now() - (run.createdAt || Date.now());
+  const completed = outcome === 'victory';
+
+  let perPlayerBucks = 0;
+  let perPlayerXp = 0;
+
   if (outcome === 'victory') {
-    // Split remaining pot equally among all party
-    const perPlayerBucks = Math.floor(run.pot / run.party.length);
-    const perPlayerXp = BASE_XP_PER_FLOOR * run.floor;
+    perPlayerBucks = Math.floor(run.pot / run.party.length);
+    perPlayerXp = BASE_XP_PER_FLOOR * run.floor;
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }
+    // Unlock Lactic Mage on completion
+    for (const p of run.party) {
+      state.updateUserStats(p.userId, s => {
+        if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
+        if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+      });
+    }
     await thread.send(display.buildVictoryEmbed(run, { perPlayerBucks, perPlayerXp })).catch(() => {});
   } else {
-    // Defeat — jackpot drain 5% of pot, rest absorbed
     await thread.send(display.buildDefeatEmbed(run)).catch(() => {});
+  }
+
+  // Update meta-stats for each player
+  for (const p of run.party) {
+    state.updateUserStats(p.userId, s => {
+      s.totalRuns += 1;
+      if (completed) s.completions += 1;
+      if (deepestFloor > (s.deepestFloor || 0)) s.deepestFloor = deepestFloor;
+      if (completed && (!s.fastestRunMs || runDurationMs < s.fastestRunMs)) s.fastestRunMs = runDurationMs;
+      // Track favorite class by counting runs per class
+      if (!s.classCounts) s.classCounts = {};
+      s.classCounts[p.classKey] = (s.classCounts[p.classKey] || 0) + 1;
+      s.favClass = Object.entries(s.classCounts).sort((a, b) => b[1] - a[1])[0][0];
+      // Record last 10 runs
+      s.last10Runs = [{ date: new Date().toISOString().slice(0, 10), class: p.classKey, floor: deepestFloor, completed, durationMs: runDurationMs }, ...(s.last10Runs || [])].slice(0, 10);
+      // Track relics seen
+      for (const r of run.relics || []) {
+        if (!s.relicsSeen.includes(r)) s.relicsSeen.push(r);
+      }
+    });
+  }
+
+  // Post public run-end embed in #milkbot-games
+  try {
+    const gamesChannel = thread.guild?.channels.cache.find(c => c.name === 'milkbot-games');
+    if (gamesChannel) {
+      const publicEmbed = completed
+        ? display.buildVictoryEmbed(run, { perPlayerBucks, perPlayerXp })
+        : display.buildDefeatEmbed(run);
+      await gamesChannel.send(publicEmbed).catch(() => {});
+    }
+  } catch (e) { console.warn('[dungeon] public post failed:', e.message); }
+
+  // Fire achievements (use thread as channel so announcements land in the thread)
+  for (const p of run.party) {
+    try {
+      require('../achievements').check(p.userId, p.username, 'dungeon_run_end', {
+        deepestFloor,
+        completed,
+        partySize: run.party.length,
+        noRevives,
+      }, thread);
+      if (completed && deepestFloor >= FINAL_FLOOR) {
+        require('../achievements').check(p.userId, p.username, 'dungeon_curdfather_kill', {}, thread);
+      }
+    } catch (e) { console.warn('[dungeon] achievement check failed:', e.message); }
   }
 
   // Archive thread
@@ -816,8 +894,6 @@ async function endRun(run, thread, outcome) {
   state.deleteRun(run.runId);
   state.flushActiveRunsNow();
 
-  // Refresh lobby panel in channel
-  const client = thread.client;
   setTimeout(() => refreshLobby(client).catch(() => {}), 500);
 }
 

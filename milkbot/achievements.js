@@ -136,6 +136,13 @@ const ACHIEVEMENTS = [
   { id: 'grinder',          emoji: '⚙️',  name: 'Grinder',              xp: 150, desc: 'Earn 1,000 total XP'                                        },
   { id: 'milk_fiend',       emoji: '⭐', name: 'Milk Fiend',           xp: 100, desc: 'Reach Level 10'                                             },
   { id: 'milk_god',         emoji: '🌟', name: 'Milk God',             xp: 300, desc: 'Reach Level 25'                                             },
+  // ── DUNGEON ────────────────────────────────────────────────────────────────
+  { id: 'first_descent',    emoji: '🏰', name: 'First Descent',        xp: 50,  desc: 'Complete your first dungeon run (win or lose)'              },
+  { id: 'floor_5',          emoji: '🗝️',  name: 'Halfway Cursed',       xp: 100, desc: 'Reach floor 5 in the dungeon'                               },
+  { id: 'floor_10',         emoji: '🏆', name: 'Vault Breaker',        xp: 200, desc: 'Reach the Curdfather'                                       },
+  { id: 'curdfather_down',  emoji: '🧀', name: "Curdfather Slain",     xp: 500, desc: 'Defeat the Curdfather'                                      },
+  { id: 'solo_runner',      emoji: '🚶', name: 'Solo Runner',          xp: 300, desc: 'Complete a dungeon run solo'                                },
+  { id: 'no_revives',       emoji: '💪', name: 'No Retreat',           xp: 250, desc: 'Complete a dungeon run without using Revive'                },
 ];
 
 // events: game_win | trivia_win | slots_jackpot | blackjack_natural | rob_success |
@@ -309,6 +316,20 @@ function check(userId, username, event, data, channel) {
     if (data.balance >= 10000)  unlock('whale');
     if (data.balance >= 25000)  unlock('to_the_moon');
 
+  }
+
+  // ── DUNGEON ──────────────────────────────────────────────────────────────
+  if (event === 'dungeon_run_end') {
+    unlock('first_descent');
+    if ((data.deepestFloor || 0) >= 5) unlock('floor_5');
+    if ((data.deepestFloor || 0) >= 10) unlock('floor_10');
+    if (data.completed) {
+      if ((data.partySize || 0) === 1) unlock('solo_runner');
+      if (data.noRevives) unlock('no_revives');
+    }
+  }
+  if (event === 'dungeon_curdfather_kill') {
+    unlock('curdfather_down');
   }
 
   // ── XP & LEVEL MILESTONES ─────────────────────────────────────────────────

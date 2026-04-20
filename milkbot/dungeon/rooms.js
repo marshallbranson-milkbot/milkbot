@@ -4,6 +4,7 @@
 const { enemiesByTier } = require('./enemies');
 const { pickRandomEvent } = require('./events');
 const { rollConsumableDrop, rollRelicDrop, listConsumables } = require('./loot');
+const { getBossForFloor } = require('./bosses');
 
 // Enemy pools by floor range
 function enemyPoolForFloor(floor) {
@@ -71,9 +72,18 @@ function generateRestRoom(run) {
   return { kind: 'rest', used: false };
 }
 
+function generateBossRoom(run) {
+  const boss = getBossForFloor(run.floor);
+  if (!boss) return null;
+  return { kind: 'boss', enemyKeys: [boss.key], guaranteesRelic: true, guaranteesLoot: true };
+}
+
 // Weighted room picker
 function generateRoom(run) {
-  // Fixed boss floors are handled by the caller; this generates normal/midfloor content
+  // Boss floors always spawn the boss for that floor
+  const bossRoom = generateBossRoom(run);
+  if (bossRoom) return bossRoom;
+
   const rng = run.rng;
   const roll = rng.next();
   // Combat 60% / elite 10% / treasure 8% / event 10% / merchant 7% / rest 5%
@@ -93,5 +103,6 @@ module.exports = {
   generateEventRoom,
   generateMerchantRoom,
   generateRestRoom,
+  generateBossRoom,
   enemyPoolForFloor,
 };
