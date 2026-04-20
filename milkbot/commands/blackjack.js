@@ -23,6 +23,12 @@ function saveData(filePath, data) {
 
 const MIN_BET = 25;
 const ACTION_TIMEOUT = 30000;
+const DELETE_DONE_MS = 30000;  // auto-delete resolved game messages after 30s to reduce clutter
+
+function scheduleDelete(msg, delay = DELETE_DONE_MS) {
+  if (!msg || typeof msg.delete !== 'function') return;
+  setTimeout(() => { msg.delete().catch(() => {}); }, delay);
+}
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -450,8 +456,8 @@ function resolveAllHands(userId, channel, gameMsg) {
   game.quip = quip;
   game.resultLine = resultLine;
 
-  gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {
-    channel.send(buildGameMessage(game, 'done'));
+  gameMsg.edit(buildGameMessage(game, 'done')).then(() => scheduleDelete(gameMsg)).catch(() => {
+    channel.send(buildGameMessage(game, 'done')).then(scheduleDelete).catch(() => {});
   });
 
   if (newStreak >= 3) ws.announceStreak(channel, game.username, newStreak);
@@ -669,7 +675,7 @@ module.exports = {
       }
 
       const instantGame = { userId, hands, dealerHand, quip, resultLine, deck };
-      message.channel.send(buildGameMessage(instantGame, 'done'));
+      message.channel.send(buildGameMessage(instantGame, 'done')).then(scheduleDelete).catch(() => {});
       return;
     }
 
@@ -703,7 +709,7 @@ module.exports = {
         game.dealerHand.push(game.deck.pop());
       }
       if (game.gameMsg) {
-        game.gameMsg.edit(buildGameMessage(game, 'done')).catch(() => {});
+        game.gameMsg.edit(buildGameMessage(game, 'done')).then(() => scheduleDelete(game.gameMsg)).catch(() => {});
       }
       ach.check(userId, game.username, 'bj_timeout', { bet }, message.channel);
     }, ACTION_TIMEOUT);
