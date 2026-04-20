@@ -18,7 +18,8 @@ const SOUR_TICK_DAMAGE_DEFAULT = 5;
 function scaleEnemyStats(enemyDef, floor, difficulty = 'normal') {
   const hpMul = 1 + 0.08 * (floor - 1);
   const atkMul = 1 + 0.06 * (floor - 1);
-  const difficultyMul = difficulty === 'brutal' ? 1.25 : 1.0;
+  // Hardcore: +25% HP AND damage. 'brutal' legacy alias still works.
+  const difficultyMul = (difficulty === 'brutal' || difficulty === 'hardcore') ? 1.25 : 1.0;
   return {
     hp: Math.floor(enemyDef.base.hp * hpMul * difficultyMul),
     maxHp: Math.floor(enemyDef.base.hp * hpMul * difficultyMul),
@@ -223,6 +224,10 @@ function processEffect(run, effect, sourceName, rng) {
       break;
     }
     case 'revive': {
+      if (run.difficulty === 'hardcore') {
+        logs.push(`💀 Revives don't work in Hardcore mode.`);
+        break;
+      }
       const target = findPlayerById(run, effect.target);
       if (!target || !target.downed) break;
       target.downed = false;

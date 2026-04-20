@@ -150,6 +150,49 @@ const RELICS = {
     apply: () => {},
     onEvent: { kind: 'run_end', effect: (ctx) => ({ kind: 'xp_mul', amount: 1.25 }) },
   },
+  // ── MYTHIC RELICS (hardcore runs only — exclusive drops from bosses) ─────────
+  crown_of_cream: {
+    key: 'crown_of_cream',
+    name: 'Crown of Cream',
+    emoji: '👑',
+    description: '2× damage to bosses. Hardcore only.',
+    rarity: 'mythic',
+    dungeon: 'spoiled_vault',
+    apply: (ctx) => { ctx.bossDmgMul = 2.0; },
+  },
+  curdlords_scepter: {
+    key: 'curdlords_scepter',
+    name: "Curdlord's Scepter",
+    emoji: '🔱',
+    description: 'All ability cooldowns reduced by 1 turn. Hardcore only.',
+    rarity: 'mythic',
+    dungeon: 'spoiled_vault',
+    apply: (ctx) => { ctx.cooldownReduction = 1; },
+  },
+  blood_butter: {
+    key: 'blood_butter',
+    name: 'Blood Butter',
+    emoji: '🩸',
+    description: 'Crits do 3× damage (up from 2×). Hardcore only.',
+    rarity: 'mythic',
+    dungeon: 'spoiled_vault',
+    apply: (ctx) => { ctx.critMultiplier = 3.0; },
+  },
+  whole_milkway: {
+    key: 'whole_milkway',
+    name: 'The Whole Milkway',
+    emoji: '🌌',
+    description: '+50% max HP and +20% ATK for the whole party. Hardcore only.',
+    rarity: 'mythic',
+    dungeon: 'spoiled_vault',
+    apply: (ctx) => {
+      for (const p of ctx.party) {
+        const bonus = Math.floor(p.maxHp * 0.5);
+        p.maxHp += bonus; p.hp = Math.min(p.maxHp, p.hp + bonus);
+      }
+      ctx.partyAtkMul *= 1.20;
+    },
+  },
 };
 
 function listConsumables() { return Object.values(CONSUMABLES); }
@@ -158,7 +201,8 @@ function getConsumable(key) { return CONSUMABLES[key]; }
 function getRelic(key) { return RELICS[key]; }
 
 // Weighted drop pools by rarity
-const RARITY_WEIGHTS = { common: 5, uncommon: 3, rare: 1 };
+const RARITY_WEIGHTS = { common: 5, uncommon: 3, rare: 1, mythic: 0 };  // mythic never rolls from regular drops
+
 
 function rollConsumableDrop(rng, rarityBias = 1) {
   const pool = listConsumables();
@@ -170,12 +214,21 @@ function rollConsumableDrop(rng, rarityBias = 1) {
 }
 
 function rollRelicDrop(rng, rarityBias = 1) {
-  const pool = listRelics();
+  const pool = listRelics().filter(r => r.rarity !== 'mythic');
   const weighted = pool.map(r => ({
     item: r,
     weight: (RARITY_WEIGHTS[r.rarity] || 1) * rarityBias,
   }));
   return rng.weighted(weighted);
+}
+
+// Mythic drop — hardcore-only, filtered by dungeonId if provided.
+function rollMythicDrop(rng, dungeonId = null) {
+  const pool = listRelics().filter(r =>
+    r.rarity === 'mythic' && (!dungeonId || r.dungeon === dungeonId)
+  );
+  if (pool.length === 0) return null;
+  return pool[rng.int(pool.length)];
 }
 
 module.exports = {
@@ -187,4 +240,5 @@ module.exports = {
   getRelic,
   rollConsumableDrop,
   rollRelicDrop,
+  rollMythicDrop,
 };

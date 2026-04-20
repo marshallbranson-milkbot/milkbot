@@ -238,7 +238,8 @@ function buildLobbyPanel(activeRuns) {
     );
 
   const actionRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('dun_start').setLabel('Start a Run').setEmoji('🏰').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('dun_start_normal').setLabel('Start Normal Run').setEmoji('🏰').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('dun_start_hardcore').setLabel('Hardcore Run').setEmoji('💀').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('dun_stats').setLabel('Your Stats').setEmoji('📜').setStyle(ButtonStyle.Secondary),
   );
 

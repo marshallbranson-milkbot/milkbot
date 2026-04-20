@@ -78,7 +78,7 @@ function newRunId() {
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
-function createRun({ creatorId, creatorName, guildId, channelId, maxPartySize = 4, difficulty = 'normal', seed = null }) {
+function createRun({ creatorId, creatorName, guildId, channelId, maxPartySize = 4, difficulty = 'normal', seed = null, dungeonId = 'spoiled_vault' }) {
   const runId = newRunId();
   const actualSeed = seed ?? newSeed();
   const run = {
@@ -95,6 +95,7 @@ function createRun({ creatorId, creatorName, guildId, channelId, maxPartySize = 
     creatorName,
     maxPartySize,
     difficulty,
+    dungeonId,
     party: [],                    // [{ userId, username, classKey, hp, maxHp, statuses: [], cooldowns: {}, items: [] }]
     floor: 1,
     currentRoom: null,            // { kind, enemies?, chest?, eventId?, resolved? }

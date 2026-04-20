@@ -142,7 +142,8 @@ async function handleButtonInteraction(interaction) {
   }
   const id = interaction.customId;
   try {
-    if (id === 'dun_start') return handleStart(interaction);
+    if (id === 'dun_start' || id === 'dun_start_normal') return handleStart(interaction, 'normal');
+    if (id === 'dun_start_hardcore') return handleStart(interaction, 'hardcore');
     if (id === 'dun_stats') return handleStats(interaction);
     if (id.startsWith('dun_join_')) return handleJoin(interaction, id.slice('dun_join_'.length));
     if (id.startsWith('dun_pick_')) {
@@ -198,7 +199,7 @@ async function handleButtonInteraction(interaction) {
   }
 }
 
-async function handleStart(interaction) {
+async function handleStart(interaction, difficulty = 'normal') {
   const userId = interaction.user.id;
   const username = sanitizeUsername(interaction.user.globalName || interaction.user.username);
 
@@ -221,6 +222,7 @@ async function handleStart(interaction) {
     creatorName: username,
     guildId: interaction.guildId,
     channelId: interaction.channelId,
+    difficulty,
   });
   run.pot = ENTRY_COST;
   run.party.push(makePartySlot(userId, username));
@@ -428,12 +430,14 @@ async function advanceToNextFloor(run, thread) {
 
   if (run.floor >= FINAL_FLOOR) return endRun(run, thread, 'victory');
   run.floor += 1;
-  // Auto-revive between floors (doesn't count as a revive for the achievement)
-  for (const p of run.party) {
-    if (p.downed) {
-      p.downed = false;
-      p.hp = Math.floor(p.maxHp * 0.5);
-      run.log.push(`🌱 ${p.username} stands back up at ${p.hp}/${p.maxHp} HP`);
+  // Auto-revive between floors — SKIPPED in hardcore mode
+  if (run.difficulty !== 'hardcore') {
+    for (const p of run.party) {
+      if (p.downed) {
+        p.downed = false;
+        p.hp = Math.floor(p.maxHp * 0.5);
+        run.log.push(`🌱 ${p.username} stands back up at ${p.hp}/${p.maxHp} HP`);
+      }
     }
   }
   state.markDirty(run);
@@ -828,6 +832,14 @@ async function handleCombatEnd(run, thread, end) {
       run.pot += 300;
       run.log.push(`🏺 Duplicate relic — +300 🥛 to pot`);
     }
+    // Hardcore midboss (floor 5 boss room): 25% chance of mythic drop
+    if (run.difficulty === 'hardcore' && room.kind === 'boss' && run.floor === 5 && run.rng.chance(0.25)) {
+      const mythic = loot.rollMythicDrop(run.rng, run.dungeonId || 'spoiled_vault');
+      if (mythic && !run.relics.includes(mythic.key)) {
+        run.relics.push(mythic.key);
+        run.log.push(`💀 **HARDCORE MYTHIC:** ${mythic.emoji} **${mythic.name}** — *${mythic.description}*`);
+      }
+    }
   } else if (room?.guaranteesLoot || run.rng.chance(0.25)) {
     // Consumable drop goes to a random living party member
     const living = run.party.filter(p => !p.downed);
@@ -861,9 +873,10 @@ async function endRun(run, thread, outcome) {
   combat.fireRelicHooks(run, 'run_end');
   const xpBonus = run._xpMul || 1;
 
+  const hardcoreMul = run.difficulty === 'hardcore' ? 3 : 1;
   if (outcome === 'victory') {
-    perPlayerBucks = Math.floor(run.pot / run.party.length);
-    perPlayerXp = Math.floor(BASE_XP_PER_FLOOR * run.floor * xpBonus);
+    perPlayerBucks = Math.floor((run.pot / run.party.length) * hardcoreMul);
+    perPlayerXp = Math.floor(BASE_XP_PER_FLOOR * run.floor * xpBonus * hardcoreMul);
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }
@@ -873,6 +886,21 @@ async function endRun(run, thread, outcome) {
         if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
         if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
       });
+    }
+
+    // Hardcore rewards: mythic relic drop from the final boss, track hardcore stats
+    if (run.difficulty === 'hardcore') {
+      const mythic = loot.rollMythicDrop(run.rng, run.dungeonId || 'spoiled_vault');
+      if (mythic) {
+        for (const p of run.party) {
+          state.updateUserStats(p.userId, s => {
+            s.mythicsCollected = s.mythicsCollected || [];
+            if (!s.mythicsCollected.includes(mythic.key)) s.mythicsCollected.push(mythic.key);
+            s.hardcoreCompletions = (s.hardcoreCompletions || 0) + 1;
+          });
+        }
+        run.log.push(`💀 **HARDCORE MYTHIC DROP:** ${mythic.emoji} **${mythic.name}** — *${mythic.description}*`);
+      }
     }
     await thread.send(display.buildVictoryEmbed(run, { perPlayerBucks, perPlayerXp })).catch(() => {});
   } else {
@@ -884,6 +912,10 @@ async function endRun(run, thread, outcome) {
     state.updateUserStats(p.userId, s => {
       s.totalRuns += 1;
       if (completed) s.completions += 1;
+      if (run.difficulty === 'hardcore') {
+        if (completed) s.hardcoreCompletions = (s.hardcoreCompletions || 0) + 1;
+        if (deepestFloor > (s.hardcoreDeepestFloor || 0)) s.hardcoreDeepestFloor = deepestFloor;
+      }
       if (deepestFloor > (s.deepestFloor || 0)) s.deepestFloor = deepestFloor;
       if (completed && (!s.fastestRunMs || runDurationMs < s.fastestRunMs)) s.fastestRunMs = runDurationMs;
       // Track favorite class by counting runs per class
