@@ -103,7 +103,8 @@ async function refreshChannelPanels(client, channel) {
         }
       }
       if (matched) continue;
-      if (!m.embeds.length && m.content.includes('───')) { statsMsg = m; continue; }
+      // Stats row: new embed-based ledger title, or legacy '───' content fallback.
+      if (title.includes('Your Dungeon Ledger') || (!m.embeds.length && m.content.includes('───'))) { statsMsg = m; continue; }
       // Old v1 lobby panel (pre-split) — orphan, remove.
       if (title.includes('Dungeon Lobby')) orphansToDelete.push(m);
     }

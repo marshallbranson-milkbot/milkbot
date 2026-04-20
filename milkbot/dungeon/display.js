@@ -317,10 +317,24 @@ function buildLobbyPanel(activeRuns, dungeonId = 'spoiled_vault', isUnlocked = t
 }
 
 function buildStatsButton() {
+  const embed = new EmbedBuilder()
+    .setColor(COLOR_INFO)
+    .setTitle('📜 Your Dungeon Ledger')
+    .setDescription(
+      '🥛 ━━━━━━━━━━━━━━━━━━━━━ 🥛\n' +
+      '*every run, every relic, every regret — tracked.*\n\n' +
+      'Clicks total clears per dungeon, deepest floor, hardcore kills,\n' +
+      'mythics collected, class unlocks earned, and favorite class.',
+    );
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('dun_stats').setLabel('Your Stats').setEmoji('📜').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('dun_stats')
+      .setLabel('Open Your Ledger')
+      .setEmoji('📜')
+      .setStyle(ButtonStyle.Primary),
   );
-  return { content: '───────', components: [row] };
+  // content: '' clears the legacy '───' text when editing the old stats row.
+  return { content: '', embeds: [embed], components: [row] };
 }
 
 // === Inside thread: class picker ===
