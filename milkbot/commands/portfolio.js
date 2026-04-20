@@ -55,20 +55,30 @@ function executeBuy(userId, username, ticker, shares, channel) {
 function executeSell(userId, username, ticker, sharesToSell, channel) {
   const portfolios = getPortfolios();
   const holding = portfolios[userId]?.[ticker];
-  if (!holding || holding.shares <= 0) return { success: false, msg: `You don't own any **${ticker}**. 🥛` };
+  if (!holding || typeof holding !== 'object') return { success: false, msg: `You don't own any **${ticker}**. 🥛` };
+  if (!Number.isFinite(holding.shares) || holding.shares <= 0) {
+    if (portfolios[userId]) delete portfolios[userId][ticker];
+    savePortfolios(portfolios);
+    return { success: false, msg: `You don't own any **${ticker}**. 🥛` };
+  }
+  if (!Number.isFinite(holding.spent) || holding.spent < 0) holding.spent = 0;
 
   const prices = getPrices();
-  const price = prices[ticker].price;
+  const priceEntry = prices[ticker];
+  if (!priceEntry || !Number.isFinite(priceEntry.price)) {
+    return { success: false, msg: `**${ticker}** has no current price. Try again in a minute. 🥛` };
+  }
+  const price = priceEntry.price;
   const actualShares = Math.min(sharesToSell, holding.shares);
-  const revenue = actualShares * price;
+  const revenue = Math.max(0, Math.round(actualShares * price));
   const spentPerShare = holding.spent / holding.shares;
-  const costBasis = Math.round(spentPerShare * actualShares);
+  const costBasis = Math.max(0, Math.round(spentPerShare * actualShares));
   const profit = revenue - costBasis;
   const profitRatio = costBasis > 0 ? profit / costBasis : 0;
   const heldHours = holding.boughtAt ? (Date.now() - holding.boughtAt) / (1000 * 60 * 60) : 0;
 
   holding.shares -= actualShares;
-  holding.spent -= costBasis;
+  holding.spent = Math.max(0, holding.spent - costBasis);
   if (holding.shares <= 0) delete portfolios[userId][ticker];
   savePortfolios(portfolios);
 
@@ -106,10 +116,28 @@ module.exports = {
 
   _buildPortfolioPayload(userId, username) {
     const portfolios = getPortfolios();
-    const holdings = portfolios[userId];
+    let holdings = portfolios[userId];
 
-    const validHoldings = holdings && typeof holdings === 'object'
-      ? Object.entries(holdings).filter(([, h]) => h && typeof h === 'object' && (h.shares || 0) > 0)
+    // Defensive normalization — drop any non-object holdings and zombie entries, then persist.
+    if (holdings && typeof holdings === 'object' && !Array.isArray(holdings)) {
+      let dirty = false;
+      for (const k of Object.keys(holdings)) {
+        const h = holdings[k];
+        if (!h || typeof h !== 'object' || Array.isArray(h) || !Number.isFinite(h.shares) || h.shares <= 0) {
+          delete holdings[k]; dirty = true;
+        } else if (!Number.isFinite(h.spent) || h.spent < 0) {
+          h.spent = 0; dirty = true;
+        }
+      }
+      if (dirty) savePortfolios(portfolios);
+    } else {
+      holdings = null;
+    }
+
+    const validHoldings = holdings
+      ? Object.entries(holdings).filter(([ticker, h]) =>
+          VALID_TICKERS.has(ticker) && h && typeof h === 'object' && (h.shares || 0) > 0
+        )
       : [];
 
     if (validHoldings.length === 0) {
