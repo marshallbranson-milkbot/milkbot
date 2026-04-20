@@ -377,17 +377,27 @@ function isCombatOver(run) {
 }
 
 function currentActor(run) {
-  if (!run.turnOrder || run.turnIndex >= run.turnOrder.length) return null;
-  const entry = run.turnOrder[run.turnIndex];
-  if (entry.kind === 'player') {
-    const p = findPlayerById(run, entry.id);
-    run._currentActor = p;
-    return { kind: 'player', entity: p };
-  } else {
-    const e = findEnemyById(run, entry.id);
-    run._currentActor = e;
-    return { kind: 'enemy', entity: e };
+  if (!run.turnOrder || run.turnOrder.length === 0) return null;
+  // Skip broken entries (entity missing, dead, or downed) rather than returning
+  // a half-null actor that would stall the whole turn loop.
+  let guard = 0;
+  while (guard < run.turnOrder.length * 2) {
+    if (run.turnIndex >= run.turnOrder.length) {
+      run.turnOrder = rollInitiative(run, run.rng);
+      run.turnIndex = 0;
+    }
+    const entry = run.turnOrder[run.turnIndex];
+    if (entry.kind === 'player') {
+      const p = findPlayerById(run, entry.id);
+      if (p && !p.downed) { run._currentActor = p; return { kind: 'player', entity: p }; }
+    } else {
+      const e = findEnemyById(run, entry.id);
+      if (e && e.hp > 0) { run._currentActor = e; return { kind: 'enemy', entity: e }; }
+    }
+    run.turnIndex += 1;
+    guard++;
   }
+  return null;
 }
 
 // Fire a relic onEvent hook. Iterates run.relics and applies any effect that matches the kind.

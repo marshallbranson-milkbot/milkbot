@@ -593,6 +593,15 @@ async function processTurn(run, thread) {
 }
 
 async function promptPlayerTurn(run, thread, player) {
+  // Hard guard: if the turn's "actor" is missing or has no class, the combat
+  // state is corrupt — skip the entry so the fight isn't stalled forever.
+  if (!player || !player.classKey || !classes.getClass(player.classKey)) {
+    console.warn('[dungeon] promptPlayerTurn: invalid actor, advancing turn');
+    combat.advanceTurn(run);
+    state.markDirty(run);
+    return processTurn(run, thread);
+  }
+
   await postStatus(run, thread);
 
   // Delete the previous turn prompt so the thread doesn't accumulate them.
