@@ -464,21 +464,24 @@ async function processTurn(run, thread) {
 
 async function promptPlayerTurn(run, thread, player) {
   await postStatus(run, thread);
-  // Mention the active player; their action buttons will come via ephemeral reply when they click any button.
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dun_atk_${run.runId}`).setLabel('Attack').setEmoji('⚔️').setStyle(ButtonStyle.Primary),
-  );
-  // We post a public turn-prompt that anyone could click. Inside the handler we check identity.
+
+  // Delete the previous turn prompt so the thread doesn't accumulate them.
+  if (run._activeTurnMessageId) {
+    try {
+      const prev = await thread.messages.fetch(run._activeTurnMessageId);
+      await prev.delete();
+    } catch { /* already gone */ }
+  }
+
   const cls = classes.getClass(player.classKey);
-  const prompt = `<@${player.userId}> — **${cls.name}** turn. Click your action buttons below.`;
-  const components = display.buildTurnActions(run, player).components;
+  const prompt = `<@${player.userId}> — ${cls.emoji} **${cls.name}** turn`;
+  const { embeds, components } = display.buildTurnActions(run, player);
   try {
-    const msg = await thread.send({ content: prompt, components });
+    const msg = await thread.send({ content: prompt, embeds, components });
     run._activeTurnMessageId = msg.id;
     state.markDirty(run);
   } catch (e) { console.warn('[dungeon] turn prompt failed:', e.message); }
 
-  // Set timeout to auto-attack
   clearTimeout(run._turnTimer);
   run._turnTimer = setTimeout(() => autoAttackOnTimeout(run, thread, player.userId).catch(() => {}), TURN_TIMEOUT_MS);
 }
@@ -772,6 +775,14 @@ async function handleLeave(interaction, runId) {
 
 async function handleCombatEnd(run, thread, end) {
   clearTimeout(run._turnTimer);
+  // Clean up the turn prompt message so it doesn't linger after combat.
+  if (run._activeTurnMessageId) {
+    try {
+      const prev = await thread.messages.fetch(run._activeTurnMessageId);
+      await prev.delete();
+    } catch {}
+    run._activeTurnMessageId = null;
+  }
   if (!end.victory) {
     return endRun(run, thread, 'defeat');
   }

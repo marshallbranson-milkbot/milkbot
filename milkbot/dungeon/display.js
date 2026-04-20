@@ -88,6 +88,15 @@ function buildClassPicker(run, userId) {
       picked
         ? `You picked **${getClass(picked).name}**. Waiting for others.`
         : 'Choose one. Class locks in the moment you click — no take-backs.',
+    )
+    .addFields(
+      ...listClasses().map(cls => ({
+        name: `${cls.emoji} ${cls.name} — ${cls.role}${cls.unlockedByDefault ? '' : ' 🔒'}`,
+        value:
+          `*${cls.description}*\n` +
+          `HP ${cls.base.hp} · ATK ${cls.base.atk} · DEF ${cls.base.def} · SPD ${cls.base.spd}\n` +
+          cls.abilities.map(a => `• **${a.name}** (cd ${a.cooldown || 1}) — ${a.description}`).join('\n'),
+      })),
     );
 
   // One button per class, 4 per row
@@ -153,34 +162,45 @@ function buildStatusEmbed(run) {
 
 function buildTurnActions(run, player) {
   const cls = getClass(player.classKey);
+  const a1 = cls.abilities[0];
+  const a2 = cls.abilities[1];
+  const cd1 = player.cooldowns[a1.key] || 0;
+  const cd2 = player.cooldowns[a2.key] || 0;
+
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`dun_atk_${run.runId}`).setLabel('Attack').setEmoji('⚔️').setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
-      .setCustomId(`dun_abi_${run.runId}_${cls.abilities[0].key}`)
-      .setLabel(cls.abilities[0].name)
+      .setCustomId(`dun_abi_${run.runId}_${a1.key}`)
+      .setLabel(cd1 ? `${a1.name} (${cd1})` : a1.name)
       .setEmoji(cls.emoji)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(!!player.cooldowns[cls.abilities[0].key]),
+      .setDisabled(!!cd1),
     new ButtonBuilder()
-      .setCustomId(`dun_abi_${run.runId}_${cls.abilities[1].key}`)
-      .setLabel(cls.abilities[1].name)
+      .setCustomId(`dun_abi_${run.runId}_${a2.key}`)
+      .setLabel(cd2 ? `${a2.name} (${cd2})` : a2.name)
       .setEmoji(cls.emoji)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(!!player.cooldowns[cls.abilities[1].key]),
+      .setDisabled(!!cd2),
     new ButtonBuilder().setCustomId(`dun_def_${run.runId}`).setLabel('Defend').setEmoji('🛡️').setStyle(ButtonStyle.Secondary),
   );
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`dun_item_${run.runId}`)
-      .setLabel('Use Item')
+      .setLabel(`Items (${player.items?.length || 0})`)
       .setEmoji('🎒')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!player.items || player.items.length === 0),
   );
   const embed = new EmbedBuilder()
     .setColor(COLOR_COMBAT)
-    .setTitle(`Your turn, ${player.username}`)
-    .setDescription(`**${cls.name}** — ${player.hp}/${player.maxHp} HP\nChoose an action. 90s timeout.`);
+    .setTitle(`${cls.emoji} ${player.username}'s turn — ${cls.name}`)
+    .setDescription(
+      `**${player.hp}/${player.maxHp} HP** · 90s to act.\n\n` +
+      `⚔️ **Attack** — basic hit (ATK ${player.atk})\n` +
+      `${cls.emoji} **${a1.name}** — ${a1.description}\n` +
+      `${cls.emoji} **${a2.name}** — ${a2.description}\n` +
+      `🛡️ **Defend** — halve next incoming damage`,
+    );
   return { embeds: [embed], components: [row1, row2] };
 }
 
@@ -315,10 +335,14 @@ function buildItemPicker(run, player, consumablesByKey) {
   if (!player.items || player.items.length === 0) {
     return { content: "You have no items.", flags: 64 };
   }
+  const desc = player.items.map((key, i) => {
+    const c = consumablesByKey[key];
+    return `**${i + 1}.** ${c?.emoji || '❓'} **${c?.name || key}** — ${c?.description || '(unknown)'}`;
+  }).join('\n');
   const embed = new EmbedBuilder()
     .setColor(COLOR_INFO)
     .setTitle('🎒 Your items')
-    .setDescription('Click an item to use it.');
+    .setDescription(desc);
   const rows = [];
   let row = new ActionRowBuilder();
   for (let i = 0; i < player.items.length; i++) {
@@ -327,7 +351,7 @@ function buildItemPicker(run, player, consumablesByKey) {
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(`dun_useitem_${run.runId}_${i}`)
-        .setLabel(c?.name || player.items[i])
+        .setLabel(`${i + 1}. ${c?.name || player.items[i]}`.slice(0, 80))
         .setEmoji(c?.emoji || '❓')
         .setStyle(ButtonStyle.Primary)
     );
