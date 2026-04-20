@@ -316,29 +316,7 @@ const UPDATES = [
       `*— MilkBot Management. the vault is open. go get rich or get curdled. 🥛*`,
     ].join('\n'),
   },
-  {
-    id: 'v30-vault-hotfix',
-    text: [
-      `━━━━━━━━━━━━━━━━━━━━━━`,
-      `🥛 **MILKBOT HOTFIX — VAULT PATCHWORK** 🥛`,
-      `━━━━━━━━━━━━━━━━━━━━━━`,
-      ``,
-      `🏺 **RELIC HOOKS NOW WORK** — Curd Locket, Mold Censer, Rancid Draft, Frothing Chalice, and Lactose Tome were defined but their effects were silently doing nothing. All five now fire at the right moments. your relics actually relic.`,
-      ``,
-      `🛡️ **ROB SHIELDS SMARTER** — shields no longer burn charges on rob attempts that would have failed anyway. the roll resolves first, only a *successful* rob can eat a shield. defenders keep their protection for real threats.`,
-      ``,
-      `☠️ **LACTOSE LICH PHASE** — phase transition at exactly 50% HP now behaves consistently. subtle.`,
-      ``,
-      `🔁 **COMBAT LOOP SAFETY** — added an iteration cap inside the turn engine so that in the extremely edge case of simultaneous party wipe + enemy wipe, the thread can't lock up. invisible to players. important under the hood.`,
-      ``,
-      `🃏 **BLACKJACK AUTO-CLEAN FASTER** — completed games now vanish after **8 seconds** (was 30). the channel breathes.`,
-      ``,
-      `📈 **SELL HARDENED** — legacy/corrupt portfolio data could silently block sells. all portfolios normalized on boot; sell path now handles missing or weird holding data without choking.`,
-      ``,
-      `━━━━━━━━━━━━━━━━━━━━━━`,
-      `*— MilkBot Management. cracks sealed. milk flows. 🥛*`,
-    ].join('\n'),
-  },
+  // v30-vault-hotfix removed — merged into v29 with blackjack 8s correction.
   {
     id: 'v26-public-patch-2',
     text: [
@@ -376,6 +354,9 @@ async function postUpdates(client) {
   const channel = guild?.channels.cache.find(c => c.name === 'milkbot-updates');
   if (!channel) return; // channel doesn't exist yet, skip silently
 
+  // One-time cleanup: delete v30 post if present, edit v29 post with latest text.
+  await cleanupV30AndSyncV29(channel).catch(e => console.warn('[updates] cleanup skipped:', e.message));
+
   const posted = getPosted();
   const toPost = UPDATES.filter(u => !posted.includes(u.id));
   if (toPost.length === 0) return;
@@ -388,6 +369,34 @@ async function postUpdates(client) {
   }
 
   console.log(`[updates] posted ${toPost.length} update(s)`);
+}
+
+async function cleanupV30AndSyncV29(channel) {
+  const cleanupFlagPath = path.join(__dirname, 'data/updates_v30_cleanup_done.json');
+  if (fs.existsSync(cleanupFlagPath)) return;
+
+  // Fetch recent messages — v30 should be within the last ~10-20 bot messages
+  const msgs = await channel.messages.fetch({ limit: 50 });
+  let deleted = 0, edited = 0;
+
+  // Build the current v29 text so we can update it in place
+  const v29Entry = UPDATES.find(u => u.id === 'v29-spoiled-vault');
+  const v29Text = v29Entry ? v29Entry.text : null;
+
+  for (const msg of msgs.values()) {
+    if (msg.author.id !== channel.client.user.id) continue;
+    const content = msg.content || '';
+    if (content.includes('MILKBOT HOTFIX — VAULT PATCHWORK')) {
+      await msg.delete().catch(() => {});
+      deleted++;
+    } else if (v29Text && content.includes('MILKBOT PATCH — THE SPOILED VAULT') && content !== v29Text) {
+      await msg.edit(v29Text).catch(() => {});
+      edited++;
+    }
+  }
+
+  fs.writeFileSync(cleanupFlagPath, JSON.stringify({ done: true, deleted, edited }));
+  console.log(`[updates] v30 cleanup: deleted=${deleted}, v29 edited=${edited}`);
 }
 
 module.exports = { postUpdates };
