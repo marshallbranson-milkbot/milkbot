@@ -1,8 +1,26 @@
 const fs = require('fs');
 const path = require('path');
+const { EmbedBuilder } = require('discord.js');
 
 const GUILD_ID = '562076997979865118';
 const postedPath = path.join(__dirname, 'data/updates_posted.json');
+
+// Discord content cap is 2000 chars. Long patch notes would get rejected, so
+// any update over this threshold posts as an embed (description cap 4096).
+// Short updates keep the plain-content format they've always used.
+const CONTENT_SAFE_LIMIT = 1900;
+
+function buildUpdatePayload(text) {
+  if (text.length <= CONTENT_SAFE_LIMIT) return text;
+  // Extract a title from the first bold header, fall back to generic.
+  const headerMatch = text.match(/\*\*([^*]+)\*\*/);
+  const title = headerMatch ? headerMatch[1].trim() : '🥛 MilkBot Patch 🥛';
+  const embed = new EmbedBuilder()
+    .setColor(0xF3E5AB)
+    .setTitle(`🥛 ${title} 🥛`)
+    .setDescription(text.length > 4000 ? text.slice(0, 4000) + '\n*…truncated*' : text);
+  return { embeds: [embed] };
+}
 
 // ─── UPDATE LOG ─────────────────────────────────────────────────────────────
 // Add new entries to the BOTTOM of this list.
@@ -420,18 +438,49 @@ async function postUpdates(client) {
   // One-time cleanup: delete v30 post if present, edit v29 post with latest text.
   await cleanupV30AndSyncV29(channel).catch(e => console.warn('[updates] cleanup skipped:', e.message));
 
+  // One-time retry of v32 — the initial post hit the 2000-char content limit
+  // and was erroneously marked posted. Force a single retry now that
+  // buildUpdatePayload auto-wraps long notes as embeds.
+  await forceRetryV32Once();
+
   const posted = getPosted();
   const toPost = UPDATES.filter(u => !posted.includes(u.id));
   if (toPost.length === 0) return;
 
   for (const update of toPost) {
-    await channel.send(update.text).catch(console.error);
-    posted.push(update.id);
-    savePosted(posted);
+    // Only mark as posted when the send actually succeeds — prevents a
+    // transient Discord error (like the 2000-char bug that ate v32) from
+    // permanently blocking the patch note.
+    const sent = await channel.send(buildUpdatePayload(update.text)).catch(e => {
+      console.error('[updates] post failed:', e.message);
+      return null;
+    });
+    if (sent) {
+      posted.push(update.id);
+      savePosted(posted);
+    }
     await new Promise(r => setTimeout(r, 600));
   }
 
   console.log(`[updates] posted ${toPost.length} update(s)`);
+}
+
+// Strips v32 out of posted.json exactly once so the now-embed-wrapped post
+// can actually land. Guarded by a flag file so it doesn't loop.
+async function forceRetryV32Once() {
+  const flagPath = path.join(__dirname, 'data/updates_v32_retry_done.json');
+  if (fs.existsSync(flagPath)) return;
+  try {
+    const posted = getPosted();
+    const next = posted.filter(id => id !== 'v32-creamspire-cosmos');
+    if (next.length !== posted.length) {
+      savePosted(next);
+      console.log('[updates] v32 retry queued');
+    }
+    fs.writeFileSync(flagPath, JSON.stringify({ done: Date.now() }));
+  } catch (e) {
+    console.warn('[updates] v32 retry setup failed:', e.message);
+  }
 }
 
 // In-memory guard so concurrent calls within the same process don't double-run the cleanup.
