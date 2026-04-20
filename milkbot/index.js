@@ -160,6 +160,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
+      // /portdebug — owner-only portfolio admin; no channel restriction
+      if (cmdName === 'portdebug') {
+        require('./commands/portdebug').executeSlash(interaction).catch(console.error);
+        return;
+      }
+
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {
@@ -408,6 +414,58 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
       fs.writeFileSync(lbResetV1Path, JSON.stringify({ done: true }));
       console.log('[reset] lb_reset_v1 applied — bigtrades cleared, Grinder set to level 40');
+    }
+
+    // One-time v3 — ultra-aggressive portfolio normalization to unstick specific users.
+    // Accepts string-numeric shares/spent, purges orphans, repairs every field. Runs once.
+    const portfolioNormV3Path = path.join(__dirname, 'data/portfolio_norm_v3_done.json');
+    if (!fs.existsSync(portfolioNormV3Path)) {
+      const _portPath = path.join(__dirname, 'data/portfolios.json');
+      const { STOCK_DEFS: _STOCK_DEFS } = require('./stockdata');
+      const _validTickers = new Set(_STOCK_DEFS.map(s => s.ticker));
+      let migrationOk = true;
+      if (fs.existsSync(_portPath)) {
+        let _port = null;
+        try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) {
+          console.error('[portnorm v3] portfolios.json unreadable:', e.message);
+          migrationOk = false;
+        }
+        if (_port && migrationOk) {
+          let fixed = 0;
+          for (const userId of Object.keys(_port)) {
+            const holdings = _port[userId];
+            if (!holdings || typeof holdings !== 'object' || Array.isArray(holdings)) {
+              console.log(`[portnorm v3] purging orphan user ${userId}`);
+              delete _port[userId]; fixed++; continue;
+            }
+            for (const ticker of Object.keys(holdings)) {
+              let h = holdings[ticker];
+              if (!_validTickers.has(ticker)) { delete holdings[ticker]; fixed++; continue; }
+              if (!h || typeof h !== 'object' || Array.isArray(h)) { delete holdings[ticker]; fixed++; continue; }
+              // Accept string-numeric shares/spent — coerce.
+              const shares = Number(h.shares);
+              const spent = Number(h.spent);
+              const boughtAt = Number(h.boughtAt);
+              if (!Number.isFinite(shares) || shares <= 0) { delete holdings[ticker]; fixed++; continue; }
+              h.shares = Math.floor(shares);
+              h.spent = Number.isFinite(spent) && spent >= 0 ? Math.floor(spent) : 0;
+              h.boughtAt = Number.isFinite(boughtAt) ? boughtAt : Date.now();
+              fixed++;
+            }
+            if (Object.keys(holdings).length === 0) delete _port[userId];
+          }
+          try {
+            const tmp = _portPath + '.tmp';
+            fs.writeFileSync(tmp, JSON.stringify(_port, null, 2));
+            fs.renameSync(tmp, _portPath);
+            console.log(`[portnorm v3] normalized portfolios (${fixed} fixes, ${Object.keys(_port).length} users)`);
+          } catch (e) {
+            console.error('[portnorm v3] write failed:', e.message);
+            migrationOk = false;
+          }
+        }
+      }
+      if (migrationOk) fs.writeFileSync(portfolioNormV3Path, JSON.stringify({ done: true }));
     }
 
     // One-time: normalize all portfolios (fix missing .spent, NaN shares, unknown tickers, etc.)

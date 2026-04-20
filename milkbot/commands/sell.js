@@ -40,6 +40,9 @@ module.exports = {
     const portfolios = getPortfolios();
     const holding = portfolios[userId]?.[ticker];
 
+    // Instrumentation for the 747542945766309940 case — logs shape when sell is attempted.
+    console.log(`[sell] user=${userId} ticker=${ticker} holding=${JSON.stringify(holding)} portfolioKeys=${Object.keys(portfolios[userId] || {}).join(',') || 'none'}`);
+
     // Normalize legacy/corrupt fields defensively — missing spent, NaN shares, etc. would
     // silently break the sell path otherwise.
     if (!holding) {
