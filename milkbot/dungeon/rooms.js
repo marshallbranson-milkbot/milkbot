@@ -14,6 +14,8 @@ function enemyPoolForFloor(floor) {
 }
 
 function pickEnemyCountForFloor(floor, partySize, rng) {
+  // Solo gets 1 enemy at a time (rarely 2); pairs get 1-2; 3-4 players get 2-3.
+  if (partySize === 1) return floor >= 6 ? (rng.chance(0.4) ? 2 : 1) : 1;
   const base = Math.max(1, Math.ceil(partySize * 0.5));
   const bonus = floor >= 5 ? rng.int(2) : 0;
   return Math.min(4, base + bonus);

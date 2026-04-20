@@ -7,7 +7,8 @@ const BOSSES = {
     name: 'The Lactose Lich',
     emoji: '☠️',
     isBoss: true,
-    base: { hp: 350, atk: 22, def: 6, spd: 7 },
+    // Base tuned for 4-player parties. Scaled by party size in combat.js.
+    base: { hp: 350, atk: 18, def: 5, spd: 7 },
     floor: 5,
     // Phase 1 (>50% HP): single-target hit with Sour
     // Phase 2 (<=50% HP): AoE curse
@@ -40,7 +41,8 @@ const BOSSES = {
     name: 'The Curdfather',
     emoji: '🧀',
     isBoss: true,
-    base: { hp: 650, atk: 28, def: 10, spd: 8 },
+    // Base tuned for 4-player parties. Scaled by party size in combat.js.
+    base: { hp: 650, atk: 24, def: 8, spd: 8 },
     floor: 10,
     // Phase 1 (>66% HP): single heavy hit
     // Phase 2 (33-66% HP): multi-hit (3 attacks)

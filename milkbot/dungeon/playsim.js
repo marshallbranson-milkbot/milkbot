@@ -17,14 +17,14 @@ const MAX_TURNS_PER_COMBAT = 300;
 
 function log(...args) { console.log(...args); }
 
-function makeRun(seed) {
+function makeRun(seed, partySize = 4) {
   const rng = makeRunRng(seed);
   const classKeys = listClasses().filter(c => c.unlockedByDefault).map(c => c.key);
-  // Pad with locked classes so we always have 4
   const allKeys = listClasses().map(c => c.key);
-  const usable = classKeys.length >= 4 ? classKeys : allKeys;
-  const party = [0, 1, 2, 3].map(i =>
-    initPlayer({ userId: `u${i}`, username: ['Moorshall', 'Beej', 'Cass', 'Grinder'][i], classKey: usable[i % usable.length] })
+  const usable = classKeys.length >= partySize ? classKeys : allKeys;
+  const usernames = ['Moorshall', 'Beej', 'Cass', 'Grinder'];
+  const party = Array.from({ length: partySize }, (_, i) =>
+    initPlayer({ userId: `u${i}`, username: usernames[i] || `P${i+1}`, classKey: usable[i % usable.length] })
   );
   return {
     runId: 'sim-' + seed,
@@ -34,13 +34,13 @@ function makeRun(seed) {
     party,
     floor: 1,
     relics: [],
-    pot: 4000,
+    pot: 1000 * partySize,
     log: [],
     currentRoom: null,
     turnOrder: [],
     turnIndex: 0,
     difficulty: 'normal',
-    maxPartySize: 4,
+    maxPartySize: partySize,
     createdAt: Date.now(),
   };
 }
@@ -239,13 +239,14 @@ function printPartyStatus(run) {
   log(`  Pot: ${run.pot} 🥛  Relics: ${run.relics.length}  [${run.relics.join(', ')}]`);
 }
 
-function runFullSim(seed) {
+function runFullSim(seed, partySize = 4) {
   log(`\n╔════════════════════════════════════╗`);
   log(`║  MILKBOT DUNGEON — FULL SIM RUN    ║`);
   log(`║  seed: ${String(seed).padEnd(28)}║`);
+  log(`║  party size: ${String(partySize).padEnd(22)}║`);
   log(`╚════════════════════════════════════╝`);
 
-  const run = makeRun(seed);
+  const run = makeRun(seed, partySize);
   log(`\nPARTY:`);
   for (const p of run.party) {
     log(`  ${getClass(p.classKey).emoji} ${p.username} — ${getClass(p.classKey).name}`);
@@ -273,7 +274,8 @@ function runFullSim(seed) {
 
 if (require.main === module) {
   const seed = Number(process.argv[2]) || newSeed();
-  const result = runFullSim(seed);
+  const partySize = Number(process.argv[3]) || 4;
+  const result = runFullSim(seed, partySize);
   log(`\nResult:`, result);
 }
 

@@ -50,14 +50,23 @@ function initPlayer({ userId, username, classKey }) {
   };
 }
 
-// Spawn enemies for a combat room (bosses included)
-function spawnEnemies(enemyKeys, floor, difficulty, rng) {
+// Spawn enemies for a combat room (bosses included). Bosses scale down for small parties.
+function spawnEnemies(enemyKeys, floor, difficulty, rng, partySize = 4) {
+  // Party-size scalar: 1p = 0.35, 2p = 0.55, 3p = 0.80, 4p = 1.00 of boss stats.
+  const bossScalarByParty = { 1: 0.35, 2: 0.55, 3: 0.80, 4: 1.0 };
+  const bossScalar = bossScalarByParty[Math.min(4, Math.max(1, partySize))] ?? 1.0;
+
   return enemyKeys.map((key, idx) => {
     const def = getEnemyOrBoss(key);
     if (!def) throw new Error(`Unknown enemy: ${key}`);
-    // Bosses use their exact base stats (not per-floor scaled) — they're already floor-specific.
     const stats = def.isBoss
-      ? { hp: def.base.hp, maxHp: def.base.hp, atk: def.base.atk, def: def.base.def, spd: def.base.spd }
+      ? {
+          hp: Math.floor(def.base.hp * bossScalar),
+          maxHp: Math.floor(def.base.hp * bossScalar),
+          atk: Math.floor(def.base.atk * bossScalar),
+          def: def.base.def,
+          spd: def.base.spd,
+        }
       : scaleEnemyStats(def, floor, difficulty);
     return {
       id: `e${idx}_${key}`,
@@ -110,7 +119,7 @@ function applyRelicPassives(run) {
 // processEffect mutates run state and returns a log line.
 
 function findPlayerById(run, id) { return run.party.find(p => p.userId === id); }
-function findEnemyById(run, id) { return run.currentRoom.enemies.find(e => e.id === id); }
+function findEnemyById(run, id) { return run.currentRoom?.enemies?.find(e => e.id === id); }
 
 function isPlayerId(run, id) { return !!findPlayerById(run, id); }
 
@@ -279,7 +288,7 @@ function processEffects(run, effects, sourceName, rng) {
 
 function startCombat(run, enemyKeys) {
   const rng = run.rng;
-  const enemies = spawnEnemies(enemyKeys, run.floor, run.difficulty, rng);
+  const enemies = spawnEnemies(enemyKeys, run.floor, run.difficulty, rng, run.party.length);
   run.currentRoom = { kind: 'combat', enemies, resolved: false };
   // Reset per-combat player state
   for (const p of run.party) {
