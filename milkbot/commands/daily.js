@@ -4,6 +4,7 @@ const fs = require('fs');
   const balancesPath = path.join(__dirname, '../data/balances.json');
   const cooldownsPath = path.join(__dirname, '../data/cooldowns.json');
   const ach = require('../achievements');
+  const personality = require('../personality');
 
   function getData(filePath) {
     if (!fs.existsSync(filePath)) return {};
@@ -40,7 +41,7 @@ const fs = require('fs');
       if (timeLeft > 0) {
         const hours = Math.floor(timeLeft / (1000 * 60 * 60));
         const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        message.reply(`Slow down. You already got your milk today. Come back in **${hours}h ${minutes}m**. 🥛`).then(reply => {
+        message.reply(personality.say('daily_cooldown', { hours, minutes })).then(reply => {
           setTimeout(() => { reply.delete().catch(() => {}); message.delete().catch(() => {}); }, 8000);
         });
         return;

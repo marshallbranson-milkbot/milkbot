@@ -10,6 +10,7 @@ const ach = require('../achievements');
 const jackpot = require('../jackpot');
 const prestige = require('../prestige');
 const { withLock } = require('../balancelock');
+const personality = require('../personality');
 
 // Acquire both users' balance locks in sorted order to avoid deadlock, then run fn.
 async function withPairLock(idA, idB, fn) {
@@ -42,11 +43,11 @@ module.exports = {
     }
 
     if (target.bot) {
-      return message.reply(`You can't rob a bot. Nice try. 🥛`);
+      return message.reply(personality.say('target_is_bot'));
     }
 
     if (target.id === message.author.id) {
-      return message.reply(`You can't rob yourself. 🥛`);
+      return message.reply(personality.say('target_is_self'));
     }
 
     const cooldowns = getData(cooldownsPath);
@@ -57,7 +58,7 @@ module.exports = {
     if (timeLeft > 0) {
       const hours = Math.floor(timeLeft / (1000 * 60 * 60));
       const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-      return message.reply(`You're laying low. Try again in **${hours}h ${minutes}m**. 🥛`);
+      return message.reply(personality.say('rob_cooldown', { hours, minutes }));
     }
 
     cooldowns[`rob_${message.author.id}`] = now;
@@ -68,11 +69,11 @@ module.exports = {
     const targetBalance = balances[target.id] || 0;
 
     if (targetBalance <= 0) {
-      return message.reply(`${target.username} is broke. Not worth it. 🥛`);
+      return message.reply(personality.say('broke_target', { username: target.username }));
     }
 
     if (robberBalance <= 0) {
-      return message.reply(`You're broke. You've got nothing to lose but you also can't pull this off. 🥛`);
+      return message.reply(personality.say('broke'));
     }
 
     // Roll success first — ONLY check/consume shield on a roll that would have succeeded,
