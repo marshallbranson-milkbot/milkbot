@@ -212,7 +212,7 @@ const BOSSES = {
     emoji: '🌌',
     isBoss: true,
     dungeon: 'creamspire_cosmos',
-    base: { hp: 720, atk: 26, def: 9, spd: 9 },
+    base: { hp: 620, atk: 24, def: 9, spd: 9 },
     floor: 10,
     phases: [
       { threshold: 1.0, behavior: (ctx) => {
