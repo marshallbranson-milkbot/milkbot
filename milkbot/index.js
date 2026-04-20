@@ -330,6 +330,27 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     // Check Milk Lord every day at midnight
     scheduleMilkLord();
 
+    // One-time: rescale the active raid boss HP to the new 15k cap, preserving current HP percentage.
+    const raidboss15kPath = path.join(__dirname, 'data/raidboss_rescale_15k_done.json');
+    if (!fs.existsSync(raidboss15kPath)) {
+      const _rbPath = path.join(__dirname, 'data/raidboss.json');
+      if (fs.existsSync(_rbPath)) {
+        try {
+          const _rb = JSON.parse(fs.readFileSync(_rbPath, 'utf8'));
+          if (_rb && typeof _rb.maxHp === 'number' && _rb.maxHp > 15000) {
+            const scale = 15000 / _rb.maxHp;
+            const oldMax = _rb.maxHp;
+            const oldCur = _rb.currentHp;
+            _rb.maxHp = 15000;
+            _rb.currentHp = Math.max(1, Math.floor((_rb.currentHp || 0) * scale));
+            fs.writeFileSync(_rbPath, JSON.stringify(_rb, null, 2));
+            console.log(`[raidboss] rescaled active boss: ${oldCur}/${oldMax} → ${_rb.currentHp}/${_rb.maxHp}`);
+          }
+        } catch (e) { console.error('[raidboss rescale] failed:', e.message); }
+      }
+      fs.writeFileSync(raidboss15kPath, JSON.stringify({ done: true }));
+    }
+
     // Raid boss — restore if bot restarted mid-day, then schedule nightly spawns
     const rbCommand = commands['rb'];
     if (rbCommand) {

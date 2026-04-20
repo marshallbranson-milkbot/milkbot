@@ -575,7 +575,7 @@ function readBalances() {
 function calcMaxHp() {
   const balances = readBalances();
   const activePlayers = Object.values(balances).filter(b => b > 0).length;
-  return Math.max(5000, Math.min(25000, activePlayers * 2500));
+  return Math.max(5000, Math.min(15000, activePlayers * 2500));
 }
 
 let bossEditTimer = null;
