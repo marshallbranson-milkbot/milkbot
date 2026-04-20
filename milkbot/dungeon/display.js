@@ -14,78 +14,96 @@ function hpBar(current, max, width = 10) {
   return '█'.repeat(filled) + '░'.repeat(width - filled);
 }
 
+// Visual width approximation — emojis take ~2 cells, regular chars take 1.
+function visualWidth(s) {
+  let w = 0;
+  for (const ch of String(s)) {
+    const code = ch.codePointAt(0);
+    if (code > 0x1F000 || (code >= 0x2600 && code < 0x2E80) || code === 0x203C || code === 0x2049) w += 2;
+    else w += 1;
+  }
+  return w;
+}
+
 function centerInWidth(s, width) {
-  const len = [...s].length;
+  const len = visualWidth(s);
   if (len >= width) return s;
   const pad = width - len;
   const left = Math.floor(pad / 2);
   return ' '.repeat(left) + s + ' '.repeat(pad - left);
 }
 
-// Build a visual scene showing the party on top and enemies below, separated by an attack-line.
+function padToWidth(s, width) {
+  const len = visualWidth(s);
+  if (len >= width) return s;
+  return s + ' '.repeat(width - len);
+}
+
+// Build a "dungeon chamber" ASCII frame with stone walls and a content area.
+// Content is a list of pre-rendered lines; they get wrapped in stone-wall borders.
+function buildChamber(title, contentLines, innerWidth = 28) {
+  const hBar = '═'.repeat(innerWidth + 2);
+  const stone = '░'.repeat(innerWidth);
+  const lines = [];
+  lines.push('╔' + hBar + '╗');
+  lines.push('║ ' + centerInWidth(title, innerWidth) + ' ║');
+  lines.push('╠' + hBar + '╣');
+  lines.push('║░' + stone + '░║');
+  for (const inner of contentLines) {
+    lines.push('║░' + padToWidth(centerInWidth(inner, innerWidth), innerWidth) + '░║');
+  }
+  lines.push('║░' + stone + '░║');
+  lines.push('╚' + hBar + '╝');
+  return '```\n' + lines.join('\n') + '\n```';
+}
+
+// Build a dungeon-chamber visual with party up top, enemies below, separated by weapons.
 function buildCombatScene(run, titleLine) {
   const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
   const enemyEmojis = (run.currentRoom?.enemies || []).filter(e => e.hp > 0).map(e => e.emoji);
-  const SCENE_WIDTH = 32;
-
-  const lines = [];
-  lines.push('╔══════════════════════════════╗');
-  lines.push('║' + centerInWidth(titleLine, 30) + '║');
-  lines.push('╚══════════════════════════════╝');
-  lines.push('');
-  lines.push(centerInWidth(partyEmojis.join('  '), SCENE_WIDTH));
-  lines.push('');
-  lines.push(centerInWidth('⚡ ⚡ ⚡', SCENE_WIDTH));
-  lines.push('');
-  lines.push(centerInWidth(enemyEmojis.join('  ') || '(empty)', SCENE_WIDTH));
-  return '```\n' + lines.join('\n') + '\n```';
+  return buildChamber(titleLine, [
+    '',
+    partyEmojis.join('  '),
+    '',
+    '⚔️  ⚡  ⚔️',
+    '',
+    enemyEmojis.join('  ') || '(empty)',
+    '',
+  ]);
 }
 
 function buildBossScene(run, titleLine, subtitleLine) {
   const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
   const boss = (run.currentRoom?.enemies || []).find(e => e.isBoss) || run.currentRoom?.enemies?.[0];
-  const SCENE_WIDTH = 32;
-  const lines = [];
-  lines.push('╔══════════════════════════════╗');
-  lines.push('║' + centerInWidth(titleLine, 30) + '║');
-  if (subtitleLine) lines.push('║' + centerInWidth(subtitleLine, 30) + '║');
-  lines.push('╚══════════════════════════════╝');
-  lines.push('');
-  lines.push(centerInWidth(partyEmojis.join('  '), SCENE_WIDTH));
-  lines.push('');
-  lines.push(centerInWidth('⚡⚡⚡', SCENE_WIDTH));
-  lines.push('');
-  lines.push(centerInWidth(boss ? boss.emoji : '???', SCENE_WIDTH));
-  lines.push(centerInWidth(`[ ${boss?.name || 'BOSS'} ]`, SCENE_WIDTH));
-  return '```\n' + lines.join('\n') + '\n```';
+  const inner = [
+    '',
+    partyEmojis.join('  '),
+    '',
+    '⚔️  ⚡⚡⚡  ⚔️',
+    '',
+    boss ? boss.emoji : '???',
+    `[ ${boss?.name || 'BOSS'} ]`,
+    '',
+  ];
+  return buildChamber(subtitleLine ? `${titleLine} · ${subtitleLine}` : titleLine, inner, 32);
 }
 
 function buildRoomBanner(emoji, label) {
-  const lines = [];
-  lines.push('╔══════════════════════════════╗');
-  lines.push('║' + centerInWidth(`${emoji}  ${label}  ${emoji}`, 30) + '║');
-  lines.push('╚══════════════════════════════╝');
-  return '```\n' + lines.join('\n') + '\n```';
+  return buildChamber(`${emoji}  ${label}  ${emoji}`, ['', '']);
 }
 
 function buildRestScene(run) {
   const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
-  const SCENE_WIDTH = 32;
-  const arranged = [];
-  // Put fire in the middle
   const half = Math.floor(partyEmojis.length / 2);
   const left = partyEmojis.slice(0, half);
   const right = partyEmojis.slice(half);
   const row = [...left, '🔥', ...right].join('  ');
-  arranged.push(centerInWidth(row, SCENE_WIDTH));
-  arranged.push(centerInWidth('(resting by the fire)', SCENE_WIDTH));
-  return '```\n' +
-    '╔══════════════════════════════╗\n' +
-    '║' + centerInWidth('🏕️  REST STOP  🏕️', 30) + '║\n' +
-    '╚══════════════════════════════╝\n' +
-    '\n' +
-    arranged.join('\n') + '\n' +
-    '```';
+  return buildChamber('🏕️  REST STOP  🏕️', [
+    '',
+    row,
+    '(resting by the fire)',
+    '',
+  ]);
 }
 
 function partyStatusLines(run) {
@@ -342,11 +360,7 @@ function buildDefeatEmbed(run) {
 }
 
 function buildFloorClearedEmbed(run) {
-  const scene = '```\n' +
-    '╔══════════════════════════════╗\n' +
-    '║' + centerInWidth(`✅  FLOOR ${run.floor} CLEARED  ✅`, 30) + '║\n' +
-    '╚══════════════════════════════╝\n' +
-    '```';
+  const scene = buildChamber(`✅  FLOOR ${run.floor} CLEARED  ✅`, ['', '']);
   const embed = new EmbedBuilder()
     .setColor(COLOR_VICTORY)
     .setTitle(`✅ Floor ${run.floor} cleared`)
@@ -358,19 +372,16 @@ function buildFloorClearedEmbed(run) {
 
 function buildTreasureRoom(run) {
   const room = run.currentRoom;
-  const chestRow = room.chests.map((c, i) => {
-    const claimed = Object.values(room.claimed).includes(i);
-    return claimed ? '🗃️' : '📦';
-  }).join('    ');
-  const SCENE_WIDTH = 32;
-  const scene = '```\n' +
-    '╔══════════════════════════════╗\n' +
-    '║' + centerInWidth('💰  TREASURE ROOM  💰', 30) + '║\n' +
-    '╚══════════════════════════════╝\n' +
-    '\n' +
-    centerInWidth(chestRow, SCENE_WIDTH) + '\n' +
-    centerInWidth(room.chests.map((_, i) => `#${i + 1}`).join('      '), SCENE_WIDTH) + '\n' +
-    '```';
+  const chestRow = room.chests.map((_, i) => {
+    return Object.values(room.claimed).includes(i) ? '🗃️' : '📦';
+  }).join('   ');
+  const labelRow = room.chests.map((_, i) => `#${i + 1}`).join('    ');
+  const scene = buildChamber('💰  TREASURE ROOM  💰', [
+    '',
+    chestRow,
+    labelRow,
+    '',
+  ]);
   const desc = room.chests.map((c, i) => {
     const claimedBy = Object.entries(room.claimed).find(([uid, idx]) => idx === i);
     if (claimedBy) {
@@ -407,14 +418,12 @@ function buildEventRoom(run, event) {
     sour_spring: '💧', phantom_cow: '🐮', lost_traveler: '🧳',
   };
   const icon = iconByKey[event.key] || '📜';
-  const scene = '```\n' +
-    '╔══════════════════════════════╗\n' +
-    '║' + centerInWidth('📜  ENCOUNTER  📜', 30) + '║\n' +
-    '╚══════════════════════════════╝\n' +
-    '\n' +
-    centerInWidth(icon, 32) + '\n' +
-    centerInWidth(event.title, 32) + '\n' +
-    '```';
+  const scene = buildChamber('📜  ENCOUNTER  📜', [
+    '',
+    icon,
+    event.title,
+    '',
+  ]);
   const embed = new EmbedBuilder()
     .setColor(0x9C27B0)
     .setTitle(`📜 ${event.title}`)
@@ -435,14 +444,12 @@ function buildEventRoom(run, event) {
 
 function buildMerchantRoom(run) {
   const room = run.currentRoom;
-  const scene = '```\n' +
-    '╔══════════════════════════════╗\n' +
-    '║' + centerInWidth('🛒  MERCHANT  🛒', 30) + '║\n' +
-    '╚══════════════════════════════╝\n' +
-    '\n' +
-    centerInWidth('🧙', 32) + '\n' +
-    centerInWidth('[ 5 wares on offer ]', 32) + '\n' +
-    '```';
+  const scene = buildChamber('🛒  MERCHANT  🛒', [
+    '',
+    '🧙',
+    '[ 5 wares on offer ]',
+    '',
+  ]);
   const desc = room.items.map((slot, i) => {
     const bought = room.purchased[i];
     if (bought) return `~~${slot.item.emoji} ${slot.item.name} — ${slot.price}🥛~~ *(bought)*`;
