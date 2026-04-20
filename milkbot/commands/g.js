@@ -80,6 +80,7 @@ function buildWallet(userId) {
         btn(`g_play_give_${userId}`,     '💸 Give',          ButtonStyle.Primary),
         btn(`g_play_crate_${userId}`,    '📦 Claim Crate',   ButtonStyle.Success),
         btn(`g_play_jackpot_${userId}`,  '🎰 Jackpot',       ButtonStyle.Secondary),
+        btn(`g_play_quests_${userId}`,   '🎯 Quests',        ButtonStyle.Success),
         btn(`g_back_${userId}`,          '⬅️ Back',          ButtonStyle.Secondary),
       ),
     ],
@@ -144,7 +145,7 @@ const COOP_GAMES = new Set(['scramble', 'trivia', 'triviacrack', 'geo']);
 // Interactive games need a persistent public message for button interactions
 const INTERACTIVE_GAMES = new Set(['blackjack', 'bjt', 'coinflip', 'raid']);
 // Passive lookups — don't count as an active game
-const PASSIVE_GAMES = new Set(['balance', 'xp', 'ach', 'prestige', 'jackpot', 'bossstatus', 'crate', 'daily']);
+const PASSIVE_GAMES = new Set(['balance', 'xp', 'ach', 'prestige', 'jackpot', 'bossstatus', 'crate', 'daily', 'quests']);
 
 const activeGameUsers = new Set();
 const lastGameTime = new Map();
@@ -196,6 +197,13 @@ async function handleGame(interaction, game, userId) {
         autoDelete(interaction.channel.send(content));
       }
     },
+    quests: async () => {
+      try {
+        await require('./quests').executeSlash(interaction);
+      } catch (e) {
+        interaction.followUp({ content: `quests unavailable right now. 🥛`, flags: 64 }).catch(() => {});
+      }
+    },
     bossstatus: async () => {
       const s = require('../state');
       if (!s.activeRaidBoss) {
@@ -208,7 +216,8 @@ async function handleGame(interaction, game, userId) {
   };
 
   if (oneClick[game]) {
-    await interaction.deferUpdate();
+    // /quests uses interaction.reply directly (it's async-native) — don't deferUpdate.
+    if (game !== 'quests') await interaction.deferUpdate();
     oneClick[game]();
     release();
     return;
@@ -332,7 +341,7 @@ module.exports = {
       const game = parts[2];
       const VALID_GAMES = new Set([
         'slots','scramble','trivia','triviacrack','geo','daily','balance','xp',
-        'ach','prestige','crate','jackpot','bossstatus',
+        'ach','prestige','crate','jackpot','bossstatus','quests',
         'blackjack','plinko','fliphouse','bjt','raid','lottery',
         'roulette','rob','give','coinflip',
       ]);

@@ -71,18 +71,27 @@ async function payout(userId, bucks, xp) {
 async function refreshChannelPanels(client, channel) {
   // Find existing messages by embed title, in order: explainer, vault-panel, abyss-panel
   let explainerMsg = null, vaultMsg = null, abyssMsg = null, statsMsg = null;
+  const orphansToDelete = [];
   try {
     const recent = await channel.messages.fetch({ limit: 50 });
     for (const m of recent.values()) {
       if (m.author.id !== client.user.id) continue;
       const title = m.embeds[0]?.title || '';
-      if (title.includes('MilkBot Dungeon') && title.includes('Spoiled Vault')) explainerMsg = m;
+      if (title.includes('MilkBot Dungeon') && (title.includes('Spoiled Vault') || title.includes('Udder Abyss'))) explainerMsg = m;
       else if (title.includes('The Spoiled Vault')) vaultMsg = m;
       else if (title.includes('The Udder Abyss')) abyssMsg = m;
       else if (!m.embeds.length && m.content.includes('───')) statsMsg = m;
+      // Old v1 lobby panel (pre-split) — orphan, remove.
+      else if (title.includes('Dungeon Lobby')) orphansToDelete.push(m);
     }
   } catch (e) {
     console.warn('[dungeon] fetch panels failed:', e.message);
+  }
+
+  // Clean up orphaned old panels before re-rendering
+  for (const m of orphansToDelete) {
+    await m.delete().catch(() => {});
+    console.log('[dungeon] deleted orphan panel:', m.embeds[0]?.title || '(no title)');
   }
 
   // Post/edit in order: top explainer → Vault lobby → Abyss lobby → stats button row

@@ -166,7 +166,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
-      // /quests — ephemeral player quest list; no channel restriction
+      // /quests is still routed for backwards compatibility, but the primary entry is /g → Wallet → Quests.
       if (cmdName === 'quests') {
         require('./commands/quests').executeSlash(interaction).catch(console.error);
         return;
