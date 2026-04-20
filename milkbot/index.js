@@ -391,32 +391,45 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
 
     // One-time: normalize all portfolios (fix missing .spent, NaN shares, unknown tickers, etc.)
     // Prevents users from getting stuck unable to use /port or sell due to legacy/corrupt holdings.
+    // If the source file is unreadable/corrupt, we do NOT mark the migration complete so it
+    // retries on the next boot (after an admin repairs the file).
     const portfolioNormV2Path = path.join(__dirname, 'data/portfolio_norm_v2_done.json');
     if (!fs.existsSync(portfolioNormV2Path)) {
       const _portPath = path.join(__dirname, 'data/portfolios.json');
       const { STOCK_DEFS: _STOCK_DEFS } = require('./stockdata');
       const _validTickers = new Set(_STOCK_DEFS.map(s => s.ticker));
+      let migrationOk = true;
       if (fs.existsSync(_portPath)) {
-        let _port = {};
-        try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) { console.error('[portnorm] corrupted:', e.message); }
-        let fixed = 0;
-        for (const userId of Object.keys(_port)) {
-          const holdings = _port[userId];
-          if (!holdings || typeof holdings !== 'object' || Array.isArray(holdings)) { delete _port[userId]; fixed++; continue; }
-          for (const ticker of Object.keys(holdings)) {
-            const h = holdings[ticker];
-            if (!_validTickers.has(ticker)) { delete holdings[ticker]; fixed++; continue; }
-            if (!h || typeof h !== 'object' || Array.isArray(h)) { delete holdings[ticker]; fixed++; continue; }
-            if (!Number.isFinite(h.shares) || h.shares <= 0) { delete holdings[ticker]; fixed++; continue; }
-            if (!Number.isFinite(h.spent) || h.spent < 0) { h.spent = 0; fixed++; }
-            if (!Number.isFinite(h.boughtAt)) { h.boughtAt = Date.now(); }
-          }
-          if (Object.keys(holdings).length === 0) delete _port[userId];
+        let _port = null;
+        try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) {
+          console.error('[portnorm v2] portfolios.json is unreadable — leaving migration flag unset so we retry next boot:', e.message);
+          migrationOk = false;
         }
-        fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
-        console.log(`[portnorm v2] normalized portfolios (${fixed} fixes)`);
+        if (_port && migrationOk) {
+          let fixed = 0;
+          for (const userId of Object.keys(_port)) {
+            const holdings = _port[userId];
+            if (!holdings || typeof holdings !== 'object' || Array.isArray(holdings)) { delete _port[userId]; fixed++; continue; }
+            for (const ticker of Object.keys(holdings)) {
+              const h = holdings[ticker];
+              if (!_validTickers.has(ticker)) { delete holdings[ticker]; fixed++; continue; }
+              if (!h || typeof h !== 'object' || Array.isArray(h)) { delete holdings[ticker]; fixed++; continue; }
+              if (!Number.isFinite(h.shares) || h.shares <= 0) { delete holdings[ticker]; fixed++; continue; }
+              if (!Number.isFinite(h.spent) || h.spent < 0) { h.spent = 0; fixed++; }
+              if (!Number.isFinite(h.boughtAt)) { h.boughtAt = Date.now(); }
+            }
+            if (Object.keys(holdings).length === 0) delete _port[userId];
+          }
+          try {
+            fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
+            console.log(`[portnorm v2] normalized portfolios (${fixed} fixes)`);
+          } catch (e) {
+            console.error('[portnorm v2] write failed — leaving flag unset:', e.message);
+            migrationOk = false;
+          }
+        }
       }
-      fs.writeFileSync(portfolioNormV2Path, JSON.stringify({ done: true }));
+      if (migrationOk) fs.writeFileSync(portfolioNormV2Path, JSON.stringify({ done: true }));
     }
 
     // One-time: correct Grinder XP to level 20

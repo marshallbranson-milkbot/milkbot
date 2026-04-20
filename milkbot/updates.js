@@ -371,32 +371,39 @@ async function postUpdates(client) {
   console.log(`[updates] posted ${toPost.length} update(s)`);
 }
 
+// In-memory guard so concurrent calls within the same process don't double-run the cleanup.
+let _cleanupRunning = false;
+
 async function cleanupV30AndSyncV29(channel) {
   const cleanupFlagPath = path.join(__dirname, 'data/updates_v30_cleanup_done.json');
   if (fs.existsSync(cleanupFlagPath)) return;
+  if (_cleanupRunning) return;
+  _cleanupRunning = true;
 
-  // Fetch recent messages — v30 should be within the last ~10-20 bot messages
-  const msgs = await channel.messages.fetch({ limit: 50 });
-  let deleted = 0, edited = 0;
+  try {
+    const msgs = await channel.messages.fetch({ limit: 50 });
+    let deleted = 0, edited = 0;
 
-  // Build the current v29 text so we can update it in place
-  const v29Entry = UPDATES.find(u => u.id === 'v29-spoiled-vault');
-  const v29Text = v29Entry ? v29Entry.text : null;
+    const v29Entry = UPDATES.find(u => u.id === 'v29-spoiled-vault');
+    const v29Text = v29Entry ? v29Entry.text : null;
 
-  for (const msg of msgs.values()) {
-    if (msg.author.id !== channel.client.user.id) continue;
-    const content = msg.content || '';
-    if (content.includes('MILKBOT HOTFIX — VAULT PATCHWORK')) {
-      await msg.delete().catch(() => {});
-      deleted++;
-    } else if (v29Text && content.includes('MILKBOT PATCH — THE SPOILED VAULT') && content !== v29Text) {
-      await msg.edit(v29Text).catch(() => {});
-      edited++;
+    for (const msg of msgs.values()) {
+      if (msg.author.id !== channel.client.user.id) continue;
+      const content = msg.content || '';
+      if (content.includes('MILKBOT HOTFIX — VAULT PATCHWORK')) {
+        await msg.delete().catch(() => {});
+        deleted++;
+      } else if (v29Text && content.includes('MILKBOT PATCH — THE SPOILED VAULT') && content !== v29Text) {
+        await msg.edit(v29Text).catch(() => {});
+        edited++;
+      }
     }
-  }
 
-  fs.writeFileSync(cleanupFlagPath, JSON.stringify({ done: true, deleted, edited }));
-  console.log(`[updates] v30 cleanup: deleted=${deleted}, v29 edited=${edited}`);
+    fs.writeFileSync(cleanupFlagPath, JSON.stringify({ done: true, deleted, edited }));
+    console.log(`[updates] v30 cleanup: deleted=${deleted}, v29 edited=${edited}`);
+  } finally {
+    _cleanupRunning = false;
+  }
 }
 
 module.exports = { postUpdates };
