@@ -71,6 +71,26 @@ function buildMinimap(run) {
   return `${icons.join('')}  \`F${run.floor}/10\``;
 }
 
+// Compact relics strip: icons inline, always visible.
+function buildRelicsStrip(run) {
+  if (!run.relics || run.relics.length === 0) return '🏺 Relics: *none yet*';
+  const icons = run.relics.map(k => {
+    const r = getRelic(k);
+    return r?.emoji || '❔';
+  }).join(' ');
+  return `🏺 Relics: ${icons}  \`(${run.relics.length})\``;
+}
+
+// Detailed relic field with full descriptions for the embed body.
+function buildRelicsField(run) {
+  if (!run.relics || run.relics.length === 0) return '*none yet — clear elites, pop chests, or bargain with merchants*';
+  return run.relics.map(k => {
+    const r = getRelic(k);
+    if (!r) return `❔ \`${k}\``;
+    return `${r.emoji} **${r.name}** — *${r.description}*`;
+  }).join('\n').slice(0, 1024);
+}
+
 // Build a dungeon-chamber visual with party up top, enemies below, separated by weapons.
 function buildCombatScene(run, titleLine) {
   const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
@@ -284,6 +304,8 @@ function buildStatusEmbed(run) {
     .setTitle(`🏰 The Spoiled Vault`);
 
   const minimap = buildMinimap(run);
+  const relicsStrip = buildRelicsStrip(run);
+  const headerBar = `${minimap}\n${relicsStrip}`;
 
   if (isCombat) {
     const titleLine = isBoss
@@ -292,25 +314,18 @@ function buildStatusEmbed(run) {
       : `⚔️  FLOOR ${run.floor} · COMBAT  ⚔️`;
     const subtitleLine = isBoss ? (run.currentRoom?.enemies?.[0]?.name || '') : null;
     const scene = isBoss ? buildBossScene(run, titleLine, subtitleLine) : buildCombatScene(run, titleLine);
-    embed.setDescription(minimap + '\n' + scene);
+    embed.setDescription(headerBar + '\n' + scene);
     embed.addFields(
       { name: '👥 Party', value: partyStatusLines(run), inline: false },
       { name: '👹 Enemies', value: enemyStatusLines(run), inline: false },
     );
   } else {
-    embed.setDescription(minimap + '\n' + buildRoomBanner('🏰', `FLOOR ${run.floor}`));
+    embed.setDescription(headerBar + '\n' + buildRoomBanner('🏰', `FLOOR ${run.floor}`));
     embed.addFields({ name: '👥 Party', value: partyStatusLines(run), inline: false });
   }
 
-  const relicsField = run.relics && run.relics.length
-    ? run.relics.map(k => {
-        const r = getRelic(k);
-        return r ? `${r.emoji} ${r.name}` : `❔ ${k}`;
-      }).join('\n')
-    : '*none*';
-
   embed.addFields(
-    { name: '🏺 Relics', value: relicsField, inline: true },
+    { name: '🏺 Active Relics', value: buildRelicsField(run), inline: false },
     { name: '💰 Pot', value: `${run.pot.toLocaleString()} 🥛`, inline: true },
   );
   if (run.log && run.log.length) {
