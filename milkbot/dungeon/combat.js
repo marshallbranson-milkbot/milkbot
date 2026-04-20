@@ -135,7 +135,7 @@ function applyStatus(target, statusKey, duration) {
 }
 
 function computeDamage(rawAmount, defender, rng, options = {}) {
-  if (options.unblockable) return Math.max(1, Math.floor(rawAmount));
+  if (options.unblockable) return { amount: Math.max(1, Math.floor(rawAmount)), crit: false, blocked: false };
   let dmg = rawAmount - (defender.def || 0);
   // Variance
   const variance = 1 + (rng.next() * 2 - 1) * DAMAGE_VARIANCE;
