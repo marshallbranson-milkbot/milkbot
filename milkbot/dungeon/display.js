@@ -57,17 +57,51 @@ function buildChamber(title, contentLines, innerWidth = 28) {
   return '```\n' + lines.join('\n') + '\n```';
 }
 
+// Minimap: 10-floor progress bar shown at the top of every embed.
+function buildMinimap(run) {
+  const BOSS_FLOORS = new Set([5, 10]);
+  const icons = [];
+  for (let f = 1; f <= 10; f++) {
+    if (f < run.floor) icons.push('✅');
+    else if (f === run.floor) icons.push('🏰');
+    else if (f === 10) icons.push('👑');
+    else if (BOSS_FLOORS.has(f)) icons.push('⚠️');
+    else icons.push('⬜');
+  }
+  return `${icons.join('')}  \`F${run.floor}/10\``;
+}
+
 // Build a dungeon-chamber visual with party up top, enemies below, separated by weapons.
 function buildCombatScene(run, titleLine) {
   const partyEmojis = run.party.map(p => p.downed ? '💀' : (getClass(p.classKey)?.emoji || '❔'));
-  const enemyEmojis = (run.currentRoom?.enemies || []).filter(e => e.hp > 0).map(e => e.emoji);
+  const living = (run.currentRoom?.enemies || []).filter(e => e.hp > 0);
+  const enemyEmojis = living.map(e => e.emoji);
+
+  // Spacing varies with count — more space when fewer enemies.
+  const enemyRow = enemyEmojis.length === 0 ? '(empty)'
+    : enemyEmojis.length === 1 ? enemyEmojis[0]
+    : enemyEmojis.length === 2 ? enemyEmojis.join('      ')
+    : enemyEmojis.length === 3 ? enemyEmojis.join('    ')
+    : enemyEmojis.join('  ');
+
+  // Active attacker indicator: find the current actor (if player) and point an arrow at the current target
+  let pointerLine = '⚔️  ⚡  ⚔️';
+  const actorEntry = run.turnOrder && run.turnOrder[run.turnIndex];
+  if (actorEntry && actorEntry.kind === 'player') {
+    const actor = run.party.find(p => p.userId === actorEntry.id);
+    if (actor && !actor.downed) {
+      const cls = getClass(actor.classKey);
+      pointerLine = `${cls?.emoji || '⚔️'}  ▼  ⚡  ▼  ${cls?.emoji || '⚔️'}`;
+    }
+  }
+
   return buildChamber(titleLine, [
     '',
     partyEmojis.join('  '),
     '',
-    '⚔️  ⚡  ⚔️',
+    pointerLine,
     '',
-    enemyEmojis.join('  ') || '(empty)',
+    enemyRow,
     '',
   ]);
 }
@@ -247,7 +281,9 @@ function buildStatusEmbed(run) {
 
   const embed = new EmbedBuilder()
     .setColor(isBoss ? 0x8B0000 : COLOR_COMBAT)
-    .setTitle(`🏰 The Spoiled Vault — Floor ${run.floor}`);
+    .setTitle(`🏰 The Spoiled Vault`);
+
+  const minimap = buildMinimap(run);
 
   if (isCombat) {
     const titleLine = isBoss
@@ -256,13 +292,13 @@ function buildStatusEmbed(run) {
       : `⚔️  FLOOR ${run.floor} · COMBAT  ⚔️`;
     const subtitleLine = isBoss ? (run.currentRoom?.enemies?.[0]?.name || '') : null;
     const scene = isBoss ? buildBossScene(run, titleLine, subtitleLine) : buildCombatScene(run, titleLine);
-    embed.setDescription(scene);
+    embed.setDescription(minimap + '\n' + scene);
     embed.addFields(
       { name: '👥 Party', value: partyStatusLines(run), inline: false },
       { name: '👹 Enemies', value: enemyStatusLines(run), inline: false },
     );
   } else {
-    embed.setDescription(buildRoomBanner('🏰', `FLOOR ${run.floor}`));
+    embed.setDescription(minimap + '\n' + buildRoomBanner('🏰', `FLOOR ${run.floor}`));
     embed.addFields({ name: '👥 Party', value: partyStatusLines(run), inline: false });
   }
 

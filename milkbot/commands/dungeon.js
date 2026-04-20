@@ -145,7 +145,10 @@ async function handleButtonInteraction(interaction) {
     if (id === 'dun_stats') return handleStats(interaction);
     if (id.startsWith('dun_join_')) return handleJoin(interaction, id.slice('dun_join_'.length));
     if (id.startsWith('dun_pick_')) {
-      const [_dun, _pick, runId, classKey] = id.split('_');
+      const rest = id.slice('dun_pick_'.length);
+      const firstUnderscore = rest.indexOf('_');
+      const runId = rest.slice(0, firstUnderscore);
+      const classKey = rest.slice(firstUnderscore + 1);
       return handleClassPick(interaction, runId, classKey);
     }
     if (id.startsWith('dun_atk_')) return handleAction(interaction, id.slice('dun_atk_'.length), 'attack');
