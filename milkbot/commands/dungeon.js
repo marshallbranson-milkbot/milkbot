@@ -188,6 +188,32 @@ async function refreshLobby(client) {
   }
 }
 
+// ========= Mythic-as-permanent-inventory helpers =========
+
+// Pools every party member's mythicsCollected into run.relics, dedupes
+// against both existing relics and itself, and logs which ones activated.
+// Called once at run start (when class-pick transitions to PLAYING).
+function applyOwnedMythics(run) {
+  const unique = new Set(run.relics || []);
+  const added = [];
+  for (const p of run.party) {
+    const s = state.getUserStats(p.userId);
+    const mythics = Array.isArray(s.mythicsCollected) ? s.mythicsCollected : [];
+    for (const key of mythics) {
+      if (unique.has(key)) continue;
+      const relic = loot.getRelic(key);
+      if (!relic || relic.rarity !== 'mythic') continue;
+      unique.add(key);
+      added.push(relic);
+    }
+  }
+  run.relics = [...unique];
+  if (added.length > 0) {
+    run.log = run.log || [];
+    run.log.push(`🔮 **Mythic relics active this run:** ${added.map(r => `${r.emoji} ${r.name}`).join(', ')}`);
+  }
+}
+
 // ========= Thread creation =========
 
 async function createDungeonThread(channel, creatorName, runId) {
@@ -414,7 +440,14 @@ async function handleClassPick(interaction, runId, classKey) {
   const userId = interaction.user.id;
   const cls = classes.getClass(classKey);
   if (!cls) return interaction.reply({ content: 'Unknown class.', flags: 64 });
-  if (!cls.unlockedByDefault) return interaction.reply({ content: `${cls.name} is locked.`, flags: 64 });
+  // Class is pickable if it's unlocked-by-default OR the user has it in
+  // their classUnlocks (earned via completion). Checked server-side so the
+  // button-disabled UI can't be bypassed.
+  const stats = state.getUserStats(userId);
+  const userUnlocks = Array.isArray(stats.classUnlocks) ? stats.classUnlocks : [];
+  if (!cls.unlockedByDefault && !userUnlocks.includes(classKey)) {
+    return interaction.reply({ content: `🔒 ${cls.name} is locked — ${cls.unlockLabel || 'complete its unlock requirement'} first.`, flags: 64 });
+  }
 
   await withLock('dun:' + runId, async () => {
     const run = state.getRun(runId);
@@ -428,6 +461,10 @@ async function handleClassPick(interaction, runId, classKey) {
     const allPicked = run.party.every(p => p.classKey);
     if (allPicked && run.party.length >= 1) {
       run.state = 'PLAYING';
+      // Mythic relics the party owns apply for the whole run (permanent
+      // collectibles, activated each run). Pool across party members,
+      // dedupe, prepend so earlier apply() logic still works.
+      applyOwnedMythics(run);
       state.markDirty(run);
     }
   });
@@ -1137,15 +1174,91 @@ async function handleAbandon(interaction, runId) {
 async function handleStats(interaction) {
   const userId = interaction.user.id;
   const stats = state.getUserStats(userId);
+  const cbd = stats.completionsByDungeon || {};
+  const mythics = stats.mythicsCollected || [];
+  const abilityUnlocks = stats.abilityUnlocks || [];
+
+  // Per-dungeon completion line, one per configured dungeon.
+  const dungeonIds = Object.keys(display.DUNGEON_META);
+  const dungeonLines = dungeonIds.map(id => {
+    const meta = display.DUNGEON_META[id];
+    const count = cbd[id] || 0;
+    const status = count > 0 ? `cleared **${count}×**` : '*never cleared*';
+    return `${meta.emoji} **${meta.displayName}** — ${status}`;
+  }).join('\n');
+
+  // Classes: show emoji + name for each unlocked, muted for locked.
+  const allClasses = classes.listClasses();
+  const classLines = allClasses.map(c => {
+    const unlocked = c.unlockedByDefault || (stats.classUnlocks || []).includes(c.key);
+    return unlocked ? `${c.emoji} ${c.name}` : `🔒 ~~${c.name}~~`;
+  }).join('  ·  ');
+
+  // Mastery abilities (3rd abilities) earned.
+  const masteryCount = abilityUnlocks.filter(k => k.endsWith('_3')).length;
+
+  // Mythics — show emoji list. Mythic relic defs live in loot.js.
+  const mythicChips = mythics.length === 0
+    ? '*none collected yet — only drop from hardcore bosses*'
+    : mythics.map(key => {
+        const r = loot.getRelic(key);
+        return r ? `${r.emoji} **${r.name}**` : `🔮 ${key}`;
+      }).join('  ·  ');
+
+  const favClassEmoji = stats.favClass ? classes.getClass(stats.favClass)?.emoji || '🏅' : '🏅';
+  const favClassName = stats.favClass ? classes.getClass(stats.favClass)?.name || stats.favClass : '—';
+
+  const fastestRun = stats.fastestRunMs
+    ? `${Math.floor(stats.fastestRunMs / 60000)}m ${Math.floor((stats.fastestRunMs % 60000) / 1000)}s`
+    : '—';
+
   const embed = new EmbedBuilder()
-    .setColor(0x3F51B5)
-    .setTitle(`📜 ${interaction.user.username}'s Dungeon Stats`)
+    .setColor(0xF3E5AB)
+    .setTitle(`📜 ${interaction.user.username}'s Dungeon Ledger`)
+    .setDescription(
+      '🥛 ━━━━━━━━━━━━━━━━━━━━━ 🥛\n' +
+      `*every run, every relic, every regret — tracked.*`,
+    )
     .addFields(
-      { name: 'Total runs', value: `${stats.totalRuns}`, inline: true },
-      { name: 'Completions', value: `${stats.completions}`, inline: true },
-      { name: 'Deepest floor', value: `${stats.deepestFloor}`, inline: true },
-      { name: 'Classes unlocked', value: stats.classUnlocks.join(', ') || 'none', inline: false },
-    );
+      {
+        name: '🏰 Descents',
+        value:
+          `**${stats.totalRuns || 0}** runs · **${stats.completions || 0}** cleared\n` +
+          `Deepest floor: **${stats.deepestFloor || 0}/10**\n` +
+          `Fastest clear: **${fastestRun}**`,
+        inline: true,
+      },
+      {
+        name: '💀 Hardcore',
+        value:
+          `**${stats.hardcoreCompletions || 0}** cleared\n` +
+          `Deepest: **${stats.hardcoreDeepestFloor || 0}/10**\n` +
+          `Mythics owned: **${mythics.length}**`,
+        inline: true,
+      },
+      {
+        name: '🏅 Favorite Class',
+        value: `${favClassEmoji} **${favClassName}**\n*${masteryCount} mastery* 🎖️`,
+        inline: true,
+      },
+      {
+        name: '🗺️ Dungeons',
+        value: dungeonLines,
+        inline: false,
+      },
+      {
+        name: '🎭 Classes',
+        value: classLines,
+        inline: false,
+      },
+      {
+        name: '🔮 Mythic Relics',
+        value: mythicChips,
+        inline: false,
+      },
+    )
+    .setFooter({ text: `${interaction.user.username} · relics stay with you, curdling stays with milk 🥛` });
+
   await interaction.reply({ embeds: [embed], flags: 64 });
 }
 

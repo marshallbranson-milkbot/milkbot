@@ -20,6 +20,7 @@ async function init(client) {
     return;
   }
   state.installShutdownHooks();
+  state.backfillClassUnlocks();
   const restored = state.restoreActiveRuns();
 
   const guildId = '562076997979865118';

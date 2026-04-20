@@ -179,6 +179,47 @@ function restoreActiveRuns() {
   return [...activeRuns.values()];
 }
 
+// One-shot migration: for users who completed dungeons before the unlock
+// wiring was correct, backfill their classUnlocks from completionsByDungeon
+// (or from the legacy "completions" counter, which we attribute to Spoiled
+// Vault since that was the only dungeon when the counter shipped).
+function backfillClassUnlocks() {
+  let UNLOCK_TABLE;
+  try { ({ CLASS_UNLOCKS_ON_FLOOR_CLEAR: UNLOCK_TABLE } = require('./unlocks')); }
+  catch { return { checked: 0, updated: 0 }; }
+  const stats = readStats();
+  let updated = 0;
+  let checked = 0;
+  for (const userId of Object.keys(stats)) {
+    checked++;
+    const s = stats[userId];
+    if (!Array.isArray(s.classUnlocks)) s.classUnlocks = [];
+    const cbd = s.completionsByDungeon || {};
+    const dungeonsToCredit = new Set(Object.keys(cbd).filter(k => cbd[k] >= 1));
+    // Legacy users with just `completions >= 1` are credited to Spoiled Vault.
+    if (dungeonsToCredit.size === 0 && (s.completions || 0) >= 1) {
+      dungeonsToCredit.add('spoiled_vault');
+    }
+    let changed = false;
+    for (const did of dungeonsToCredit) {
+      const unlocks = UNLOCK_TABLE[did];
+      if (!unlocks) continue;
+      for (const floor of [5, 10]) {
+        const key = unlocks[floor];
+        if (!key) continue;
+        if (!s.classUnlocks.includes(key)) {
+          s.classUnlocks.push(key);
+          changed = true;
+        }
+      }
+    }
+    if (changed) updated++;
+  }
+  if (updated > 0) writeStats(stats);
+  console.log(`[dungeon] class-unlock backfill: ${updated}/${checked} users updated`);
+  return { checked, updated };
+}
+
 // === Stats ===
 
 function readStats() {
@@ -266,6 +307,7 @@ module.exports = {
   markDirty,
   flushActiveRunsNow,
   installShutdownHooks,
+  backfillClassUnlocks,
   // Stats
   getUserStats,
   updateUserStats,
