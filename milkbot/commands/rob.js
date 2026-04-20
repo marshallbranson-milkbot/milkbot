@@ -68,17 +68,19 @@ module.exports = {
       return message.reply(`You're broke. You've got nothing to lose but you also can't pull this off. 🥛`);
     }
 
-    // PvP rob shield — consumes a charge from the target if they have one and blocks the rob.
+    // Roll success first — ONLY check/consume shield on a roll that would have succeeded,
+    // otherwise defenders lose charges to rob attempts that would have failed anyway.
     const shopMod = require('../shop');
-    const shield = shopMod.getAndConsumeRobShield(target.id);
-    if (shield.blocked) {
-      return message.channel.send(
-        `🛡️ **ROB BLOCKED** 🛡️\n` +
-        `${message.author.username} tried to rob ${target.username} — their **${shield.label}** ate the attempt. 🥛`
-      );
-    }
-
     const success = Math.random() < SUCCESS_CHANCE;
+    if (success) {
+      const shield = shopMod.getAndConsumeRobShield(target.id);
+      if (shield.blocked) {
+        return message.channel.send(
+          `🛡️ **ROB BLOCKED** 🛡️\n` +
+          `${message.author.username} tried to rob ${target.username} — their **${shield.label}** ate the attempt. 🥛`
+        );
+      }
+    }
 
     if (success) {
       const newStreak = ws.recordWin(message.author.id);

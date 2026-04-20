@@ -178,6 +178,8 @@ function processEffect(run, effect, sourceName, rng) {
       if (player && target.hp <= 0 && !player.downed) {
         player.downed = true;
         logs.push(`💀 **${player.username}** is Curdled (downed).`);
+        // Fire ally_downed relic hooks (e.g., Curd Locket auto-revive once per run)
+        logs.push(...fireRelicHooks(run, 'ally_downed', { targetId: player.userId }));
       }
       if (enemy && target.hp <= 0) {
         logs.push(`☠️ **${enemy.name}** defeated.`);
@@ -300,6 +302,11 @@ function startCombat(run, enemyKeys) {
   run._fleeing = false;
   run.log = [`⚔️ A wild ${enemies.map(e => e.name).join(', ')} appears!`];
   applyRelicPassives(run);
+  // Fire relic onEvent hooks for combat_start and enemy_spawn
+  run.log.push(...fireRelicHooks(run, 'combat_start'));
+  for (const e of enemies) {
+    run.log.push(...fireRelicHooks(run, 'enemy_spawn', { enemyId: e.id }));
+  }
   return run;
 }
 
@@ -324,6 +331,30 @@ function currentActor(run) {
     run._currentActor = e;
     return { kind: 'enemy', entity: e };
   }
+}
+
+// Fire a relic onEvent hook. Iterates run.relics and applies any effect that matches the kind.
+function fireRelicHooks(run, hookKind, ctx = {}) {
+  if (!run.relics || run.relics.length === 0) return [];
+  const logs = [];
+  run._oncePerRunTriggered = run._oncePerRunTriggered || new Set();
+  for (const relicKey of run.relics) {
+    const relic = getRelic(relicKey);
+    if (!relic || !relic.onEvent || relic.onEvent.kind !== hookKind) continue;
+    if (relic.onEvent.oncePerRun && run._oncePerRunTriggered.has(relicKey)) continue;
+    const effect = relic.onEvent.effect({ ...ctx, party: run.party, enemies: run.currentRoom?.enemies });
+    const effectsArr = Array.isArray(effect) ? effect : [effect];
+    for (const eff of effectsArr) {
+      if (!eff) continue;
+      if (eff.kind === 'xp_mul') {
+        run._xpMul = (run._xpMul || 1) * eff.amount;
+        continue;
+      }
+      logs.push(...processEffect(run, eff, relic.name, run.rng));
+    }
+    if (relic.onEvent.oncePerRun) run._oncePerRunTriggered.add(relicKey);
+  }
+  return logs;
 }
 
 // Advance to next non-dead, non-downed actor. Re-roll initiative at end of round.
@@ -360,24 +391,27 @@ function advanceTurn(run) {
 
   run.turnIndex += 1;
 
-  // If we've hit the end of the turn order, reroll and start round over
-  while (run.turnIndex < run.turnOrder.length) {
-    const entry = run.turnOrder[run.turnIndex];
-    if (entry.kind === 'player') {
-      const p = findPlayerById(run, entry.id);
-      if (p && !p.downed) break;
-    } else {
-      const e = findEnemyById(run, entry.id);
-      if (e && e.hp > 0) break;
+  // Cap iterations so we cannot infinite-loop if the turn order somehow contains only dead actors.
+  // Each pass either advances to a living actor OR rerolls. We give up after 3 rerolls.
+  let rerolls = 0;
+  while (rerolls < 3) {
+    while (run.turnIndex < run.turnOrder.length) {
+      const entry = run.turnOrder[run.turnIndex];
+      if (entry.kind === 'player') {
+        const p = findPlayerById(run, entry.id);
+        if (p && !p.downed) return logs;
+      } else {
+        const e = findEnemyById(run, entry.id);
+        if (e && e.hp > 0) return logs;
+      }
+      run.turnIndex += 1;
     }
-    run.turnIndex += 1;
-  }
-
-  if (run.turnIndex >= run.turnOrder.length) {
+    // End of turn order — reroll initiative.
     run.turnOrder = rollInitiative(run, run.rng);
     run.turnIndex = 0;
+    rerolls++;
   }
-
+  // Nothing alive to act — mark the combat over (caller's isCombatOver check will handle).
   return logs;
 }
 
@@ -480,4 +514,5 @@ module.exports = {
   playerAbility,
   enemyTurn,
   rollInitiative,
+  fireRelicHooks,
 };

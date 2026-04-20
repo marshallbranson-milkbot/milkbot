@@ -395,6 +395,10 @@ async function advanceToNextFloor(run, thread) {
   // Track deepest floor reached
   if (run.floor > (run.deepestFloor || 0)) run.deepestFloor = run.floor;
 
+  // Fire floor_start relic hooks (e.g., Frothing Chalice heal-per-floor)
+  const hookLogs = combat.fireRelicHooks(run, 'floor_start');
+  if (hookLogs.length) run.log.push(...hookLogs);
+
   // Class unlock: clearing floor 5 unlocks Curd Medic for the party
   if (run.floor === 5) {
     for (const p of run.party) {
@@ -839,9 +843,13 @@ async function endRun(run, thread, outcome) {
   let perPlayerBucks = 0;
   let perPlayerXp = 0;
 
+  // Fire run_end relic hooks (e.g., Lactose Tome gives xp_mul)
+  combat.fireRelicHooks(run, 'run_end');
+  const xpBonus = run._xpMul || 1;
+
   if (outcome === 'victory') {
     perPlayerBucks = Math.floor(run.pot / run.party.length);
-    perPlayerXp = BASE_XP_PER_FLOOR * run.floor;
+    perPlayerXp = Math.floor(BASE_XP_PER_FLOOR * run.floor * xpBonus);
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }

@@ -32,6 +32,7 @@ const BOSSES = {
     ],
     behavior: (ctx) => {
       const hpPct = ctx.self.hp / ctx.self.maxHp;
+      // Phase 2 triggers at or below 50%. At exactly 50% we already enter AoE.
       const phase = hpPct > 0.5 ? 0 : 1;
       return BOSSES.lactose_lich.phases[phase].behavior(ctx);
     },
