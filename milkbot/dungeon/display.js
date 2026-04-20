@@ -325,7 +325,14 @@ function buildStatsButton() {
 
 // === Inside thread: class picker ===
 
-function buildClassPicker(run, userId, userAbilityUnlocks = []) {
+function buildClassPicker(run, userId, userAbilityUnlocks = [], userClassUnlocks = null) {
+  // userClassUnlocks: array of class keys the user has unlocked. If null,
+  // falls back to defaultUnlockedKeys() so legacy callers still work (they
+  // just won't see their completion-earned classes until updated).
+  const unlocks = Array.isArray(userClassUnlocks) && userClassUnlocks.length > 0
+    ? userClassUnlocks
+    : listClasses().filter(c => c.unlockedByDefault).map(c => c.key);
+  const isUnlocked = (cls) => cls.unlockedByDefault || unlocks.includes(cls.key);
   const picked = run.party.find(p => p.userId === userId)?.classKey;
   const all = listClasses();
 
@@ -339,14 +346,15 @@ function buildClassPicker(run, userId, userAbilityUnlocks = []) {
     )
     .addFields(
       ...all.map(cls => {
-        const lockBadge = cls.unlockedByDefault ? '' : ' 🔒';
+        const unlockedForUser = isUnlocked(cls);
+        const lockBadge = unlockedForUser ? '' : ' 🔒';
         const b = cls.base;
         const statsLine = `\`HP ${String(b.hp).padStart(3)}  ATK ${String(b.atk).padStart(2)}  DEF ${String(b.def).padStart(2)}  SPD ${String(b.spd).padStart(2)}\``;
         const abilityLine = cls.abilities.map(a => {
           const locked = a.unlockedBy && !userAbilityUnlocks.includes(a.unlockedBy);
           return locked ? `🔒 ${a.name}` : `• ${a.name}`;
         }).join('  ');
-        const unlockLine = cls.unlockedByDefault ? '' : `\n*🔒 ${cls.unlockLabel || 'hidden requirement'}*`;
+        const unlockLine = unlockedForUser ? '' : `\n*🔒 ${cls.unlockLabel || 'hidden requirement'}*`;
         return {
           name: `${cls.emoji} ${cls.name} — ${cls.role}${lockBadge}`,
           value: `${statsLine}\n${abilityLine}${unlockLine}`,
@@ -367,7 +375,7 @@ function buildClassPicker(run, userId, userAbilityUnlocks = []) {
           .setLabel(cls.name)
           .setEmoji(cls.emoji)
           .setStyle(picked === cls.key ? ButtonStyle.Success : ButtonStyle.Primary)
-          .setDisabled(!!picked || !cls.unlockedByDefault),
+          .setDisabled(!!picked || !isUnlocked(cls)),
       ),
     );
     rows.push(row);

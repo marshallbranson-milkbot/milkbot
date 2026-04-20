@@ -345,9 +345,10 @@ async function handleStart(interaction, difficulty = 'normal', dungeonId = 'spoi
     return interaction.editReply({ content: `Couldn't create your dungeon thread: ${e.message}` });
   }
 
-  // Post class picker in thread (pass user's ability unlocks so mastery skills show correctly)
+  // Post class picker in thread (pass user's class + ability unlocks so
+  // completion-earned classes and mastery skills are clickable).
   const userStats = state.getUserStats(userId);
-  await thread.send(display.buildClassPicker(run, userId, userStats.abilityUnlocks || []));
+  await thread.send(display.buildClassPicker(run, userId, userStats.abilityUnlocks || [], userStats.classUnlocks || []));
   await thread.send({ content: `Party forming — **${run.party.length}/${run.maxPartySize}**. Waiting for others to join from #milkbot-dungeon. When everyone's picked a class, the descent begins.` });
 
   await interaction.editReply({ content: `🏰 Your descent is ready: <#${thread.id}>` });
@@ -397,7 +398,7 @@ async function handleJoin(interaction, runId) {
       const thread = await interaction.client.channels.fetch(run.threadId);
       await thread.members.add(userId);
       const joinerStats = state.getUserStats(userId);
-      await thread.send(display.buildClassPicker(run, userId, joinerStats.abilityUnlocks || []));
+      await thread.send(display.buildClassPicker(run, userId, joinerStats.abilityUnlocks || [], joinerStats.classUnlocks || []));
       await thread.send(`🥛 **${username}** joined — ${run.party.length}/${run.maxPartySize}`);
     } catch (e) {
       console.warn('[dungeon] add-to-thread failed:', e.message);
