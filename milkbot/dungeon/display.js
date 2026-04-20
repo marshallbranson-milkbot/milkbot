@@ -416,17 +416,17 @@ function buildTurnActions(run, player, userAbilityUnlocks = []) {
   const abilities = cls.abilities;
 
   const mkAbilityButton = (ability) => {
-    const cd = player.cooldowns[ability.key] || 0;
-    const locked = ability.unlockedBy && !userAbilityUnlocks.includes(ability.unlockedBy);
+    const cd = Number(player.cooldowns?.[ability.key]) || 0;
+    const locked = Boolean(ability.unlockedBy && !userAbilityUnlocks.includes(ability.unlockedBy));
     const label = locked
       ? `🔒 ${ability.name}`
-      : (cd ? `${ability.name} (${cd})` : ability.name);
+      : (cd > 0 ? `${ability.name} (${cd})` : ability.name);
     return new ButtonBuilder()
       .setCustomId(`dun_abi_${run.runId}_${ability.key}`)
       .setLabel(label.slice(0, 80))
       .setEmoji(cls.emoji)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(!!cd || locked);
+      .setDisabled(cd > 0 || locked);
   };
 
   const row1Components = [

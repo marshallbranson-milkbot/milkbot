@@ -138,6 +138,19 @@ function repairCorruptHp(run) {
       p.downed = false;
       repaired++;
     }
+    // Cooldowns stuck as NaN or absurd values from corrupted state would grey
+    // out ability buttons forever — normalize on restore.
+    if (p.cooldowns && typeof p.cooldowns === 'object') {
+      for (const key of Object.keys(p.cooldowns)) {
+        const v = p.cooldowns[key];
+        if (!Number.isFinite(v) || v < 0 || v > 20) {
+          p.cooldowns[key] = 0;
+          repaired++;
+        }
+      }
+    } else {
+      p.cooldowns = {};
+    }
   }
   for (const e of run.currentRoom?.enemies || []) {
     if (!Number.isFinite(e.hp) || !Number.isFinite(e.maxHp) || e.maxHp <= 0) {
@@ -146,7 +159,7 @@ function repairCorruptHp(run) {
       repaired++;
     }
   }
-  if (repaired) console.log(`[dungeon] repaired ${repaired} corrupt HP values in run ${run.runId}`);
+  if (repaired) console.log(`[dungeon] repaired ${repaired} corrupt values in run ${run.runId}`);
   return repaired > 0;
 }
 
