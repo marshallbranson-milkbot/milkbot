@@ -1,6 +1,20 @@
 // MilkBot personality module — returns snarky variant strings keyed by situation.
 // Each kind has 3-5 variants. Random pick per call so players don't see the same line twice in a row.
 
+// Sanitize any user-supplied text that lands in a personality line so a
+// weird display name can't inject markdown (`**`, `__`, ``` ` ```, links) or
+// mass-mentions (@everyone / @here) into messages the bot sends.
+function sanitize(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/[*_~`|\\]/g, '')
+    .replace(/@(everyone|here)/gi, '$1')
+    .replace(/<@[!&]?\d+>/g, '')
+    .slice(0, 32)
+    .trim() || '';
+}
+
 const LINES = {
   daily_cooldown: [
     (ctx) => `slow down. the milk still has ${ctx.hours}h ${ctx.minutes}m to ferment. 🥛`,
@@ -73,7 +87,12 @@ function say(kind, ctx = {}) {
   const pool = LINES[kind];
   if (!pool) return '🥛';
   const fn = pick(pool);
-  return fn(ctx);
+  // Sanitize any string fields in ctx before interpolation.
+  const safe = {};
+  for (const k of Object.keys(ctx)) {
+    safe[k] = typeof ctx[k] === 'string' ? sanitize(ctx[k]) : ctx[k];
+  }
+  return fn(safe);
 }
 
 module.exports = { say };

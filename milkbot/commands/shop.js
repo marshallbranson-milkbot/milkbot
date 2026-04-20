@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const shop = require('../shop');
+const { withLock } = require('../balancelock');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 
@@ -102,53 +103,59 @@ async function handleBuy(interaction, itemId, qty, userId) {
   const item = shop.ITEMS[itemId];
   if (!item) return interaction.update({ content: `unknown item. 🥛`, components: [] });
 
-  // Daily cap check
-  const remaining = shop.getDailyRemaining(userId, itemId);
-  if (remaining <= 0) {
+  // Serialize everything: daily-cap check, balance deduct, applyItemPurchase,
+  // recordDailyPurchase. Without the lock, rapid concurrent clicks can each
+  // pass the cap check and each deduct balance — legendary-spam exploit.
+  const outcome = await withLock('bal:' + userId, async () => {
+    const remaining = shop.getDailyRemaining(userId, itemId);
+    if (remaining <= 0) {
+      return { capHit: true };
+    }
+    const actualQty = Math.min(qty, remaining);
+    const cost = item.price * actualQty;
+    const balances = readBalances();
+    const balance = balances[userId] || 0;
+    if (balance < cost) return { notEnough: true, balance, cost };
+
+    balances[userId] = balance - cost;
+    const resultLines = [];
+    const cappedNote = actualQty < qty ? ` *(capped at daily limit — wanted ${qty}, got ${actualQty})*` : '';
+    resultLines.push(`✅ bought **${actualQty}x ${item.emoji} ${item.name}** for **${cost.toLocaleString()} 🥛**${cappedNote}`);
+    resultLines.push(`💰 balance: **${balances[userId].toLocaleString()} 🥛**`);
+
+    for (let i = 0; i < actualQty; i++) {
+      const result = shop.applyItemPurchase(userId, itemId);
+      if (result.instant) {
+        balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + result.instant);
+        resultLines.push(`💸 ${result.message}`);
+      } else if (i === 0) {
+        resultLines.push(result.queued ? `📦 ${result.message}` : `🧴 ${result.message}`);
+      }
+    }
+
+    saveBalances(balances);
+    shop.recordDailyPurchase(userId, itemId, actualQty);
+    return { ok: true, lines: resultLines };
+  });
+
+  if (outcome.capHit) {
     return interaction.update({
       content: `you've hit the daily limit for **${item.name}**. come back tomorrow. 🥛`,
       components: [new ActionRowBuilder().addComponents(btn(`shop_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
     });
   }
-  const actualQty = Math.min(qty, remaining);
-
-  const cost = item.price * actualQty;
-  const balances = readBalances();
-  const balance = balances[userId] || 0;
-
-  if (balance < cost) {
+  if (outcome.notEnough) {
     return interaction.update({
-      content: `you need **${cost.toLocaleString()} 🥛** but only have **${balance.toLocaleString()} 🥛**. broke behavior. 🥛`,
+      content: `you need **${outcome.cost.toLocaleString()} 🥛** but only have **${outcome.balance.toLocaleString()} 🥛**. broke behavior. 🥛`,
       components: [new ActionRowBuilder().addComponents(btn(`shop_back_${userId}`, '⬅️ Back', ButtonStyle.Secondary))],
     });
   }
-
-  // Deduct balance
-  balances[userId] = balance - cost;
-
-  const cappedNote = actualQty < qty ? ` *(capped at daily limit — wanted ${qty}, got ${actualQty})*` : '';
-  let resultLines = [`✅ bought **${actualQty}x ${item.emoji} ${item.name}** for **${cost.toLocaleString()} 🥛**${cappedNote}`];
-  resultLines.push(`💰 balance: **${balances[userId].toLocaleString()} 🥛**`);
-
-  for (let i = 0; i < actualQty; i++) {
-    const result = shop.applyItemPurchase(userId, itemId);
-    if (result.instant) {
-      balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + result.instant);
-      resultLines.push(`💸 ${result.message}`);
-    } else if (i === 0) {
-      resultLines.push(result.queued ? `📦 ${result.message}` : `🧴 ${result.message}`);
-    }
-  }
-
-  saveBalances(balances);
-  shop.recordDailyPurchase(userId, itemId, actualQty);
 
   const backRow = new ActionRowBuilder().addComponents(
     btn(`shop_back_${userId}`, '⬅️ Back to Shop', ButtonStyle.Secondary),
     btn(`shop_dismiss_${userId}`, '❌ Close', ButtonStyle.Danger),
   );
-
-  return interaction.update({ content: resultLines.join('\n'), components: [backRow] });
+  return interaction.update({ content: outcome.lines.join('\n'), components: [backRow] });
 }
 
 // ── Slash command ──────────────────────────────────────────────────────────────

@@ -35,6 +35,20 @@ function getData(filePath) {
   catch (e) { console.error('[display] corrupted:', filePath); return {}; }
 }
 
+// Strip markdown and mass-mentions from display names before they land in
+// leaderboard / board embeds. Prevents a malicious display name from
+// bolding/breaking layout or pinging @everyone through the bot.
+function safeName(raw) {
+  if (!raw) return 'Unknown';
+  return String(raw)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/[*_~`|\\]/g, '')
+    .replace(/@(everyone|here)/gi, '$1')
+    .replace(/<@[!&]?\d+>/g, '')
+    .slice(0, 32)
+    .trim() || 'Unknown';
+}
+
 function getLevel(totalXp) {
   let level = 1;
   let xpUsed = 0;
@@ -244,7 +258,7 @@ function buildLeaderboardText(guild) {
     ? ['No milk bucks earned yet.']
     : mbSorted.map(([userId, balance], i) => {
         const member = guild.members.cache.get(userId);
-        const name = member ? member.displayName : 'Unknown';
+        const name = safeName(member ? member.displayName : 'Unknown');
         const medal = medals[i] ?? `${i + 1}.`;
         const lordTag = userId === milkLordId ? ' 👑 **MilkLord**' : '';
         return `${medal} **${name}**${lordTag} — ${balance.toLocaleString()} milk bucks`;
@@ -255,7 +269,7 @@ function buildLeaderboardText(guild) {
     ? ['No XP earned yet.']
     : xpSorted.map(([userId, totalXp], i) => {
         const member = guild.members.cache.get(userId);
-        const name = member ? member.displayName : 'Unknown';
+        const name = safeName(member ? member.displayName : 'Unknown');
         const level = getLevel(totalXp);
         const rank = getRank(level);
         const medal = medals[i] ?? `${i + 1}.`;
@@ -270,7 +284,7 @@ function buildLeaderboardText(guild) {
     ? ['No trades recorded yet.']
     : bigTradeSorted.map(([userId, amount], i) => {
         const member = guild.members.cache.get(userId);
-        const name = member ? member.displayName : 'Unknown';
+        const name = safeName(member ? member.displayName : 'Unknown');
         const medal = medals[i] ?? `${i + 1}.`;
         return `${medal} **${name}** — ${amount.toLocaleString()} milk bucks`;
       });
@@ -289,7 +303,7 @@ function buildLeaderboardText(guild) {
     ? ['Nobody is in the market right now.']
     : marketSorted.map(([userId, value], i) => {
         const member = guild.members.cache.get(userId);
-        const name = member ? member.displayName : 'Unknown';
+        const name = safeName(member ? member.displayName : 'Unknown');
         const medal = medals[i] ?? `${i + 1}.`;
         return `${medal} **${name}** — ${value.toLocaleString()} milk bucks invested`;
       });

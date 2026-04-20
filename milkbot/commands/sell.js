@@ -7,6 +7,7 @@ const bigTradesPath = path.join(__dirname, '../data/bigtrades.json');
 const { getPrices, getPortfolios, savePortfolios, STOCK_DEFS } = require('../stockdata');
 const state = require('../state');
 const ach = require('../achievements');
+const { withLock } = require('../balancelock');
 
 function getData(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -28,7 +29,7 @@ module.exports = {
     { name: 'ticker', description: 'Stock ticker (e.g. MILK)', type: 'STRING', required: true },
     { name: 'amount', description: 'Number of shares, or "all"', type: 'STRING', required: true },
   ],
-  execute(message, args) {
+  async execute(message, args) {
     const ticker = args[0]?.toUpperCase();
     const amountArg = args[1];
 
@@ -37,27 +38,6 @@ module.exports = {
     }
 
     const userId = message.author.id;
-    const portfolios = getPortfolios();
-    const holding = portfolios[userId]?.[ticker];
-
-    // Instrumentation for the 747542945766309940 case — logs shape when sell is attempted.
-    console.log(`[sell] user=${userId} ticker=${ticker} holding=${JSON.stringify(holding)} portfolioKeys=${Object.keys(portfolios[userId] || {}).join(',') || 'none'}`);
-
-    // Normalize legacy/corrupt fields defensively — missing spent, NaN shares, etc. would
-    // silently break the sell path otherwise.
-    if (!holding) {
-      return message.reply(`You don't own any **${ticker}**. 🥛`);
-    }
-    if (!Number.isFinite(holding.shares) || holding.shares <= 0) {
-      // Clean up zombie holding so it doesn't block future buys/sells
-      delete portfolios[userId][ticker];
-      savePortfolios(portfolios);
-      return message.reply(`You don't own any **${ticker}**. 🥛`);
-    }
-    if (!Number.isFinite(holding.spent) || holding.spent < 0) {
-      holding.spent = 0;  // treat as pure profit
-    }
-
     const prices = getPrices();
     const priceEntry = prices[ticker];
     if (!priceEntry || !Number.isFinite(priceEntry.price)) {
@@ -66,69 +46,86 @@ module.exports = {
     }
     const price = priceEntry.price;
 
-    let sharesToSell;
-    if (amountArg === 'all') {
-      sharesToSell = holding.shares;
-    } else {
-      const amount = parseInt(amountArg, 10);
-      if (!amount || isNaN(amount) || amount <= 0) {
-        return message.reply(`Enter a number of shares or "all". \`!sell ${ticker} shares\` 🥛`);
+    // Serialize the whole read-check-mutate-save across portfolio + balance so
+    // parallel /sell calls for the same user can't over-sell (both reading
+    // holding.shares, both subtracting, second one going negative).
+    const result = await withLock('bal:' + userId, async () => {
+      const portfolios = getPortfolios();
+      const holding = portfolios[userId]?.[ticker];
+
+      console.log(`[sell] user=${userId} ticker=${ticker} holding=${JSON.stringify(holding)}`);
+
+      if (!holding) return { error: `You don't own any **${ticker}**. 🥛` };
+      if (!Number.isFinite(holding.shares) || holding.shares <= 0) {
+        delete portfolios[userId][ticker];
+        savePortfolios(portfolios);
+        return { error: `You don't own any **${ticker}**. 🥛` };
       }
-      sharesToSell = Math.min(amount, holding.shares);
-      if (sharesToSell < 1) {
-        return message.reply(`You don't have that many shares of **${ticker}**. 🥛`);
+      if (!Number.isFinite(holding.spent) || holding.spent < 0) holding.spent = 0;
+
+      let sharesToSell;
+      if (amountArg === 'all') {
+        sharesToSell = holding.shares;
+      } else {
+        const amount = parseInt(amountArg, 10);
+        if (!amount || isNaN(amount) || amount <= 0) {
+          return { error: `Enter a number of shares or "all". \`!sell ${ticker} shares\` 🥛` };
+        }
+        sharesToSell = Math.min(amount, holding.shares);
+        if (sharesToSell < 1) return { error: `You don't have that many shares of **${ticker}**. 🥛` };
       }
-    }
 
-    const revenue = Math.max(0, Math.round(sharesToSell * price));
-    const spentPerShare = holding.spent / holding.shares;
-    const costBasis = Math.max(0, Math.round(spentPerShare * sharesToSell));
-    const profit = revenue - costBasis;
-    const profitRatio = costBasis > 0 ? profit / costBasis : 0;
-    const heldHours = holding.boughtAt ? (Date.now() - holding.boughtAt) / (1000 * 60 * 60) : 0;
+      const revenue = Math.max(0, Math.round(sharesToSell * price));
+      const spentPerShare = holding.spent / holding.shares;
+      const costBasis = Math.max(0, Math.round(spentPerShare * sharesToSell));
+      const profit = revenue - costBasis;
+      const profitRatio = costBasis > 0 ? profit / costBasis : 0;
+      const heldHours = holding.boughtAt ? (Date.now() - holding.boughtAt) / (1000 * 60 * 60) : 0;
 
-    if (!Number.isFinite(revenue)) {
-      console.error(`[sell] invalid revenue`, { userId, ticker, price, sharesToSell, holding });
-      return message.reply(`something's off with your **${ticker}** position — tell an admin. 🥛`);
-    }
+      if (!Number.isFinite(revenue)) {
+        console.error(`[sell] invalid revenue`, { userId, ticker, price, sharesToSell, holding });
+        return { error: `something's off with your **${ticker}** position — tell an admin. 🥛` };
+      }
 
-    // Update portfolio
-    holding.shares -= sharesToSell;
-    holding.spent = Math.max(0, holding.spent - costBasis);
-    if (holding.shares <= 0) {
-      delete portfolios[userId][ticker];
-    }
-    savePortfolios(portfolios);
+      holding.shares -= sharesToSell;
+      holding.spent = Math.max(0, holding.spent - costBasis);
+      if (holding.shares <= 0) delete portfolios[userId][ticker];
+      savePortfolios(portfolios);
 
-    // Update balance
-    const balances = getData(balancesPath);
-    balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + revenue);
-    saveData(balancesPath, balances);
+      const balances = getData(balancesPath);
+      balances[userId] = Math.min(1_000_000_000, (balances[userId] || 0) + revenue);
+      saveData(balancesPath, balances);
 
-    const bigTrades = getData(bigTradesPath);
-    if (revenue > (bigTrades[userId] || 0)) {
-      bigTrades[userId] = revenue;
-      saveData(bigTradesPath, bigTrades);
-    }
+      const bigTrades = getData(bigTradesPath);
+      if (revenue > (bigTrades[userId] || 0)) {
+        bigTrades[userId] = revenue;
+        saveData(bigTradesPath, bigTrades);
+      }
 
-    // Award XP on profit
-    let xpGain = 0;
-    if (profit > 0) {
-      xpGain = Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1);
-      const xp = getData(xpPath);
-      xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
-      saveData(xpPath, xp);
-    }
+      let xpGain = 0;
+      if (profit > 0) {
+        xpGain = Math.max(5, Math.floor(profit / 10)) * (state.doubleXp ? 2 : 1);
+        const xp = getData(xpPath);
+        xp[userId] = Math.min(require('../prestige').getXpCap(userId), (xp[userId] || 0) + xpGain);
+        saveData(xpPath, xp);
+      }
 
-    const profitStr = profit >= 0 ? `+${profit}` : `${profit}`;
-    const profitEmoji = profit > 0 ? '📈' : profit < 0 ? '📉' : '➡️';
+      return { ok: true, sharesToSell, revenue, profit, profitRatio, heldHours, xpGain, newBalance: balances[userId] };
+    });
 
-    ach.check(userId, message.author.username, 'sell_result', { profit, profitRatio, heldHours, balance: balances[userId] }, message.channel);
+    if (result.error) return message.reply(result.error);
+
+    ach.check(userId, message.author.username, 'sell_result',
+      { profit: result.profit, profitRatio: result.profitRatio, heldHours: result.heldHours, balance: result.newBalance },
+      message.channel);
+
+    const profitStr = result.profit >= 0 ? `+${result.profit}` : `${result.profit}`;
+    const profitEmoji = result.profit > 0 ? '📈' : result.profit < 0 ? '📉' : '➡️';
 
     message.reply(
-      `${profitEmoji} Sold **${sharesToSell} share(s)** of **${ticker}** at **${price} 🥛** each.\n` +
-      `Revenue: **${revenue} milk bucks** | P&L: **${profitStr} milk bucks**` +
-      (xpGain > 0 ? ` | +**${xpGain} XP**` : '') +
+      `${profitEmoji} Sold **${result.sharesToSell} share(s)** of **${ticker}** at **${price} 🥛** each.\n` +
+      `Revenue: **${result.revenue} milk bucks** | P&L: **${profitStr} milk bucks**` +
+      (result.xpGain > 0 ? ` | +**${result.xpGain} XP**` : '') +
       ` 🥛`
     ).then(reply => {
       setTimeout(() => reply.delete().catch(() => {}), 5 * 60 * 1000);

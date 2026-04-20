@@ -5,6 +5,19 @@ const achPath = path.join(__dirname, 'data/achievements.json');
 const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
 
+// Sanitize usernames before they go into channel-visible embeds — a display
+// name with '@everyone' or markdown would otherwise ping / break formatting.
+function safeUsername(raw) {
+  if (!raw) return 'Player';
+  return String(raw)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/[*_~`|\\]/g, '')
+    .replace(/@(everyone|here)/gi, '$1')
+    .replace(/<@[!&]?\d+>/g, '')
+    .slice(0, 32)
+    .trim() || 'Player';
+}
+
 function getData() {
   if (!fs.existsSync(achPath)) return {};
   try { return JSON.parse(fs.readFileSync(achPath, 'utf8')); }
@@ -350,10 +363,10 @@ function check(userId, username, event, data, channel) {
     if (!a) continue;
     bonusXp += a.xp;
     channel.send(
-      `🏆 **ACHIEVEMENT UNLOCKED** — **${username}**\n` +
+      `🏆 **ACHIEVEMENT UNLOCKED** — **${safeUsername(username)}**\n` +
       `${a.emoji} **${a.name}** — ${a.desc}` +
       (a.xp > 0 ? ` *(+${a.xp} XP)* 🥛` : ` 🥛`)
-    );
+    ).catch(() => {});
   }
   if (bonusXp > 0) {
     try {
