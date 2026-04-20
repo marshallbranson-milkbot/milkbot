@@ -73,6 +73,16 @@ function appendHistory(prices) {
   fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
 }
 
+// Return last N price points (newest last). Used for sparkline rendering.
+function getRecentHistory(ticker, limit = 20) {
+  if (!fs.existsSync(historyPath)) return [];
+  let history = {};
+  try { history = JSON.parse(fs.readFileSync(historyPath, 'utf8')); } catch { return []; }
+  const entries = history[ticker] || [];
+  if (entries.length <= limit) return entries.map(e => e.price);
+  return entries.slice(-limit).map(e => e.price);
+}
+
 function getStats(ticker) {
   if (!fs.existsSync(historyPath)) return null;
   let history = {};
@@ -115,4 +125,4 @@ function updatePrices() {
   return prices;
 }
 
-module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices, getStats };
+module.exports = { STOCK_DEFS, getPrices, savePrices, getPortfolios, savePortfolios, updatePrices, getStats, getRecentHistory };

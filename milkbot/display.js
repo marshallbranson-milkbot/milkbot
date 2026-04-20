@@ -6,7 +6,24 @@ const balancesPath = path.join(__dirname, 'data/balances.json');
 const xpPath = path.join(__dirname, 'data/xp.json');
 const bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
 const prestige = require('./prestige');
-const { STOCK_DEFS, getPrices, getStats } = require('./stockdata');
+const { STOCK_DEFS, getPrices, getStats, getRecentHistory } = require('./stockdata');
+
+// Render a 20-tick unicode sparkline. Maps each price to one of 8 block chars
+// based on its position between the min and max of the series.
+const SPARK_CHARS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+function buildSparkline(points) {
+  if (!points || points.length === 0) return '────────────────────';
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min;
+  if (range === 0) return '─'.repeat(Math.max(points.length, 20));
+  const bars = points.map(p => {
+    const idx = Math.min(SPARK_CHARS.length - 1, Math.floor(((p - min) / range) * SPARK_CHARS.length));
+    return SPARK_CHARS[idx];
+  }).join('');
+  // Left-pad with dashes if we have fewer than 20 ticks
+  return bars.length < 20 ? '─'.repeat(20 - bars.length) + bars : bars;
+}
 const jackpot = require('./jackpot');
 const GUILD_ID = '562076997979865118';
 const STOCK_MAP = Object.fromEntries(STOCK_DEFS.map(s => [s.ticker, s]));
@@ -188,8 +205,10 @@ function buildStockBoardText() {
         ? `High **${stats.high}** • Low **${stats.low}** • Avg **${stats.avg}**`
         : '*not enough data yet*';
 
+      const sparkline = buildSparkline(getRecentHistory(ticker, 20));
       lines.push(`${arrow} **${ticker}** — ${s.name}`);
-      lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  |  7-day: ${statsText}`);
+      lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  \`${sparkline}\``);
+      lines.push(`> 7-day: ${statsText}`);
       lines.push('');
     }
   }

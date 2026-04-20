@@ -166,6 +166,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
         return;
       }
 
+      // /quests — ephemeral player quest list; no channel restriction
+      if (cmdName === 'quests') {
+        require('./commands/quests').executeSlash(interaction).catch(console.error);
+        return;
+      }
+
       // Channel routing (mirrors prefix command rules)
       const channelName = interaction.channel?.name;
       if (STOCKS_COMMANDS.has(cmdName) && channelName !== 'milkbot-stocks') {

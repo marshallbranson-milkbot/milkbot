@@ -150,6 +150,9 @@ const ACHIEVEMENTS = [
 //         portfolio | sell_result | slot_spin | bj_win | bj_bust | bj_timeout |
 //         game_loss | coinflip_win | coinflip_loss | rob_victim | scramble_win
 function check(userId, username, event, data, channel) {
+  // Hook into daily/weekly quest progress tracking. Safe to call — quest module handles unknown events.
+  try { require('./dailyquests').recordEvent(userId, username, event, data, channel); } catch (e) { console.warn('[quests] hook failed:', e.message); }
+
   const allData = getData();
   const user = allData[userId] || { unlocked: [], counters: {} };
   if (!user.counters) user.counters = {};
