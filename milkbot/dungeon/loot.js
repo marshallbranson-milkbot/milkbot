@@ -237,6 +237,48 @@ const RELICS = {
       ctx.partyAtkMul *= 1.20;
     },
   },
+
+  // ── CREAMSPIRE COSMOS RELICS ────────────────────────────────────────────────
+  stargazers_lens: { key: 'stargazers_lens', name: "Stargazer's Lens", emoji: '🔭', rarity: 'common', dungeon: 'creamspire_cosmos',
+    description: '+20% crit chance — the stars aim for you.', apply: (ctx) => { ctx.partyCritBonus += 0.20; } },
+  cosmic_kazoo: { key: 'cosmic_kazoo', name: 'Cosmic Kazoo', emoji: '🎺', rarity: 'common', dungeon: 'creamspire_cosmos',
+    description: '+1 SPD party-wide. Time is a suggestion.', apply: (ctx) => { for (const p of ctx.party) p.spd = (p.spd || 0) + 1; } },
+  ancient_whey: { key: 'ancient_whey', name: 'Ancient Whey', emoji: '🧪', rarity: 'uncommon', dungeon: 'creamspire_cosmos',
+    description: 'One auto-revive per floor.', apply: (ctx) => { ctx.autoReviveEachFloor = true; },
+    onEvent: { kind: 'ally_downed', effect: (ctx) => ({ kind: 'revive', target: ctx.targetId, hpPct: 0.5 }) } },
+  starlight_locket: { key: 'starlight_locket', name: 'Starlight Locket', emoji: '🌟', rarity: 'uncommon', dungeon: 'creamspire_cosmos',
+    description: 'Crits heal you for 5 HP.', apply: (ctx) => { ctx.critHealAmount = 5; } },
+  rind_of_antiquity: { key: 'rind_of_antiquity', name: 'Rind of Antiquity', emoji: '🛡️', rarity: 'uncommon', dungeon: 'creamspire_cosmos',
+    description: '+10 DEF for the first 3 turns of each combat.', apply: (ctx) => { ctx.openingDefBonus = 10; } },
+  creamspire_fragment: { key: 'creamspire_fragment', name: 'Creamspire Fragment', emoji: '🔱', rarity: 'rare', dungeon: 'creamspire_cosmos',
+    description: '+1 ATK permanent per floor cleared.', apply: () => {},
+    onEvent: { kind: 'floor_start', effect: (ctx) => ctx.party.map(p => ({ kind: 'buff', target: p.userId, stat: 'atk', amount: 1, duration: 999 })) } },
+  nebula_brand: { key: 'nebula_brand', name: 'Nebula Brand', emoji: '☄️', rarity: 'rare', dungeon: 'creamspire_cosmos',
+    description: "First ability each fight has no cooldown.", apply: (ctx) => { ctx.firstAbilityFree = true; } },
+  cheesemonger_helm: { key: 'cheesemonger_helm', name: 'Helm of the Cheesemonger', emoji: '⛑️', rarity: 'rare', dungeon: 'creamspire_cosmos',
+    description: 'Enemies hit the party for -20%.', apply: (ctx) => { ctx.incomingDmgMul = (ctx.incomingDmgMul || 1) * 0.80; } },
+  galactic_udder_coin: { key: 'galactic_udder_coin', name: 'Galactic Udder Coin', emoji: '🪙', rarity: 'rare', dungeon: 'creamspire_cosmos',
+    description: 'Merchant items 50% off.', apply: (ctx) => { ctx.merchantDiscount = 0.5; } },
+  the_infinite_jug: { key: 'the_infinite_jug', name: 'The Infinite Jug', emoji: '🏺', rarity: 'rare', dungeon: 'creamspire_cosmos',
+    description: 'Party heals 10 HP every turn.', apply: () => {},
+    onEvent: { kind: 'floor_start', effect: (ctx) => ctx.party.map(p => ({ kind: 'heal', target: p.userId, amount: 10 })) } },
+
+  // ── CREAMSPIRE COSMOS MYTHICS (hardcore only) ───────────────────────────────
+  halo_of_cream: { key: 'halo_of_cream', name: 'Halo of Cream', emoji: '😇', rarity: 'mythic', dungeon: 'creamspire_cosmos',
+    description: 'Survive one party wipe — everyone resurrects at 50% HP.', apply: (ctx) => { ctx.partyWipeReviveAvailable = true; } },
+  cosmic_ledger: { key: 'cosmic_ledger', name: 'Cosmic Ledger', emoji: '📒', rarity: 'mythic', dungeon: 'creamspire_cosmos',
+    description: 'Pot doubles on victory.', apply: (ctx) => { ctx.potMultiplierOnWin = 2.0; } },
+  milkgods_tear: { key: 'milkgods_tear', name: "Milkgod's Tear", emoji: '💧', rarity: 'mythic', dungeon: 'creamspire_cosmos',
+    description: 'First attack each combat is a guaranteed 5× crit.', apply: (ctx) => { ctx.firstAttackGuaranteedSuperCrit = true; } },
+  the_first_drop: { key: 'the_first_drop', name: 'The First Drop', emoji: '💠', rarity: 'mythic', dungeon: 'creamspire_cosmos',
+    description: 'Party stats +50%, but pot halved at end.', apply: (ctx) => {
+      for (const p of ctx.party) {
+        const hpBonus = Math.floor(p.maxHp * 0.5);
+        p.maxHp += hpBonus; p.hp = Math.min(p.maxHp, p.hp + hpBonus);
+      }
+      ctx.partyAtkMul *= 1.5;
+      ctx.potMultiplierOnWin = (ctx.potMultiplierOnWin || 1) * 0.5;
+    } },
 };
 
 function listConsumables() { return Object.values(CONSUMABLES); }

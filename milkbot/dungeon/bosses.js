@@ -2,6 +2,7 @@
 // Phase triggers: HP thresholds. Each phase can have different behavior.
 
 const BOSSES = {
+  // ── SPOILED VAULT ──────────────────────────────────────────────────────────
   lactose_lich: {
     key: 'lactose_lich',
     name: 'The Lactose Lich',
@@ -33,7 +34,6 @@ const BOSSES = {
     ],
     behavior: (ctx) => {
       const hpPct = ctx.self.hp / ctx.self.maxHp;
-      // Phase 2 triggers at or below 50%. At exactly 50% we already enter AoE.
       const phase = hpPct > 0.5 ? 0 : 1;
       return BOSSES.lactose_lich.phases[phase].behavior(ctx);
     },
@@ -44,12 +44,8 @@ const BOSSES = {
     emoji: '🧀',
     isBoss: true,
     dungeon: 'spoiled_vault',
-    // Base tuned for 4-player parties. Scaled by party size in combat.js.
     base: { hp: 650, atk: 24, def: 8, spd: 8 },
     floor: 10,
-    // Phase 1 (>66% HP): single heavy hit
-    // Phase 2 (33-66% HP): multi-hit (3 attacks)
-    // Phase 3 (<33% HP): summons Curdling minions + attack
     phases: [
       { threshold: 1.0, behavior: (ctx) => {
         const target = ctx.pickLivingPlayer();
@@ -67,11 +63,9 @@ const BOSSES = {
       }},
       { threshold: 0.33, behavior: (ctx) => {
         const effects = [];
-        // 30% chance to summon (only if space available)
         if (ctx.enemies.length < 4 && ctx.rng.chance(0.3)) {
           effects.push({ kind: 'summon', enemyKey: 'curdling' });
         }
-        // Always attack
         const target = ctx.pickLivingPlayer();
         if (target) {
           effects.push({ kind: 'damage', target: target.userId, amount: ctx.atk });
@@ -88,7 +82,7 @@ const BOSSES = {
     },
   },
 
-  // ── UDDER ABYSS BOSSES ─────────────────────────────────────────────────────
+  // ── UDDER ABYSS ────────────────────────────────────────────────────────────
   great_maw: {
     key: 'great_maw',
     name: 'The Great Maw',
@@ -152,7 +146,6 @@ const BOSSES = {
         return effects;
       }},
       { threshold: 0.25, behavior: (ctx) => {
-        // Ultimate: target lowest-HP player for massive damage
         const lowest = ctx.party.filter(p => !p.downed).sort((a, b) => a.hp - b.hp)[0];
         if (!lowest) return [];
         return [{ kind: 'damage', target: lowest.userId, amount: Math.floor(ctx.atk * 1.6) }];
@@ -165,6 +158,100 @@ const BOSSES = {
       else if (hpPct <= 0.50) idx = 2;
       else if (hpPct <= 0.75) idx = 1;
       return BOSSES.udder_god.phases[idx].behavior(ctx);
+    },
+  },
+
+  // ── CREAMSPIRE COSMOS ──────────────────────────────────────────────────────
+  // Floor 5: Lord Parmigiano — rind-armor phase, then sheds for a marked-target
+  // phase. Tuned LIGHTER than Great Maw (playtest showed Maw was over-tuned).
+  lord_parmigiano: {
+    key: 'lord_parmigiano',
+    name: 'Lord Parmigiano, the Cheese Emperor',
+    emoji: '👑',
+    isBoss: true,
+    dungeon: 'creamspire_cosmos',
+    base: { hp: 350, atk: 20, def: 12, spd: 7 },
+    floor: 5,
+    // Phase 1 (>50%): rind armor — heavy DEF, steady hits
+    // Phase 2 (<=50%): sheds rind — +5 ATK, DEF drops to 4, marks a player
+    phases: [
+      { threshold: 1.0, behavior: (ctx) => {
+        const t = ctx.pickLivingPlayer(); if (!t) return [];
+        return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+      }},
+      { threshold: 0.5, behavior: (ctx) => {
+        const effects = [];
+        // One-time rind-shed: swap heavy armor for raw aggression.
+        if (!ctx.self._rindShed) {
+          ctx.self._rindShed = true;
+          ctx.self.def = Math.max(4, (ctx.self.def || 0) - 8);
+          ctx.self.atk = (ctx.self.atk || 0) + 5;
+        }
+        // Phase 2 strikes target + the lowest-HP ally (party-damage pressure).
+        const living = ctx.party.filter(p => !p.downed);
+        if (living.length === 0) return effects;
+        const primary = ctx.pickLivingPlayer();
+        effects.push({ kind: 'damage', target: primary.userId, amount: Math.floor(ctx.atk * 1.2) });
+        const lowest = living.sort((a, b) => a.hp - b.hp)[0];
+        if (lowest && lowest.userId !== primary.userId) {
+          effects.push({ kind: 'damage', target: lowest.userId, amount: Math.floor(ctx.atk * 0.7) });
+        }
+        return effects;
+      }},
+    ],
+    behavior: (ctx) => {
+      const hpPct = ctx.self.hp / ctx.self.maxHp;
+      return BOSSES.lord_parmigiano.phases[hpPct > 0.5 ? 0 : 1].behavior(ctx);
+    },
+  },
+  // Floor 10: Mother Galaxy — 4 phases with callback summons (mini-Curdfather +
+  // mini-Udder-God from the prior two dungeons). Final phase is AoE every turn.
+  mother_galaxy: {
+    key: 'mother_galaxy',
+    name: 'Mother Galaxy',
+    emoji: '🌌',
+    isBoss: true,
+    dungeon: 'creamspire_cosmos',
+    base: { hp: 720, atk: 26, def: 9, spd: 9 },
+    floor: 10,
+    phases: [
+      { threshold: 1.0, behavior: (ctx) => {
+        const t = ctx.pickLivingPlayer(); if (!t) return [];
+        return [{ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.1) }];
+      }},
+      { threshold: 0.75, behavior: (ctx) => {
+        const effects = [];
+        if (!ctx.self._summonedMiniCurdfather && ctx.enemies.length < 4) {
+          ctx.self._summonedMiniCurdfather = true;
+          effects.push({ kind: 'summon', enemyKey: 'mini_curdfather' });
+        }
+        const t = ctx.pickLivingPlayer();
+        if (t) effects.push({ kind: 'damage', target: t.userId, amount: ctx.atk });
+        return effects;
+      }},
+      { threshold: 0.50, behavior: (ctx) => {
+        const effects = [];
+        if (!ctx.self._summonedMiniUdderGod && ctx.enemies.length < 4) {
+          ctx.self._summonedMiniUdderGod = true;
+          effects.push({ kind: 'summon', enemyKey: 'mini_udder_god' });
+        }
+        const t = ctx.pickLivingPlayer();
+        if (t) effects.push({ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.1) });
+        return effects;
+      }},
+      { threshold: 0.25, behavior: (ctx) => {
+        // Celestial Wrath — AoE every turn
+        const living = ctx.party.filter(p => !p.downed);
+        return living.map(p => ({ kind: 'damage', target: p.userId, amount: Math.floor(ctx.atk * 0.65) }));
+      }},
+    ],
+    behavior: (ctx) => {
+      const hpPct = ctx.self.hp / ctx.self.maxHp;
+      let idx = 0;
+      if (hpPct <= 0.25) idx = 3;
+      else if (hpPct <= 0.50) idx = 2;
+      else if (hpPct <= 0.75) idx = 1;
+      return BOSSES.mother_galaxy.phases[idx].behavior(ctx);
     },
   },
 };

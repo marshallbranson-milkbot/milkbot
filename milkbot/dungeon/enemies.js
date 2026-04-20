@@ -223,6 +223,138 @@ const ENEMIES = {
       ];
     },
   },
+
+  // ── CREAMSPIRE COSMOS ENEMIES ──────────────────────────────────────────────
+  // Ancient cheese crypts at the base → cloud kingdoms → cosmic space at summit.
+  // ~10% harder than Abyss equivalents (user wanted "a bit harder").
+  aged_warden: {
+    key: 'aged_warden', name: 'Aged Warden', emoji: '🧀', role: 'Slow Heavy',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 90, atk: 13, def: 5, spd: 6 }, tier: 1, threat: 1.3, lootWeight: 1.1,
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.1) }];
+    },
+  },
+  rind_crawler: {
+    key: 'rind_crawler', name: 'Rind Crawler', emoji: '🕷️', role: 'Frenzied',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 60, atk: 11, def: 3, spd: 11 }, tier: 1, threat: 1.2, lootWeight: 1,
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      // Below 40% HP the crawler flails wildly — two smaller hits.
+      if (ctx.selfHpPct !== undefined ? ctx.selfHpPct < 0.4 : false) {
+        return [
+          { kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 0.6) },
+          { kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 0.6) },
+        ];
+      }
+      return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+    },
+  },
+  fossilized_calf: {
+    key: 'fossilized_calf', name: 'Fossilized Calf', emoji: '🦴', role: 'Revenant',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 55, atk: 10, def: 4, spd: 7 }, tier: 1, threat: 1.3, lootWeight: 1.1,
+    extras: { revivesOnce: true },
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+    },
+  },
+  cream_paladin: {
+    key: 'cream_paladin', name: 'Cream Paladin', emoji: '🛡️', role: 'Armored',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 105, atk: 15, def: 10, spd: 7 }, tier: 2, threat: 1.6, lootWeight: 1.3,
+    behavior: (ctx) => {
+      // Self-heal when below half HP, else attack.
+      if (ctx.selfHpPct !== undefined && ctx.selfHpPct < 0.5) {
+        return [{ kind: 'heal', target: ctx.selfId, amount: 18 }];
+      }
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+    },
+  },
+  cloud_calf: {
+    key: 'cloud_calf', name: 'Cloud Calf', emoji: '☁️', role: 'Evasive',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 78, atk: 13, def: 4, spd: 11 }, tier: 2, threat: 1.5, lootWeight: 1.2,
+    extras: { dodgeChance: 0.25 },
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+    },
+  },
+  halo_wraith: {
+    key: 'halo_wraith', name: 'Halo Wraith', emoji: '😇', role: 'Blessed',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 72, atk: 14, def: 5, spd: 9 }, tier: 2, threat: 1.5, lootWeight: 1.2,
+    behavior: (ctx) => {
+      // Bless a nearby enemy (heal 8) on half of turns, else a light attack.
+      const ally = ctx.enemies.filter(e => e.id !== ctx.selfId && e.hp > 0 && e.hp < e.maxHp)
+        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      if (ally && ctx.rng.chance(0.5)) {
+        return [{ kind: 'heal', target: ally.id, amount: 8 }];
+      }
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: ctx.atk }];
+    },
+  },
+  starlight_yak: {
+    key: 'starlight_yak', name: 'Starlight Yak', emoji: '🌟', role: 'Charger',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 140, atk: 19, def: 8, spd: 8 }, tier: 3, threat: 1.9, lootWeight: 1.5,
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      // Heavy charge every turn — 20% harder hits than Abyss bruisers.
+      return [{ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.2) }];
+    },
+  },
+  nebula_wisp: {
+    key: 'nebula_wisp', name: 'Nebula Wisp', emoji: '🌌', role: 'AoE',
+    dungeons: ['creamspire_cosmos'],
+    base: { hp: 95, atk: 17, def: 4, spd: 12 }, tier: 3, threat: 1.8, lootWeight: 1.4,
+    behavior: (ctx) => {
+      // Cosmic wash: hits up to 2 random living players for 60% ATK each.
+      const picks = [];
+      const living = ctx.party.filter(p => !p.downed && p.hp > 0);
+      for (let i = 0; i < 2 && living.length; i++) {
+        const t = living[ctx.rng.int(living.length)];
+        picks.push({ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 0.6) });
+      }
+      return picks.length ? picks : [];
+    },
+  },
+
+  // ── CALLBACK SUMMONS (Mother Galaxy boss calls these) ─────────────────────
+  // No `tier` field so enemiesByTier ignores them — summon-only.
+  mini_curdfather: {
+    key: 'mini_curdfather', name: 'Mini Curdfather', emoji: '🧀',
+    role: 'Callback',
+    base: { hp: 160, atk: 15, def: 5, spd: 7 },
+    lootWeight: 0,
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      return [{ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.1) }];
+    },
+  },
+  mini_udder_god: {
+    key: 'mini_udder_god', name: 'Mini Udder God', emoji: '👁️',
+    role: 'Callback',
+    base: { hp: 190, atk: 17, def: 6, spd: 8 },
+    lootWeight: 0,
+    behavior: (ctx) => {
+      const t = ctx.pickLivingPlayer(); if (!t) return [];
+      // 25% chance to apply Sour alongside damage
+      if (ctx.rng.chance(0.25)) {
+        return [
+          { kind: 'damage', target: t.userId, amount: ctx.atk },
+          { kind: 'status', target: t.userId, status: 'sour', duration: 2 },
+        ];
+      }
+      return [{ kind: 'damage', target: t.userId, amount: Math.floor(ctx.atk * 1.1) }];
+    },
+  },
 };
 
 function getEnemy(key) { return ENEMIES[key]; }
