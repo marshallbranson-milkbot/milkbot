@@ -250,6 +250,17 @@ const DUNGEON_META = {
     hardcoreBtnLabel: 'Abyss (Hardcore 💀)',
     color: 0x4A1A4A,
     unlockRequires: 'spoiled_vault',
+    lockedHint: 'Beat the Curdfather (Spoiled Vault) to unlock.',
+  },
+  creamspire_cosmos: {
+    displayName: 'The Creamspire Cosmos',
+    emoji: '🌌',
+    description: 'Ancient cheese crypts ascending into cosmic space. Climb the spire, beat Mother Galaxy.',
+    startBtnLabel: 'Start Creamspire',
+    hardcoreBtnLabel: 'Creamspire (Hardcore 💀)',
+    color: 0x1B2C5C,
+    unlockRequires: 'udder_abyss',
+    lockedHint: 'Beat the Udder God (Udder Abyss) to unlock.',
   },
 };
 
@@ -261,7 +272,7 @@ function buildLobbyPanel(activeRuns, dungeonId = 'spoiled_vault', isUnlocked = t
     .setColor(meta.color)
     .setTitle(`${meta.emoji} ${meta.displayName}`)
     .setDescription(
-      (isUnlocked ? meta.description : `🔒 **Locked** — ${meta.description}\n*Beat the Curdfather (Spoiled Vault) to unlock.*`) + '\n\n' +
+      (isUnlocked ? meta.description : `🔒 **Locked** — ${meta.description}\n*${meta.lockedHint || 'Clear the prior dungeon to unlock.'}*`) + '\n\n' +
       (dungeonRuns.length === 0
         ? '*No active runs. Be the first to descend.*'
         : dungeonRuns.map(r => {
