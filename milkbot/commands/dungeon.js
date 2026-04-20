@@ -735,22 +735,44 @@ async function handleUseItem(interaction, runId, itemIdx) {
     const itemKey = player.items[itemIdx];
     const consumable = loot.getConsumable(itemKey);
     if (!consumable) { result = { error: 'Unknown item.' }; return; }
+
+    // Resolve target based on the item's targetKind so revive-type items
+    // actually hit downed allies instead of silently fizzling on the caster.
+    let targetId = userId;
+    if (consumable.targetKind === 'ally_downed') {
+      const downed = run.party.find(p => p.downed);
+      if (!downed) {
+        result = { error: 'No downed ally to revive.' };
+        return;
+      }
+      targetId = downed.userId;
+    } else if (consumable.targetKind === 'ally') {
+      const wounded = run.party
+        .filter(p => !p.downed)
+        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      if (wounded) targetId = wounded.userId;
+    }
+
     const ctx = {
       userId,
-      targetId: userId,
+      targetId,
       party: run.party,
       enemies: run.currentRoom?.enemies || [],
     };
     const effects = consumable.use(ctx);
     const logs = combat.processEffects(run, effects, `${player.username} (${consumable.name})`, run.rng);
     run.log.push(...logs);
-    // Remove the item
+    // Remove the item on successful use.
     player.items.splice(itemIdx, 1);
     state.markDirty(run);
-    result = { ok: true, name: consumable.name };
+    const targetPlayer = run.party.find(p => p.userId === targetId);
+    const targetedLine = targetPlayer && targetId !== userId
+      ? ` on **${targetPlayer.username}**`
+      : '';
+    result = { ok: true, name: consumable.name, targetedLine };
   });
   if (result.error) return interaction.reply({ content: result.error, flags: 64 });
-  await interaction.reply({ content: `✅ Used ${result.name}`, flags: 64 });
+  await interaction.reply({ content: `✅ Used ${result.name}${result.targetedLine}`, flags: 64 });
   const run = state.getRun(runId);
   const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
   if (thread) postStatus(run, thread).catch(() => {});
