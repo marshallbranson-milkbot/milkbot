@@ -310,7 +310,7 @@ const UPDATES = [
       `🛡️ **Rob Shields** — Rob Decoy, Milk Armor, Iron Piggy Bank, **Fort Knox Milk** (7-day immunity). Blocks incoming rob attempts outright.`,
       `💰 **Rob Boosts** — Thief's Mask, Pickpocket Gloves, Thief Lord's Crown, **The Heist Code** (+500% on one single rob). Multiplies what you steal.`,
       ``,
-      `🃏 **BLACKJACK AUTO-CLEAN** — completed games vanish after 30s. \`#milkbot-games\` stays tidy.`,
+      `🃏 **BLACKJACK AUTO-CLEAN** — completed games vanish after **8 seconds**. \`#milkbot-games\` stays tight.`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `*— MilkBot Management. the vault is open. go get rich or get curdled. 🥛*`,

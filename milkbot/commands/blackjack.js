@@ -23,7 +23,7 @@ function saveData(filePath, data) {
 
 const MIN_BET = 25;
 const ACTION_TIMEOUT = 30000;
-const DELETE_DONE_MS = 30000;  // auto-delete resolved game messages after 30s to reduce clutter
+const DELETE_DONE_MS = 8000;  // auto-delete resolved game messages after 8s to keep channel tight
 
 function scheduleDelete(msg, delay = DELETE_DONE_MS) {
   if (!msg || typeof msg.delete !== 'function') return;
