@@ -170,6 +170,9 @@ const STOCK_TIERS = [
 ];
 
 function buildStockBoardText() {
+  // Renders the stock board as an embed (description has 4096-char limit;
+  // plain content caps at 2000 and the sparklines + stats push 14 tickers
+  // past that limit).
   const prices = getPrices();
 
   const now = new Date().toLocaleString('en-US', {
@@ -177,19 +180,18 @@ function buildStockBoardText() {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 
   const lines = [
-    '🥛 **THE MILK MARKET IS OPEN** 🥛',
     '*real prices. fake money. actual consequences.*',
     '',
     '💸 Trade in **#milkbot-stocks** with `/b` `/s` `/port`',
     '📦 or just stare at the numbers and spiral quietly.',
-    '',
   ];
 
   for (const tier of STOCK_TIERS) {
+    lines.push('');
     lines.push(`━━━━━━━━━━━━━━━━━━━━━━`);
     lines.push(`${tier.label}  *${tier.range}*`);
     lines.push('');
@@ -204,7 +206,6 @@ function buildStockBoardText() {
       const statsText = stats
         ? `High **${stats.high}** • Low **${stats.low}** • Avg **${stats.avg}**`
         : '*not enough data yet*';
-
       const sparkline = buildSparkline(getRecentHistory(ticker, 20));
       lines.push(`${arrow} **${ticker}** — ${s.name}`);
       lines.push(`> ${price} 🥛  *(${sign}${pct}%)*  \`${sparkline}\``);
@@ -213,9 +214,17 @@ function buildStockBoardText() {
     }
   }
 
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push(`*refreshed: ${now} EST 🥛*`);
-  return lines.join('\n');
+  let description = lines.join('\n');
+  // Embed description caps at 4096; safety trim.
+  if (description.length > 4000) description = description.slice(0, 4000) + '\n*…truncated*';
+
+  const embed = new EmbedBuilder()
+    .setColor(0xF3E5AB)
+    .setTitle('🥛 THE MILK MARKET IS OPEN 🥛')
+    .setDescription(description)
+    .setFooter({ text: `refreshed: ${now} EST 🥛` });
+  // content: '' clears any legacy text when we're editing the old content-only message.
+  return { content: '', embeds: [embed] };
 }
 
 function buildLeaderboardText(guild) {
@@ -328,18 +337,28 @@ let helpMessage = null;
 let sbMessage = null;
 let shopMessage = null;
 
-async function findBotMessage(channel, client, contentHint = null) {
+async function findBotMessage(channel, client, { contentHint = null, embedTitle = null } = {}) {
   const fetched = await channel.messages.fetch({ limit: 50 });
   return fetched.find(m => {
     if (m.author.id !== client.user.id) return false;
-    if (contentHint && !m.content.startsWith(contentHint)) return false;
-    return true;
+    if (contentHint && m.content && m.content.startsWith(contentHint)) return true;
+    if (embedTitle && m.embeds?.[0]?.title?.includes(embedTitle)) return true;
+    // Legacy: if nothing was passed (old calls) accept any bot message.
+    if (!contentHint && !embedTitle) return true;
+    return false;
   }) ?? null;
 }
 
 async function updateOrPost(channel, client, payload, label) {
-  const hint = typeof payload === 'string' ? payload.slice(0, 20) : null;
-  const existing = await findBotMessage(channel, client, hint);
+  const hints = {};
+  if (typeof payload === 'string') hints.contentHint = payload.slice(0, 20);
+  if (payload && typeof payload === 'object') {
+    if (payload.content) hints.contentHint = payload.content.slice(0, 20);
+    const firstEmbed = payload.embeds?.[0];
+    const embedData = firstEmbed?.data || firstEmbed;
+    if (embedData?.title) hints.embedTitle = embedData.title;
+  }
+  const existing = await findBotMessage(channel, client, hints);
   if (existing) {
     const updated = await existing.edit(payload).catch(() => null);
     if (updated) {
