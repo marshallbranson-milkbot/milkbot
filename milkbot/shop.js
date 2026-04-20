@@ -87,6 +87,41 @@ const ITEMS = {
   sacred_udder:      { name: "The Sacred Udder",        tier: 'LEGENDARY', price: 75000,  emoji: '⚜️', description: 'Immune to counters + +300% raid damage for 24 hr', flavorText: "sacred. holy. dairy. your raid damage is unhinged for one day.",            effect: { type: 'combo_raid',     value: 3.0  }, duration: 24 * 60 * 60 * 1000,    uses: null },
   dairy_plague:      { name: "The Dairy Plague",        tier: 'LEGENDARY', price: 60000,  emoji: '💀',  description: '☠️ Deal 5,000 HP to active boss (server-wide)', flavorText: "the plague spreads. 5,000 damage. server-wide. unstoppable.",                   effect: { type: 'boss_nuke',      value: 5000 }, duration: null,                     uses: null },
   milk_immortal:     { name: "Milk Immortal's Vow",     tier: 'LEGENDARY', price: 55000,  emoji: '🏆',  description: 'Hot streak can NEVER reset for 24 hr',        flavorText: "you vowed. you will not break. your streak will not break. for 24 hours.",          effect: { type: 'streak_shield',  value: 1    }, duration: 24 * 60 * 60 * 1000,    uses: null },
+
+  // ── DUNGEON-THEMED (v2) ─────────────────────────────────────────────────────
+  dungeon_rations:   { name: "Dungeon Rations",         tier: 'COMMON',    price: 300,    emoji: '🧺',  description: '+20% earnings in next hour (dungeon fuel)',    flavorText: "salted curd and hardtack. what every descent needs.",                                effect: { type: 'earnings_mul',   value: 0.20 }, duration: 60 * 60 * 1000,          uses: null },
+  cellar_key:        { name: "Cellar Key",               tier: 'COMMON',    price: 450,    emoji: '🗝️', description: '+25% XP for 1 hr',                              flavorText: "opens doors. mostly metaphorical ones.",                                              effect: { type: 'xp_mul',         value: 0.25 }, duration: 60 * 60 * 1000,          uses: null },
+  milk_compass:      { name: "Milk Compass",             tier: 'COMMON',    price: 500,    emoji: '🧭',  description: '+30% jackpot chance for 45 min',                flavorText: "always points toward the richest vein of milk. usually.",                             effect: { type: 'jackpot_mul',    value: 0.30 }, duration: 45 * 60 * 1000,          uses: null },
+  torch_of_whey:     { name: "Torch of Whey",            tier: 'COMMON',    price: 350,    emoji: '🔥',  description: '+50 flat raid damage, next attack',             flavorText: "it burns. hotter than regular torches. somehow.",                                     effect: { type: 'raid_damage',    value: 50   }, duration: null,                     uses: 1    },
+
+  vault_explorer:    { name: "Vault Explorer's Bag",    tier: 'UNCOMMON',  price: 2200,   emoji: '🎒',  description: '+40% earnings for 2 hr',                       flavorText: "bigger on the inside. stuffed with stolen dairy secrets.",                           effect: { type: 'earnings_mul',   value: 0.40 }, duration: 2 * 60 * 60 * 1000,     uses: null },
+  sour_ward_charm:   { name: "Sour Ward Charm",          tier: 'UNCOMMON',  price: 1800,   emoji: '🟢',  description: 'Negate next 2 raid counter-attacks',             flavorText: "wards against souring. also against being punched.",                                  effect: { type: 'raid_shield',    value: 1    }, duration: null,                     uses: 2    },
+  party_banner:      { name: "Party Banner",             tier: 'UNCOMMON',  price: 2800,   emoji: '🚩',  description: '+45% XP for 3 hr',                              flavorText: "rally the party. or just flex it at the dairy.",                                      effect: { type: 'xp_mul',         value: 0.45 }, duration: 3 * 60 * 60 * 1000,     uses: null },
+  spoil_candle:      { name: "Spoil Candle",             tier: 'UNCOMMON',  price: 2500,   emoji: '🕯️', description: '+180 flat raid damage, next 2 attacks',         flavorText: "lit with cursed wax. attacks land sharper.",                                         effect: { type: 'raid_damage',    value: 180  }, duration: null,                     uses: 2    },
+  moonlit_key:       { name: "Moonlit Key",              tier: 'UNCOMMON',  price: 3200,   emoji: '🌙',  description: '+70% jackpot chance for 4 hr',                  flavorText: "carved from moonmilk. picks every lock. including the jackpot's.",                   effect: { type: 'jackpot_mul',    value: 0.70 }, duration: 4 * 60 * 60 * 1000,     uses: null },
+  cheese_grotto:     { name: "Cheese Grotto Map",        tier: 'UNCOMMON',  price: 3800,   emoji: '🗺️', description: '+35% earnings and +35% XP for 2 hr',           flavorText: "leads somewhere. probably useful. probably cursed.",                                  effect: { type: 'combo_surge',    value: 0.35 }, duration: 2 * 60 * 60 * 1000,     uses: null },
+
+  curdmancer_tome:   { name: "Curdmancer's Tome",        tier: 'RARE',      price: 6000,   emoji: '📕',  description: '+150% XP for 10 hr',                            flavorText: "forbidden dairy magicks. the price is your sanity.",                                  effect: { type: 'xp_mul',         value: 1.50 }, duration: 10 * 60 * 60 * 1000,    uses: null },
+  relic_hunter:      { name: "Relic Hunter Amulet",      tier: 'RARE',      price: 7000,   emoji: '🏺',  description: '+80% earnings for 8 hr',                        flavorText: "hunts relics. also milk bucks.",                                                      effect: { type: 'earnings_mul',   value: 0.80 }, duration: 8 * 60 * 60 * 1000,     uses: null },
+  vault_guardian:    { name: "Vault Guardian Plate",     tier: 'RARE',      price: 9000,   emoji: '🛡️', description: 'Immune to all raid counters for 12 hr',         flavorText: "forged from melted down lost armor. heavy. blessed.",                                  effect: { type: 'raid_shield',    value: 1    }, duration: 12 * 60 * 60 * 1000,    uses: null },
+  curdfathers_seal:  { name: "Curdfather's Seal",        tier: 'RARE',      price: 11000,  emoji: '🧀',  description: '+300 flat raid damage, next 5 attacks',         flavorText: "the seal of the big cheese himself. lands like judgment.",                           effect: { type: 'raid_damage',    value: 300  }, duration: null,                     uses: 5    },
+  spoiled_heart:     { name: "Spoiled Heart",            tier: 'RARE',      price: 8500,   emoji: '💜',  description: '+100% XP for 18 hr',                            flavorText: "pumps curdled milk instead of blood. heretical. effective.",                         effect: { type: 'xp_mul',         value: 1.00 }, duration: 18 * 60 * 60 * 1000,    uses: null },
+
+  vault_master_key:  { name: "The Vault Master Key",     tier: 'LEGENDARY', price: 50000,  emoji: '⚜️', description: '+200% earnings for 24 hr',                      flavorText: "every lock. every vault. every opportunity.",                                          effect: { type: 'earnings_mul',   value: 2.00 }, duration: 24 * 60 * 60 * 1000,    uses: null },
+  curdfathers_bane:  { name: "Curdfather's Bane",        tier: 'LEGENDARY', price: 60000,  emoji: '⚔️', description: '4x raid damage for 24 hr',                      flavorText: "the curdfather fears this blade. you should wield it.",                              effect: { type: 'raid_damage_mul', value: 3.0 }, duration: 24 * 60 * 60 * 1000,    uses: null },
+
+  // ── PVP-THEMED (v2) ─────────────────────────────────────────────────────────
+  greased_palms:     { name: "Greased Palms",            tier: 'COMMON',    price: 250,    emoji: '🫰',  description: '+15% earnings for 30 min',                     flavorText: "slippery with butter. deals go through smoother.",                                    effect: { type: 'earnings_mul',   value: 0.15 }, duration: 30 * 60 * 1000,          uses: null },
+  rob_decoy:         { name: "Rob Decoy",                tier: 'COMMON',    price: 600,    emoji: '🎭',  description: 'Block next rob attempt against you',            flavorText: "a milk-themed dummy. thieves fall for it almost every time.",                       effect: { type: 'rob_shield',     value: 1    }, duration: null,                     uses: 1    },
+  thiefs_mask:       { name: "Thief's Mask",             tier: 'COMMON',    price: 700,    emoji: '🥷',  description: '+40% on next successful rob',                   flavorText: "they never see you coming. literally. it's a mask.",                                  effect: { type: 'rob_boost_mul',  value: 0.40 }, duration: null,                     uses: 1    },
+  pickpocket_gloves: { name: "Pickpocket Gloves",        tier: 'UNCOMMON',  price: 2000,   emoji: '🧤',  description: '+60% on next 2 successful robs',                flavorText: "lined with butter. fingers never slip.",                                              effect: { type: 'rob_boost_mul',  value: 0.60 }, duration: null,                     uses: 2    },
+  milk_armor:        { name: "Milk Armor",               tier: 'UNCOMMON',  price: 3000,   emoji: '🧥',  description: 'Block next 3 rob attempts against you',         flavorText: "made from compressed curds. surprisingly rob-resistant.",                              effect: { type: 'rob_shield',     value: 1    }, duration: null,                     uses: 3    },
+  goldfinger_vial:   { name: "Goldfinger Vial",          tier: 'UNCOMMON',  price: 3800,   emoji: '🟡',  description: '+80% on next 3 successful robs',                flavorText: "everything you touch turns to milk bucks. for a bit.",                                effect: { type: 'rob_boost_mul',  value: 0.80 }, duration: null,                     uses: 3    },
+  thief_lord_crown:  { name: "Thief Lord's Crown",       tier: 'RARE',      price: 8000,   emoji: '👑',  description: '+150% on next 5 successful robs',               flavorText: "stolen from a dairy baron. fits you perfectly somehow.",                              effect: { type: 'rob_boost_mul',  value: 1.50 }, duration: null,                     uses: 5    },
+  iron_piggy_bank:   { name: "Iron Piggy Bank",          tier: 'RARE',      price: 9500,   emoji: '🏦',  description: 'Block next 10 rob attempts against you',        flavorText: "solid iron. pig shaped. nobody's getting in.",                                        effect: { type: 'rob_shield',     value: 1    }, duration: null,                     uses: 10   },
+  raiders_manifest:  { name: "Raider's Manifest",        tier: 'RARE',      price: 7500,   emoji: '📜',  description: '3x all raid damage for 12 hr',                   flavorText: "a list of grievances. signed in butter. delivered hard.",                             effect: { type: 'raid_damage_mul', value: 2.0 }, duration: 12 * 60 * 60 * 1000,    uses: null },
+  heist_code:        { name: "The Heist Code",           tier: 'LEGENDARY', price: 40000,  emoji: '🗂️', description: '+500% on next single successful rob',           flavorText: "one perfect heist. the kind that ends careers.",                                      effect: { type: 'rob_boost_mul',  value: 5.00 }, duration: null,                     uses: 1    },
+  fort_knox_milk:    { name: "Fort Knox Milk",           tier: 'LEGENDARY', price: 45000,  emoji: '🏰',  description: 'Block all rob attempts for 7 days',             flavorText: "the most fortified milk bucks in the server. untouchable.",                          effect: { type: 'rob_shield',     value: 1    }, duration: 7 * 24 * 60 * 60 * 1000, uses: null },
 };
 
 const TIER_EMOJI = { COMMON: '🟤', UNCOMMON: '🟢', RARE: '🔵', LEGENDARY: '🟡' };
@@ -332,6 +367,32 @@ function consumeDailyMul(userId) {
   _saveBuffs(userId, _activeOnly(buffs));
 }
 
+// ── PvP: rob shield ───────────────────────────────────────────────────────────
+// Called on the rob TARGET. Returns { blocked: true, label } if an active
+// rob_shield consumes an attempt, otherwise { blocked: false }.
+function getAndConsumeRobShield(userId) {
+  let buffs = _activeOnly(_readBuffs(userId));
+  const idx = buffs.findIndex(b => b.type === 'rob_shield');
+  if (idx === -1) return { blocked: false };
+  const label = buffs[idx].label || 'a rob shield';
+  if (buffs[idx].uses !== null) buffs[idx].uses -= 1;
+  _saveBuffs(userId, _activeOnly(buffs));
+  return { blocked: true, label };
+}
+
+// ── PvP: rob boost multiplier ─────────────────────────────────────────────────
+// Called on the rob ROBBER when a successful rob resolves. Returns the
+// multiplier (1.0 if none) and consumes one use.
+function getAndConsumeRobBoost(userId) {
+  let buffs = _activeOnly(_readBuffs(userId));
+  const idx = buffs.findIndex(b => b.type === 'rob_boost_mul');
+  if (idx === -1) return 1.0;
+  const mul = 1 + buffs[idx].value;
+  if (buffs[idx].uses !== null) buffs[idx].uses -= 1;
+  _saveBuffs(userId, _activeOnly(buffs));
+  return mul;
+}
+
 function hasStreakShield(userId) {
   return getActiveBuffs(userId, 'streak_shield').length > 0;
 }
@@ -529,6 +590,7 @@ module.exports = {
   ITEMS, TIER_EMOJI,
   getActiveBuffs, applyItemPurchase, useInventoryItem,
   getEarningsMul, getXpMul, getJackpotMul,
+  getAndConsumeRobShield, getAndConsumeRobBoost,
   getNextWinMul, getAndConsumeNextWinMul,
   getDailyMul, consumeDailyMul,
   hasStreakShield, consumeStreakShield,

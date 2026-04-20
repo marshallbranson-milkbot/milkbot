@@ -68,16 +68,26 @@ module.exports = {
       return message.reply(`You're broke. You've got nothing to lose but you also can't pull this off. 🥛`);
     }
 
+    // PvP rob shield — consumes a charge from the target if they have one and blocks the rob.
+    const shopMod = require('../shop');
+    const shield = shopMod.getAndConsumeRobShield(target.id);
+    if (shield.blocked) {
+      return message.channel.send(
+        `🛡️ **ROB BLOCKED** 🛡️\n` +
+        `${message.author.username} tried to rob ${target.username} — their **${shield.label}** ate the attempt. 🥛`
+      );
+    }
+
     const success = Math.random() < SUCCESS_CHANCE;
 
     if (success) {
       const newStreak = ws.recordWin(message.author.id);
       const hotMul = newStreak >= 3 ? 1.5 : 1;
       const pm = prestige.getMultiplier(message.author.id);
-      const shopMod = require('../shop');
       const shopMul = shopMod.getEarningsMul(message.author.id);
       const nextMul = shopMod.getAndConsumeNextWinMul(message.author.id);
-      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm * shopMul * nextMul));
+      const robBoostMul = shopMod.getAndConsumeRobBoost(message.author.id);
+      const stolen = Math.max(1, Math.floor(targetBalance * 0.05 * hotMul * pm * shopMul * nextMul * robBoostMul));
 
       balances[message.author.id] = Math.min(1_000_000_000, robberBalance + stolen);
       balances[target.id] = targetBalance - stolen;
