@@ -8,18 +8,21 @@ const { state, loot, combat } = dungeon;
 const OWNER_ID = process.env.DUNGEON_ADMIN_ID || '879171470700445747';
 
 async function executeSlash(interaction) {
-  if (interaction.user.id !== OWNER_ID) {
-    return interaction.reply({ content: 'Not for you.', flags: 64 });
-  }
   if (process.env.DUNGEON_ENABLED !== '1') {
     return interaction.reply({ content: 'Dungeon is not enabled.', flags: 64 });
   }
 
-  // Find active run that the invoker is in (or a specific threadId match)
+  // Find active run that this thread belongs to
   const threadId = interaction.channelId;
   const run = state.allRuns().find(r => r.threadId === threadId);
   if (!run) {
     return interaction.reply({ content: "Run this in an active dungeon thread.", flags: 64 });
+  }
+
+  // Authorize: bot owner OR the creator of THIS run (not just any party member — only the starter).
+  const allowed = interaction.user.id === OWNER_ID || interaction.user.id === run.creatorId;
+  if (!allowed) {
+    return interaction.reply({ content: 'Only the run creator can use /dundebug.', flags: 64 });
   }
 
   const action = (interaction.options.getString('action') || '').trim();
