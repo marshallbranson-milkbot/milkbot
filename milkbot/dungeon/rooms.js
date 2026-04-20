@@ -91,6 +91,11 @@ function generateRoom(run) {
   const bossRoom = generateBossRoom(run);
   if (bossRoom) return bossRoom;
 
+  // Floor 6 (right after the floor-5 midboss) is a guaranteed rest — parties
+  // coming out of the midboss at near-zero HP need a reliable heal, not a
+  // merchant they may not have pot for.
+  if (run.floor === 6) return generateRestRoom(run);
+
   const rng = run.rng;
   const roll = rng.next();
   // Combat 60% / elite 10% / treasure 8% / event 10% / merchant 7% / rest 5%
