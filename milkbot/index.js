@@ -78,7 +78,16 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       return;
     }
 
-    // All ! commands are retired — redirect to slash commands
+    // !port / !portfolio — prefix fallback for users whose Discord permissions
+    // prevent the slash command from appearing. Always works as long as the bot
+    // can read the channel.
+    const cmdFirstWord = message.content.slice(PREFIX.length).trim().split(/\s+/)[0]?.toLowerCase();
+    if ((cmdFirstWord === 'port' || cmdFirstWord === 'portfolio') && portfolioCommand) {
+      portfolioCommand.execute(message).catch(err => console.warn('[index] port fallback:', err.message));
+      return;
+    }
+
+    // All other ! commands are retired — redirect to slash commands
     message.delete().catch(() => {});
     const channelName = message.channel.name;
     if (channelName === 'milkbot-games' || channelName === 'milkbot-stocks') {
