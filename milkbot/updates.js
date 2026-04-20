@@ -361,7 +361,7 @@ const UPDATES = [
     id: 'v31-big-expansion',
     text: [
       `━━━━━━━━━━━━━━━━━━━━━━`,
-      `🥛 **MILKBOT PATCH — THE BIG ONE** 🥛`,
+      `🥛 **MILKBOT PATCH — THE UDDER ABYSS** 🥛`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       ``,
       `🕳️ **THE UDDER ABYSS** — a second dungeon lives BELOW the Spoiled Vault in \`#milkbot-dungeon\`. 10 more floors. 8 new enemies. 2 new bosses: **The Great Maw** (floor 5) and **The Udder God** (floor 10 — 4 phases). Unlock it by beating the Curdfather.`,
@@ -436,6 +436,10 @@ async function postUpdates(client) {
   // plain-content v32-v2 takes its place. Embed matched by title.
   await cleanupOldV32EmbedOnce(channel).catch(e => console.warn('[updates] v32 cleanup skipped:', e.message));
 
+  // One-time title fix: the already-posted v31 note said "THE BIG ONE";
+  // it now says "THE UDDER ABYSS" to match the dungeon it shipped.
+  await retitleV31Once(channel).catch(e => console.warn('[updates] v31 retitle skipped:', e.message));
+
   const posted = getPosted();
   const toPost = UPDATES.filter(u => !posted.includes(u.id));
   if (toPost.length === 0) return;
@@ -473,6 +477,30 @@ async function forceRetryV32Once() {
     fs.writeFileSync(flagPath, JSON.stringify({ done: Date.now() }));
   } catch (e) {
     console.warn('[updates] v32 retry setup failed:', e.message);
+  }
+}
+
+// One-time: edits the already-posted v31 message to replace its old
+// "THE BIG ONE" title with the new "THE UDDER ABYSS" title. Flag-guarded.
+async function retitleV31Once(channel) {
+  const flagPath = path.join(__dirname, 'data/updates_v31_retitle_done.json');
+  if (fs.existsSync(flagPath)) return;
+  try {
+    const v31 = UPDATES.find(u => u.id === 'v31-big-expansion');
+    if (!v31) return;
+    const msgs = await channel.messages.fetch({ limit: 50 });
+    let edited = 0;
+    for (const msg of msgs.values()) {
+      if (msg.author.id !== channel.client.user.id) continue;
+      if (msg.content && msg.content.includes('MILKBOT PATCH — THE BIG ONE')) {
+        await msg.edit(v31.text).catch(() => {});
+        edited++;
+      }
+    }
+    fs.writeFileSync(flagPath, JSON.stringify({ done: Date.now(), edited }));
+    console.log(`[updates] v31 retitle: edited ${edited}`);
+  } catch (e) {
+    console.warn('[updates] v31 retitle failed:', e.message);
   }
 }
 
