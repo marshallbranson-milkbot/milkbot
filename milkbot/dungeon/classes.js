@@ -247,6 +247,97 @@ const CLASSES = {
     unlockLabel: 'Beat the Udder God (Udder Abyss floor 10)',
     unlockedByDefault: false,
   },
+  cream_bard: {
+    key: 'cream_bard',
+    name: 'Cream Bard',
+    role: 'Support',
+    emoji: '🎵',
+    description: 'Party-wide buffs and targeted heals. Keeps morale — and HP — up.',
+    base: { hp: 85, atk: 10, def: 6, spd: 10 },
+    abilities: [
+      {
+        key: 'rally_song',
+        name: 'Rally Song',
+        description: 'Whole party +5 ATK for 2 turns.',
+        cooldown: 3,
+        run: (ctx) => ctx.party.filter(p => !p.downed).map(p => ({
+          kind: 'buff', target: p.userId, stat: 'atk', amount: 5, duration: 2,
+        })),
+      },
+      {
+        key: 'curdcall',
+        name: 'Curdcall',
+        description: 'Heal a target ally 30 HP and cleanse their statuses.',
+        cooldown: 3,
+        targetKind: 'ally',
+        run: (ctx) => [
+          { kind: 'heal', target: ctx.targetId, amount: 30 },
+          { kind: 'cleanse', target: ctx.targetId },
+        ],
+      },
+      {
+        key: 'anthem_of_the_herd',
+        name: 'Anthem of the Herd',
+        description: 'Whole party +10 ATK, +5 DEF for 2 turns AND heals 20 HP each.',
+        cooldown: 5,
+        unlockedBy: 'cream_bard_3',
+        run: (ctx) => ctx.party.filter(p => !p.downed).flatMap(p => [
+          { kind: 'buff', target: p.userId, stat: 'atk', amount: 10, duration: 2 },
+          { kind: 'buff', target: p.userId, stat: 'def', amount: 5, duration: 2 },
+          { kind: 'heal', target: p.userId, amount: 20 },
+        ]),
+      },
+    ],
+    unlockLabel: 'Beat Lord Parmigiano (Creamspire Cosmos floor 5)',
+    unlockedByDefault: false,
+  },
+  herder: {
+    key: 'herder',
+    name: 'Herder',
+    role: 'Beastmaster',
+    emoji: '🐄',
+    description: 'Commands a Dairy Calf companion. Pet abilities hit hard and protect the owner.',
+    base: { hp: 85, atk: 11, def: 6, spd: 8 },
+    abilities: [
+      {
+        key: 'sic_em',
+        name: "Sic 'Em",
+        description: 'Your Dairy Calf strikes a target for 1.3× your ATK.',
+        cooldown: 2,
+        targetKind: 'enemy',
+        run: (ctx) => [
+          { kind: 'damage', target: ctx.targetId, amount: Math.floor(ctx.atk * 1.3) },
+        ],
+      },
+      {
+        key: 'guard_bond',
+        name: 'Guard Bond',
+        description: 'Your Dairy Calf intercepts the next hit against you.',
+        cooldown: 3,
+        run: (ctx) => [
+          // Reuses the existing `shielded` status — blocks the next incoming hit.
+          { kind: 'status', target: 'self', status: 'shielded', duration: 99 },
+        ],
+      },
+      {
+        key: 'stampede',
+        name: 'Stampede',
+        description: 'Whole party +3 ATK for 2 turns AND hit every enemy for 0.9× ATK.',
+        cooldown: 5,
+        unlockedBy: 'herder_3',
+        run: (ctx) => [
+          ...ctx.party.filter(p => !p.downed).map(p => ({
+            kind: 'buff', target: p.userId, stat: 'atk', amount: 3, duration: 2,
+          })),
+          ...ctx.enemies.filter(e => e.hp > 0).map(e => ({
+            kind: 'damage', target: e.id, amount: Math.floor(ctx.atk * 0.9),
+          })),
+        ],
+      },
+    ],
+    unlockLabel: 'Beat Mother Galaxy (Creamspire Cosmos floor 10)',
+    unlockedByDefault: false,
+  },
 };
 
 function getClass(key) { return CLASSES[key]; }
