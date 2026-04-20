@@ -111,16 +111,19 @@ async function refreshChannelPanels(client, channel) {
     console.warn('[dungeon] fetch panels failed:', e.message);
   }
 
-  // Check order: explainer must be the oldest of the tracked messages. If any
-  // panel / stats row is older than the explainer, the panels were re-posted
-  // in the wrong order at some point — wipe and re-send everything fresh.
+  // Verify strict ordering: explainer → each dungeon panel (in DUNGEON_META
+  // order) → stats row. Discord snowflake IDs are time-ordered: smaller = older
+  // = higher in channel. If the sequence isn't monotonically increasing, the
+  // channel picked up something out of position (e.g. the Creamspire panel
+  // was added later, so the stats row is above it). Wipe and re-post.
   const orderBroken = (() => {
-    if (!explainerMsg) return false;
-    const explainerTs = BigInt(explainerMsg.id);
-    for (const m of Object.values(dungeonMsgs)) {
-      if (m && BigInt(m.id) < explainerTs) return true;
+    const sequence = [];
+    if (explainerMsg) sequence.push(explainerMsg);
+    for (const id of dungeonIds) if (dungeonMsgs[id]) sequence.push(dungeonMsgs[id]);
+    if (statsMsg) sequence.push(statsMsg);
+    for (let i = 1; i < sequence.length; i++) {
+      if (BigInt(sequence[i].id) < BigInt(sequence[i - 1].id)) return true;
     }
-    if (statsMsg && BigInt(statsMsg.id) < explainerTs) return true;
     return false;
   })();
 
