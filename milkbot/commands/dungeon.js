@@ -455,15 +455,17 @@ async function advanceToNextFloor(run, thread) {
   const hookLogs = combat.fireRelicHooks(run, 'floor_start');
   if (hookLogs.length) run.log.push(...hookLogs);
 
-  // Class unlock: clearing floor 5 unlocks Curd Medic for the party
+  // Class unlock: clearing floor 5 unlocks different classes per dungeon
   if (run.floor === 5) {
+    const unlockKey = (run.dungeonId === 'udder_abyss') ? 'frothmancer' : 'curd_medic';
+    const unlockName = unlockKey === 'frothmancer' ? 'Frothmancer' : 'Curd Medic';
     for (const p of run.party) {
       const stats = state.getUserStats(p.userId);
-      if (!stats.classUnlocks.includes('curd_medic')) {
+      if (!stats.classUnlocks.includes(unlockKey)) {
         state.updateUserStats(p.userId, s => {
-          if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+          if (!s.classUnlocks.includes(unlockKey)) s.classUnlocks.push(unlockKey);
         });
-        run.log.push(`🗝️ ${p.username} unlocked **Curd Medic**!`);
+        run.log.push(`🗝️ ${p.username} unlocked **${unlockName}**!`);
       }
     }
   }
@@ -921,11 +923,18 @@ async function endRun(run, thread, outcome) {
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }
-    // Unlock Lactic Mage on completion + grant class mastery (3rd ability) for each player's class
+    // Class unlocks on completion:
+    // - Spoiled Vault completion unlocks Lactic Mage (+ Curd Medic as backfill)
+    // - Udder Abyss completion unlocks Whey Warden (+ Frothmancer as backfill)
     for (const p of run.party) {
       state.updateUserStats(p.userId, s => {
-        if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
-        if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+        if (run.dungeonId === 'udder_abyss') {
+          if (!s.classUnlocks.includes('whey_warden')) s.classUnlocks.push('whey_warden');
+          if (!s.classUnlocks.includes('frothmancer')) s.classUnlocks.push('frothmancer');
+        } else {
+          if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
+          if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+        }
         // 3rd-ability unlock for whichever class they played
         if (!s.abilityUnlocks) s.abilityUnlocks = [];
         const key = `${p.classKey}_3`;

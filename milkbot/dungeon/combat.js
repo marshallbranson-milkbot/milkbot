@@ -176,6 +176,28 @@ function processEffect(run, effect, sourceName, rng) {
       }
       target.hp = Math.max(0, target.hp - amount);
       logs.push(`${sourceName} hit ${target.name || target.username} for ${amount}${crit ? ' 💥 CRIT' : ''} (${target.hp}/${target.maxHp} HP)`);
+
+      // Whey Warden counter-attack statuses — reflect damage back at the attacker
+      if (player && amount > 0) {
+        const ripo = player.statuses.find(s => s.key === 'riposte');
+        const bulw = player.statuses.find(s => s.key === 'bulwark');
+        const unto = player.statuses.find(s => s.key === 'untouchable');
+        if (ripo || bulw || unto) {
+          // Find the attacker — for enemy-sourced damage, the effect's `target` is the player;
+          // `sourceName` is the enemy name, look up the live enemy by name to counter it.
+          const attacker = run.currentRoom?.enemies?.find(e => (sourceName || '').includes(e.name) && e.hp > 0);
+          if (attacker) {
+            const mul = unto ? 1.0 : (ripo?.meta?.mul || 1.0);
+            const counterDmg = unto ? amount : Math.floor(player.atk * mul);
+            attacker.hp = Math.max(0, attacker.hp - counterDmg);
+            logs.push(`⚔️ ${player.username} counters ${attacker.name} for ${counterDmg}!`);
+            if (attacker.hp <= 0) logs.push(`☠️ **${attacker.name}** defeated by counter.`);
+            // Riposte consumes its status on trigger
+            if (ripo) player.statuses = player.statuses.filter(s => s !== ripo);
+          }
+        }
+      }
+
       if (player && target.hp <= 0 && !player.downed) {
         player.downed = true;
         logs.push(`💀 **${player.username}** is Curdled (downed).`);
@@ -253,7 +275,23 @@ function processEffect(run, effect, sourceName, rng) {
       break;
     }
     case 'summon': {
-      // Boss summons a new enemy mid-combat
+      // Ally summons (Frothmancer) — applied as a caster buff rather than a real entity.
+      // MVP: adds an ATK buff and the 'frothling_summoned' status so Sacrifice can detect it.
+      if (effect.allied) {
+        const caster = run._currentActor;
+        if (!caster || !caster.userId) break;
+        const existing = caster.statuses.find(s => s.key === 'frothling_summoned');
+        if (existing && !effect.force) {
+          logs.push(`🫧 ${caster.username} already has a Frothling summoned.`);
+          break;
+        }
+        caster.buffs.push({ stat: 'atk', amount: 8, duration: 999 });
+        caster.atk += 8;
+        caster.statuses.push({ key: 'frothling_summoned', duration: 999 });
+        logs.push(`🫧 A Frothling appears beside ${caster.username}! (+8 ATK)`);
+        break;
+      }
+      // Boss enemy summons
       if (run.currentRoom.enemies.length >= 4) break;
       const def = getEnemyOrBoss(effect.enemyKey);
       if (!def) break;
@@ -274,6 +312,20 @@ function processEffect(run, effect, sourceName, rng) {
       run.currentRoom.enemies.push(newEnemy);
       run.turnOrder.push({ kind: 'enemy', id: newEnemy.id, initiative: 0 });
       logs.push(`👹 **${def.name}** is summoned!`);
+      break;
+    }
+    case 'sacrifice_summon': {
+      const caster = run.party.find(p => p.userId === effect.caster);
+      if (!caster) break;
+      const sumIdx = caster.statuses.findIndex(s => s.key === 'frothling_summoned');
+      if (sumIdx === -1) { logs.push(`🫧 ${caster.username} has no summon to sacrifice.`); break; }
+      caster.statuses.splice(sumIdx, 1);
+      // Remove the +8 ATK buff
+      const buffIdx = caster.buffs.findIndex(b => b.stat === 'atk' && b.amount === 8 && b.duration >= 999);
+      if (buffIdx !== -1) { caster.atk = Math.max(1, caster.atk - 8); caster.buffs.splice(buffIdx, 1); }
+      const healAmt = Math.floor(caster.maxHp * 0.5);
+      caster.hp = Math.min(caster.maxHp, caster.hp + healAmt);
+      logs.push(`🫧💥 ${caster.username} sacrificed their Frothling — healed ${healAmt} HP.`);
       break;
     }
     default:

@@ -176,6 +176,77 @@ const CLASSES = {
     unlockLabel: 'Beat the Curdfather',
     unlockedByDefault: false,
   },
+  frothmancer: {
+    key: 'frothmancer',
+    name: 'Frothmancer',
+    role: 'Summoner',
+    emoji: '🫧',
+    description: 'Summons minions to fight alongside. Sacrifice them to sustain.',
+    base: { hp: 85, atk: 14, def: 5, spd: 8 },
+    abilities: [
+      {
+        key: 'summon_frothling',
+        name: 'Summon Frothling',
+        description: 'Spawn a 50 HP / 8 ATK minion that attacks each round (max 1 active).',
+        cooldown: 3,
+        run: (ctx) => [{ kind: 'summon', enemyKey: '_frothling_ally', allied: true }],
+      },
+      {
+        key: 'sacrifice',
+        name: 'Sacrifice',
+        description: 'Destroy your active summon to heal 50% of your max HP.',
+        cooldown: 4,
+        run: (ctx) => [{ kind: 'sacrifice_summon', caster: ctx.self?.userId }],
+      },
+      {
+        key: 'frothing_legion',
+        name: 'Frothing Legion',
+        description: 'Summon 2 additional minions (bypasses 1-max cap).',
+        cooldown: 5,
+        unlockedBy: 'frothmancer_3',
+        run: (ctx) => [
+          { kind: 'summon', enemyKey: '_frothling_ally', allied: true, force: true },
+          { kind: 'summon', enemyKey: '_frothling_ally', allied: true, force: true },
+        ],
+      },
+    ],
+    unlockLabel: 'Clear Udder Abyss floor 5 (The Great Maw)',
+    unlockedByDefault: false,
+  },
+  whey_warden: {
+    key: 'whey_warden',
+    name: 'Whey Warden',
+    role: 'Counter-Attacker',
+    emoji: '🛡️',
+    description: 'Reflects damage. Punishes aggression.',
+    base: { hp: 100, atk: 16, def: 8, spd: 7 },
+    abilities: [
+      {
+        key: 'riposte',
+        name: 'Riposte',
+        description: 'Next incoming attack triggers a 1.5× ATK counter.',
+        cooldown: 2,
+        run: (ctx) => [{ kind: 'status', target: 'self', status: 'riposte', duration: 2, meta: { mul: 1.5 } }],
+      },
+      {
+        key: 'bulwark',
+        name: 'Bulwark',
+        description: 'For 2 turns, every incoming hit counters for 1× ATK.',
+        cooldown: 4,
+        run: (ctx) => [{ kind: 'status', target: 'self', status: 'bulwark', duration: 2 }],
+      },
+      {
+        key: 'untouchable',
+        name: 'Untouchable',
+        description: 'For 2 turns, reflect all damage back to attackers.',
+        cooldown: 5,
+        unlockedBy: 'whey_warden_3',
+        run: (ctx) => [{ kind: 'status', target: 'self', status: 'untouchable', duration: 2 }],
+      },
+    ],
+    unlockLabel: 'Beat the Udder God (Udder Abyss floor 10)',
+    unlockedByDefault: false,
+  },
 };
 
 function getClass(key) { return CLASSES[key]; }
