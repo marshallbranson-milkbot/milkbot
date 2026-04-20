@@ -20,7 +20,7 @@ async function init(client) {
     return;
   }
   state.installShutdownHooks();
-  state.restoreActiveRuns();
+  const restored = state.restoreActiveRuns();
 
   const guildId = '562076997979865118';
   const guild = client.guilds.cache.get(guildId);
@@ -33,6 +33,22 @@ async function init(client) {
     console.warn(`[dungeon] #${DUNGEON_CHANNEL_NAME} not found — create it in Discord and restart`);
     return;
   }
+
+  // Verify each restored run's thread still exists; prune stale runs.
+  for (const run of restored) {
+    if (!run.threadId) continue;
+    const thread = await client.channels.fetch(run.threadId).catch(() => null);
+    if (!thread || thread.archived) {
+      console.log(`[dungeon] pruning stale run ${run.runId} (thread gone/archived)`);
+      state.deleteRun(run.runId);
+      continue;
+    }
+    if (run.state === 'PLAYING') {
+      thread.send({ content: `🔄 **Run recovered after bot restart.** Whoever's turn it is, click your action button to continue.` }).catch(() => {});
+    }
+  }
+  state.flushActiveRunsNow();
+
   await require('../commands/dungeon').refreshChannelPanels(client, channel).catch(e => console.error('[dungeon] panel refresh failed:', e.message));
   console.log('[dungeon] ready');
 }

@@ -143,7 +143,10 @@ function buildStatusEmbed(run) {
   if (run.log && run.log.length) {
     embed.addFields({ name: 'Combat log', value: run.log.slice(-6).join('\n').slice(0, 1024) });
   }
-  return { embeds: [embed] };
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dun_abandon_${run.runId}`).setLabel('Abandon Run').setEmoji('🏳️').setStyle(ButtonStyle.Danger),
+  );
+  return { embeds: [embed], components: [row] };
 }
 
 // === Turn buttons (ephemeral, shown to the active player) ===

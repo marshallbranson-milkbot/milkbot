@@ -187,6 +187,7 @@ async function handleButtonInteraction(interaction) {
       return handleBuy(interaction, runId, itemIdx);
     }
     if (id.startsWith('dun_leave_')) return handleLeave(interaction, id.slice('dun_leave_'.length));
+    if (id.startsWith('dun_abandon_')) return handleAbandon(interaction, id.slice('dun_abandon_'.length));
   } catch (e) {
     console.error('[dungeon] interaction error:', e);
     try { await interaction.reply({ content: `⚠️ Something went wrong: ${e.message}`, flags: 64 }); } catch {}
@@ -895,6 +896,23 @@ async function endRun(run, thread, outcome) {
   state.flushActiveRunsNow();
 
   setTimeout(() => refreshLobby(client).catch(() => {}), 500);
+}
+
+async function handleAbandon(interaction, runId) {
+  const userId = interaction.user.id;
+  const run = state.getRun(runId);
+  if (!run) return interaction.reply({ content: 'Run not found.', flags: 64 });
+  if (!run.party.some(p => p.userId === userId)) return interaction.reply({ content: "You're not in this run.", flags: 64 });
+  await interaction.reply({ content: '🏳️ Abandoning run...', flags: 64 });
+
+  // Refund 50% of entry cost per player as consolation
+  for (const p of run.party) {
+    await payout(p.userId, Math.floor(ENTRY_COST * 0.5), 0);
+  }
+  run.log.push(`🏳️ ${interaction.user.username} abandoned the run. 50% entry refunded.`);
+
+  const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+  if (thread) await endRun(run, thread, 'defeat');
 }
 
 async function handleStats(interaction) {
