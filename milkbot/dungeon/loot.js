@@ -150,6 +150,50 @@ const RELICS = {
     apply: () => {},
     onEvent: { kind: 'run_end', effect: (ctx) => ({ kind: 'xp_mul', amount: 1.25 }) },
   },
+  // ── UDDER ABYSS RELICS ──────────────────────────────────────────────────────
+  abyss_crown: { key: 'abyss_crown', name: 'Abyss Crown', emoji: '👁️', rarity: 'common', dungeon: 'udder_abyss',
+    description: '+15% party ATK.', apply: (ctx) => { ctx.partyAtkMul *= 1.15; } },
+  bile_chalice: { key: 'bile_chalice', name: 'Bile Chalice', emoji: '🍵', rarity: 'common', dungeon: 'udder_abyss',
+    description: '+25% max HP for the party.', apply: (ctx) => {
+      for (const p of ctx.party) { const bonus = Math.floor(p.maxHp * 0.25); p.maxHp += bonus; p.hp = Math.min(p.maxHp, p.hp + bonus); }
+    }},
+  putrid_totem: { key: 'putrid_totem', name: 'Putrid Totem', emoji: '🗿', rarity: 'uncommon', dungeon: 'udder_abyss',
+    description: 'Sour DoT ticks for 10 instead of 5.', apply: (ctx) => { ctx.sourTickDamage = 10; } },
+  maw_fang: { key: 'maw_fang', name: 'Maw Fang', emoji: '🦷', rarity: 'uncommon', dungeon: 'udder_abyss',
+    description: '+25% crit chance.', apply: (ctx) => { ctx.partyCritBonus += 0.25; } },
+  gloom_lantern: { key: 'gloom_lantern', name: 'Gloom Lantern', emoji: '🏮', rarity: 'uncommon', dungeon: 'udder_abyss',
+    description: 'All enemies start with Sour.', apply: () => {},
+    onEvent: { kind: 'enemy_spawn', effect: (ctx) => ({ kind: 'status', target: ctx.enemyId, status: 'sour', duration: 99 }) } },
+  udder_heart: { key: 'udder_heart', name: 'Udder Heart', emoji: '❤️‍🔥', rarity: 'rare', dungeon: 'udder_abyss',
+    description: 'Heal 15 HP at the start of each floor.', apply: () => {},
+    onEvent: { kind: 'floor_start', effect: (ctx) => ctx.party.map(p => ({ kind: 'heal', target: p.userId, amount: 15 })) } },
+  spoil_medal: { key: 'spoil_medal', name: 'Spoil Medal', emoji: '🏅', rarity: 'common', dungeon: 'udder_abyss',
+    description: '+30% XP earned from this run.', apply: () => {},
+    onEvent: { kind: 'run_end', effect: () => ({ kind: 'xp_mul', amount: 1.30 }) } },
+  fermented_scroll: { key: 'fermented_scroll', name: 'Fermented Scroll', emoji: '📜', rarity: 'rare', dungeon: 'udder_abyss',
+    description: 'All ability cooldowns reduced by 1 turn.', apply: (ctx) => { ctx.cooldownReduction = (ctx.cooldownReduction || 0) + 1; } },
+  voidmilk_jar: { key: 'voidmilk_jar', name: 'Voidmilk Jar', emoji: '🫙', rarity: 'rare', dungeon: 'udder_abyss',
+    description: 'On ally downed, auto-revive at 50% HP (once per run).', apply: () => {},
+    onEvent: { kind: 'ally_downed', oncePerRun: true, effect: (ctx) => ({ kind: 'revive', target: ctx.targetId, hpPct: 0.5 }) } },
+  the_last_drop: { key: 'the_last_drop', name: 'The Last Drop', emoji: '💧', rarity: 'rare', dungeon: 'udder_abyss',
+    description: '+40% earnings AND +40% XP for this run.', apply: () => {},
+    onEvent: { kind: 'run_end', effect: () => ({ kind: 'xp_mul', amount: 1.40 }) } },
+
+  // ── UDDER ABYSS MYTHICS (hardcore only) ─────────────────────────────────────
+  godmilk_vial: { key: 'godmilk_vial', name: 'Godmilk Vial', emoji: '🧴', rarity: 'mythic', dungeon: 'udder_abyss',
+    description: 'One free revive from death — even in Hardcore.', apply: (ctx) => { ctx.hardcoreReviveAvailable = true; } },
+  abyss_monocle: { key: 'abyss_monocle', name: 'Abyss Monocle', emoji: '🧿', rarity: 'mythic', dungeon: 'udder_abyss',
+    description: 'Attacks never miss. +50% crit.', apply: (ctx) => { ctx.neverMiss = true; ctx.partyCritBonus += 0.5; } },
+  sovereign_rot: { key: 'sovereign_rot', name: 'Sovereign Rot', emoji: '☠️', rarity: 'mythic', dungeon: 'udder_abyss',
+    description: 'All enemies spawn with Sour AND Curdled.', apply: () => {},
+    onEvent: { kind: 'enemy_spawn', effect: (ctx) => [
+      { kind: 'status', target: ctx.enemyId, status: 'sour', duration: 99 },
+      { kind: 'status', target: ctx.enemyId, status: 'curdled', duration: 1 },
+    ]}
+  },
+  last_drop_pure: { key: 'last_drop_pure', name: 'The Last Drop, Pure', emoji: '💎', rarity: 'mythic', dungeon: 'udder_abyss',
+    description: 'Survive one party wipe — everyone resurrects at 50% HP.', apply: (ctx) => { ctx.partyWipeReviveAvailable = true; } },
+
   // ── MYTHIC RELICS (hardcore runs only — exclusive drops from bosses) ─────────
   crown_of_cream: {
     key: 'crown_of_cream',
@@ -213,8 +257,12 @@ function rollConsumableDrop(rng, rarityBias = 1) {
   return rng.weighted(weighted);
 }
 
-function rollRelicDrop(rng, rarityBias = 1) {
-  const pool = listRelics().filter(r => r.rarity !== 'mythic');
+function rollRelicDrop(rng, rarityBias = 1, dungeonId = null) {
+  const pool = listRelics().filter(r => {
+    if (r.rarity === 'mythic') return false;
+    if (!dungeonId) return !r.dungeon || r.dungeon === 'spoiled_vault';
+    return !r.dungeon || r.dungeon === dungeonId;
+  });
   const weighted = pool.map(r => ({
     item: r,
     weight: (RARITY_WEIGHTS[r.rarity] || 1) * rarityBias,

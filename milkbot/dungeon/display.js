@@ -203,49 +203,86 @@ function buildExplainerEmbed() {
 
   const embed = new EmbedBuilder()
     .setColor(COLOR_INFO)
-    .setTitle('🏰 MilkBot Dungeon — The Spoiled Vault')
+    .setTitle('🏰 MilkBot Dungeon — The Spoiled Vault + The Udder Abyss')
     .setDescription(
-      'Descend with up to 3 friends. Beat 10 floors of curdled horrors to reclaim the stolen milk bucks.\n\n' +
+      'Descend with up to 3 friends. Two dungeons to explore.\n\n' +
+      '🏰 **The Spoiled Vault** — entry dungeon. Beat the Curdfather to unlock the Abyss.\n' +
+      '🕳️ **The Udder Abyss** — deeper horrors, harder enemies. Unlock by clearing the Vault.\n\n' +
       '**Entry:** 1,000 milk bucks per player (pooled into the reward pot)\n' +
       '**Rewards:** milk bucks, XP, rare relics, achievements, and bragging rights\n' +
-      '**Death:** get curdled at 0 HP — teammates can revive. Party wipe ends the run.'
+      '**Death:** 0 HP = Curdled, teammates revive. Party wipe ends the run.\n' +
+      '💀 **Hardcore mode** — no revives, +25% enemy damage, 3× rewards, mythic-only relic drops.\n' +
+      '🎭 **Class mastery** — complete a run as a class to unlock its 3rd ability.'
     )
     .addFields(
       ...classFields,
       {
         name: '▶️ How to play',
-        value: 'Click **🏰 Start a Run** below to create a party. Others can click **Join** on any active party. When full (or you click Begin), a private thread opens and the descent begins.',
+        value: 'Scroll to the right dungeon section below, click **Start** or **Hardcore**, others click **Join**. A private thread opens and the descent begins.',
       },
     )
-    .setFooter({ text: 'MilkBot Dungeon v1 • runs take 20-45 minutes • the milk is NEVER safe' });
+    .setFooter({ text: 'MilkBot Dungeon v2 • runs take 20-45 minutes • the milk is NEVER safe' });
   return { embeds: [embed] };
 }
 
 // === Channel bottom: start/stats buttons + active parties list ===
 
-function buildLobbyPanel(activeRuns) {
+const DUNGEON_META = {
+  spoiled_vault: {
+    displayName: 'The Spoiled Vault',
+    emoji: '🏰',
+    description: 'Descend 10 floors. Fight the Curdfather. Start here.',
+    startBtnLabel: 'Start Spoiled Vault',
+    hardcoreBtnLabel: 'Vault (Hardcore 💀)',
+    color: COLOR_LOBBY,
+  },
+  udder_abyss: {
+    displayName: 'The Udder Abyss',
+    emoji: '🕳️',
+    description: 'Below the Vault. 10 floors of deeper horrors. Face the Udder God.',
+    startBtnLabel: 'Start Udder Abyss',
+    hardcoreBtnLabel: 'Abyss (Hardcore 💀)',
+    color: 0x4A1A4A,
+    unlockRequires: 'spoiled_vault',
+  },
+};
+
+function buildLobbyPanel(activeRuns, dungeonId = 'spoiled_vault', isUnlocked = true) {
+  const meta = DUNGEON_META[dungeonId] || DUNGEON_META.spoiled_vault;
+  const dungeonRuns = activeRuns.filter(r => (r.dungeonId || 'spoiled_vault') === dungeonId);
+
   const embed = new EmbedBuilder()
-    .setColor(COLOR_LOBBY)
-    .setTitle('🥛 Dungeon Lobby')
+    .setColor(meta.color)
+    .setTitle(`${meta.emoji} ${meta.displayName}`)
     .setDescription(
-      activeRuns.length === 0
-        ? '*No active runs right now. Be the first to descend.*'
-        : activeRuns.map(r => {
+      (isUnlocked ? meta.description : `🔒 **Locked** — ${meta.description}\n*Beat the Curdfather (Spoiled Vault) to unlock.*`) + '\n\n' +
+      (dungeonRuns.length === 0
+        ? '*No active runs. Be the first to descend.*'
+        : dungeonRuns.map(r => {
             const fill = `${r.party.length}/${r.maxPartySize}`;
             const stateLabel = r.state === 'LOBBY' ? 'forming' : r.state === 'PLAYING' ? `floor ${r.floor}` : r.state.toLowerCase();
-            return `• **${r.creatorName}'s Run** — ${fill} — ${stateLabel}`;
-          }).join('\n'),
+            const diffTag = r.difficulty === 'hardcore' ? ' 💀' : '';
+            return `• **${r.creatorName}'s Run**${diffTag} — ${fill} — ${stateLabel}`;
+          }).join('\n')),
     );
 
   const actionRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('dun_start_normal').setLabel('Start Normal Run').setEmoji('🏰').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('dun_start_hardcore').setLabel('Hardcore Run').setEmoji('💀').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId('dun_stats').setLabel('Your Stats').setEmoji('📜').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`dun_start_${dungeonId}_normal`)
+      .setLabel(meta.startBtnLabel)
+      .setEmoji(meta.emoji)
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(!isUnlocked),
+    new ButtonBuilder()
+      .setCustomId(`dun_start_${dungeonId}_hardcore`)
+      .setLabel(meta.hardcoreBtnLabel)
+      .setEmoji('💀')
+      .setStyle(ButtonStyle.Danger)
+      .setDisabled(!isUnlocked),
   );
 
-  // Join buttons for parties still in LOBBY with room
-  const joinable = activeRuns.filter(r => r.state === 'LOBBY' && r.party.length < r.maxPartySize).slice(0, 4);
   const components = [actionRow];
+  const joinable = dungeonRuns.filter(r => r.state === 'LOBBY' && r.party.length < r.maxPartySize).slice(0, 4);
   if (joinable.length > 0) {
     const joinRow = new ActionRowBuilder().addComponents(
       ...joinable.map(r =>
@@ -260,6 +297,13 @@ function buildLobbyPanel(activeRuns) {
   }
 
   return { embeds: [embed], components };
+}
+
+function buildStatsButton() {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('dun_stats').setLabel('Your Stats').setEmoji('📜').setStyle(ButtonStyle.Secondary),
+  );
+  return { content: '───────', components: [row] };
 }
 
 // === Inside thread: class picker ===
@@ -599,6 +643,8 @@ function buildItemPicker(run, player, consumablesByKey) {
 module.exports = {
   buildExplainerEmbed,
   buildLobbyPanel,
+  buildStatsButton,
+  DUNGEON_META,
   buildClassPicker,
   buildStatusEmbed,
   buildTurnActions,

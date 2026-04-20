@@ -69,32 +69,48 @@ async function payout(userId, bucks, xp) {
 // ========= Channel panels (top explainer + bottom lobby) =========
 
 async function refreshChannelPanels(client, channel) {
-  // Fetch recent messages to find our existing panels
-  let explainerMsg = null, lobbyMsg = null;
+  // Find existing messages by embed title, in order: explainer, vault-panel, abyss-panel
+  let explainerMsg = null, vaultMsg = null, abyssMsg = null, statsMsg = null;
   try {
     const recent = await channel.messages.fetch({ limit: 50 });
     for (const m of recent.values()) {
-      if (m.author.id !== client.user.id || !m.embeds.length) continue;
-      const title = m.embeds[0].title || '';
-      if (title.includes('The Spoiled Vault')) explainerMsg = m;
-      if (title.includes('Dungeon Lobby')) lobbyMsg = m;
+      if (m.author.id !== client.user.id) continue;
+      const title = m.embeds[0]?.title || '';
+      if (title.includes('MilkBot Dungeon') && title.includes('Spoiled Vault')) explainerMsg = m;
+      else if (title.includes('The Spoiled Vault')) vaultMsg = m;
+      else if (title.includes('The Udder Abyss')) abyssMsg = m;
+      else if (!m.embeds.length && m.content.includes('───')) statsMsg = m;
     }
   } catch (e) {
     console.warn('[dungeon] fetch panels failed:', e.message);
   }
 
+  // Post/edit in order: top explainer → Vault lobby → Abyss lobby → stats button row
   const explainerPayload = display.buildExplainerEmbed();
   if (explainerMsg) await explainerMsg.edit(explainerPayload).catch(() => {});
   else explainerMsg = await channel.send(explainerPayload).catch(() => null);
 
-  const lobbyPayload = display.buildLobbyPanel(state.allRuns());
-  if (lobbyMsg) await lobbyMsg.edit(lobbyPayload).catch(() => {});
-  else lobbyMsg = await channel.send(lobbyPayload).catch(() => null);
+  const runs = state.allRuns();
+  const vaultPayload = display.buildLobbyPanel(runs, 'spoiled_vault', true);
+  if (vaultMsg) await vaultMsg.edit(vaultPayload).catch(() => {});
+  else vaultMsg = await channel.send(vaultPayload).catch(() => null);
+
+  // Abyss unlock is evaluated per-user, but the panel shows the locked state visually for clarity.
+  // Individual users' lock enforcement happens in handleStart.
+  const abyssPayload = display.buildLobbyPanel(runs, 'udder_abyss', true);
+  if (abyssMsg) await abyssMsg.edit(abyssPayload).catch(() => {});
+  else abyssMsg = await channel.send(abyssPayload).catch(() => null);
+
+  const statsPayload = display.buildStatsButton();
+  if (statsMsg) await statsMsg.edit(statsPayload).catch(() => {});
+  else statsMsg = await channel.send(statsPayload).catch(() => null);
 
   channelPanels.set(channel.guildId, {
     channelId: channel.id,
     explainerId: explainerMsg?.id,
-    lobbyId: lobbyMsg?.id,
+    vaultId: vaultMsg?.id,
+    abyssId: abyssMsg?.id,
+    statsId: statsMsg?.id,
   });
 }
 
@@ -103,11 +119,20 @@ async function refreshLobby(client) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) continue;
     const channel = guild.channels.cache.get(panel.channelId);
-    if (!channel || !panel.lobbyId) continue;
-    try {
-      const msg = await channel.messages.fetch(panel.lobbyId);
-      await msg.edit(display.buildLobbyPanel(state.allRuns()));
-    } catch (e) { /* next refresh will retry */ }
+    if (!channel) continue;
+    const runs = state.allRuns();
+    if (panel.vaultId) {
+      try {
+        const msg = await channel.messages.fetch(panel.vaultId);
+        await msg.edit(display.buildLobbyPanel(runs, 'spoiled_vault', true));
+      } catch {}
+    }
+    if (panel.abyssId) {
+      try {
+        const msg = await channel.messages.fetch(panel.abyssId);
+        await msg.edit(display.buildLobbyPanel(runs, 'udder_abyss', true));
+      } catch {}
+    }
   }
 }
 
@@ -142,8 +167,12 @@ async function handleButtonInteraction(interaction) {
   }
   const id = interaction.customId;
   try {
-    if (id === 'dun_start' || id === 'dun_start_normal') return handleStart(interaction, 'normal');
-    if (id === 'dun_start_hardcore') return handleStart(interaction, 'hardcore');
+    if (id === 'dun_start' || id === 'dun_start_normal') return handleStart(interaction, 'normal', 'spoiled_vault');
+    if (id === 'dun_start_hardcore') return handleStart(interaction, 'hardcore', 'spoiled_vault');
+    if (id === 'dun_start_spoiled_vault_normal') return handleStart(interaction, 'normal', 'spoiled_vault');
+    if (id === 'dun_start_spoiled_vault_hardcore') return handleStart(interaction, 'hardcore', 'spoiled_vault');
+    if (id === 'dun_start_udder_abyss_normal') return handleStart(interaction, 'normal', 'udder_abyss');
+    if (id === 'dun_start_udder_abyss_hardcore') return handleStart(interaction, 'hardcore', 'udder_abyss');
     if (id === 'dun_stats') return handleStats(interaction);
     if (id.startsWith('dun_join_')) return handleJoin(interaction, id.slice('dun_join_'.length));
     if (id.startsWith('dun_pick_')) {
@@ -199,9 +228,17 @@ async function handleButtonInteraction(interaction) {
   }
 }
 
-async function handleStart(interaction, difficulty = 'normal') {
+async function handleStart(interaction, difficulty = 'normal', dungeonId = 'spoiled_vault') {
   const userId = interaction.user.id;
   const username = sanitizeUsername(interaction.user.globalName || interaction.user.username);
+
+  // Unlock gate: Udder Abyss requires prior Spoiled Vault completion
+  if (dungeonId === 'udder_abyss') {
+    const stats = state.getUserStats(userId);
+    if ((stats.completions || 0) < 1) {
+      return interaction.reply({ content: '🔒 **The Udder Abyss is locked.** Beat the Curdfather in the Spoiled Vault first. 🥛', flags: 64 });
+    }
+  }
 
   // Check if user already in an active run
   const existing = state.allRuns().find(r => r.party.some(p => p.userId === userId));
@@ -223,6 +260,7 @@ async function handleStart(interaction, difficulty = 'normal') {
     guildId: interaction.guildId,
     channelId: interaction.channelId,
     difficulty,
+    dungeonId,
   });
   run.pot = ENTRY_COST;
   run.party.push(makePartySlot(userId, username));
@@ -706,7 +744,7 @@ async function handleEventChoice(interaction, runId, choiceIdx) {
     const combatEffects = [];
     for (const eff of effects) {
       if (eff.kind === 'grant_relic') {
-        const relic = loot.rollRelicDrop(run.rng, eff.rarityBias || 1);
+        const relic = loot.rollRelicDrop(run.rng, eff.rarityBias || 1, run.dungeonId || 'spoiled_vault');
         if (!run.relics.includes(relic.key)) {
           run.relics.push(relic.key);
           run.log.push(`🏺 Relic acquired: **${relic.name}**`);
@@ -827,7 +865,7 @@ async function handleCombatEnd(run, thread, end) {
   // Loot drops
   const room = run.currentRoom;
   if (room?.guaranteesRelic) {
-    const relic = loot.rollRelicDrop(run.rng, 2);
+    const relic = loot.rollRelicDrop(run.rng, 2, run.dungeonId || 'spoiled_vault');
     if (!run.relics.includes(relic.key)) {
       run.relics.push(relic.key);
       run.log.push(`🏺 Elite drop: **${relic.name}** — ${relic.description}`);

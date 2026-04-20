@@ -6,11 +6,11 @@ const { pickRandomEvent } = require('./events');
 const { rollConsumableDrop, rollRelicDrop, listConsumables } = require('./loot');
 const { getBossForFloor } = require('./bosses');
 
-// Enemy pools by floor range
-function enemyPoolForFloor(floor) {
-  if (floor <= 3) return enemiesByTier(1).concat(enemiesByTier(2).slice(0, 1));
-  if (floor <= 6) return enemiesByTier(2).concat(enemiesByTier(3).slice(0, 1));
-  return enemiesByTier(2).concat(enemiesByTier(3));
+// Enemy pools by floor range, scoped to the run's dungeonId
+function enemyPoolForFloor(floor, dungeonId = 'spoiled_vault') {
+  if (floor <= 3) return enemiesByTier(1, dungeonId).concat(enemiesByTier(2, dungeonId).slice(0, 1));
+  if (floor <= 6) return enemiesByTier(2, dungeonId).concat(enemiesByTier(3, dungeonId).slice(0, 1));
+  return enemiesByTier(2, dungeonId).concat(enemiesByTier(3, dungeonId));
 }
 
 function pickEnemyCountForFloor(floor, partySize, rng) {
@@ -22,7 +22,11 @@ function pickEnemyCountForFloor(floor, partySize, rng) {
 }
 
 function generateCombatRoom(run) {
-  const pool = enemyPoolForFloor(run.floor);
+  const dungeonId = run.dungeonId || 'spoiled_vault';
+  const pool = enemyPoolForFloor(run.floor, dungeonId);
+  if (pool.length === 0) { /* graceful fallback — dungeon has no enemies configured */
+    return { kind: 'combat', enemyKeys: ['curdling'], guaranteesLoot: false };
+  }
   const count = pickEnemyCountForFloor(run.floor, run.party.length, run.rng);
   const enemyKeys = [];
   for (let i = 0; i < count; i++) {
@@ -32,8 +36,9 @@ function generateCombatRoom(run) {
 }
 
 function generateEliteRoom(run) {
-  // One strong enemy (tier 3 where available) with guaranteed relic drop
-  const pool = run.floor >= 4 ? enemiesByTier(3) : enemiesByTier(2);
+  const dungeonId = run.dungeonId || 'spoiled_vault';
+  const pool = run.floor >= 4 ? enemiesByTier(3, dungeonId) : enemiesByTier(2, dungeonId);
+  if (pool.length === 0) return generateCombatRoom(run);
   const key = run.rng.pick(pool).key;
   return { kind: 'elite', enemyKeys: [key], guaranteesRelic: true };
 }
@@ -75,7 +80,7 @@ function generateRestRoom(run) {
 }
 
 function generateBossRoom(run) {
-  const boss = getBossForFloor(run.floor);
+  const boss = getBossForFloor(run.floor, run.dungeonId || 'spoiled_vault');
   if (!boss) return null;
   return { kind: 'boss', enemyKeys: [boss.key], guaranteesRelic: true, guaranteesLoot: true };
 }

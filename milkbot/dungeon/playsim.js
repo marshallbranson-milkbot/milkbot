@@ -17,7 +17,7 @@ const MAX_TURNS_PER_COMBAT = 300;
 
 function log(...args) { console.log(...args); }
 
-function makeRun(seed, partySize = 4) {
+function makeRun(seed, partySize = 4, dungeonId = 'spoiled_vault') {
   const rng = makeRunRng(seed);
   const classKeys = listClasses().filter(c => c.unlockedByDefault).map(c => c.key);
   const allKeys = listClasses().map(c => c.key);
@@ -40,6 +40,7 @@ function makeRun(seed, partySize = 4) {
     turnOrder: [],
     turnIndex: 0,
     difficulty: 'normal',
+    dungeonId,
     maxPartySize: partySize,
     createdAt: Date.now(),
   };
@@ -239,14 +240,15 @@ function printPartyStatus(run) {
   log(`  Pot: ${run.pot} 🥛  Relics: ${run.relics.length}  [${run.relics.join(', ')}]`);
 }
 
-function runFullSim(seed, partySize = 4) {
+function runFullSim(seed, partySize = 4, dungeonId = 'spoiled_vault') {
   log(`\n╔════════════════════════════════════╗`);
   log(`║  MILKBOT DUNGEON — FULL SIM RUN    ║`);
   log(`║  seed: ${String(seed).padEnd(28)}║`);
   log(`║  party size: ${String(partySize).padEnd(22)}║`);
+  log(`║  dungeonId: ${String(dungeonId).padEnd(23)}║`);
   log(`╚════════════════════════════════════╝`);
 
-  const run = makeRun(seed, partySize);
+  const run = makeRun(seed, partySize, dungeonId);
   log(`\nPARTY:`);
   for (const p of run.party) {
     log(`  ${getClass(p.classKey).emoji} ${p.username} — ${getClass(p.classKey).name}`);
@@ -275,7 +277,8 @@ function runFullSim(seed, partySize = 4) {
 if (require.main === module) {
   const seed = Number(process.argv[2]) || newSeed();
   const partySize = Number(process.argv[3]) || 4;
-  const result = runFullSim(seed, partySize);
+  const dungeonId = process.argv[4] || 'spoiled_vault';
+  const result = runFullSim(seed, partySize, dungeonId);
   log(`\nResult:`, result);
 }
 
