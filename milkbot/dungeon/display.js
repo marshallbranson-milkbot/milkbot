@@ -495,11 +495,14 @@ function buildDefeatEmbed(run) {
   return { embeds: [embed] };
 }
 
-function buildFloorClearedEmbed(run) {
-  const scene = buildChamber(`✅  FLOOR ${run.floor} CLEARED  ✅`, ['', '']);
+function buildFloorClearedEmbed(run, clearedFloor) {
+  // clearedFloor is the floor that was JUST beaten. Callers that don't pass
+  // it fall back to run.floor (legacy behaviour, off-by-one once advanced).
+  const floor = clearedFloor != null ? clearedFloor : run.floor;
+  const scene = buildChamber(`✅  FLOOR ${floor} CLEARED  ✅`, ['', '']);
   const embed = new EmbedBuilder()
     .setColor(COLOR_VICTORY)
-    .setTitle(`✅ Floor ${run.floor} cleared`)
+    .setTitle(`✅ Floor ${floor} cleared`)
     .setDescription(scene + '\nMoving to the next floor. The rot runs deeper.');
   return { embeds: [embed] };
 }

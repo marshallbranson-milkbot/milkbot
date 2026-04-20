@@ -534,6 +534,10 @@ async function advanceToNextFloor(run, thread) {
   }
 
   if (run.floor >= FINAL_FLOOR) return endRun(run, thread, 'victory');
+  // Render the "floor cleared" message for the floor we JUST beat, before
+  // advancing to the next. Previously this showed run.floor after the
+  // increment so each cleared message was one floor ahead.
+  const clearedFloor = run.floor;
   run.floor += 1;
   // Auto-revive between floors — SKIPPED in hardcore mode
   if (run.difficulty !== 'hardcore') {
@@ -546,7 +550,7 @@ async function advanceToNextFloor(run, thread) {
     }
   }
   state.markDirty(run);
-  await thread.send(display.buildFloorClearedEmbed(run)).catch(() => {});
+  await thread.send(display.buildFloorClearedEmbed(run, clearedFloor)).catch(() => {});
   setTimeout(() => beginFloor(run, thread).catch(() => {}), 1500);
 }
 
