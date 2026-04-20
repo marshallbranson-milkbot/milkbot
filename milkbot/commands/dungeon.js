@@ -6,7 +6,8 @@ const path = require('path');
 const { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { withLock } = require('../balancelock');
 const dungeon = require('../dungeon');
-const { state, combat, rooms, display, classes } = dungeon;
+const { state, combat, rooms, display, classes, loot } = dungeon;
+const { getEvent, resolveRoll } = require('../dungeon/events');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
@@ -157,6 +158,35 @@ async function handleButtonInteraction(interaction) {
       return handleAction(interaction, runId, 'ability', { abilityKey });
     }
     if (id.startsWith('dun_item_')) return handleItemMenu(interaction, id.slice('dun_item_'.length));
+    if (id.startsWith('dun_useitem_')) {
+      const rest = id.slice('dun_useitem_'.length);
+      const underscore = rest.indexOf('_');
+      const runId = rest.slice(0, underscore);
+      const itemIdx = Number(rest.slice(underscore + 1));
+      return handleUseItem(interaction, runId, itemIdx);
+    }
+    if (id.startsWith('dun_chest_')) {
+      const rest = id.slice('dun_chest_'.length);
+      const underscore = rest.lastIndexOf('_');
+      const runId = rest.slice(0, underscore);
+      const chestIdx = Number(rest.slice(underscore + 1));
+      return handleChest(interaction, runId, chestIdx);
+    }
+    if (id.startsWith('dun_evc_')) {
+      const rest = id.slice('dun_evc_'.length);
+      const underscore = rest.lastIndexOf('_');
+      const runId = rest.slice(0, underscore);
+      const choiceIdx = Number(rest.slice(underscore + 1));
+      return handleEventChoice(interaction, runId, choiceIdx);
+    }
+    if (id.startsWith('dun_buy_')) {
+      const rest = id.slice('dun_buy_'.length);
+      const underscore = rest.lastIndexOf('_');
+      const runId = rest.slice(0, underscore);
+      const itemIdx = Number(rest.slice(underscore + 1));
+      return handleBuy(interaction, runId, itemIdx);
+    }
+    if (id.startsWith('dun_leave_')) return handleLeave(interaction, id.slice('dun_leave_'.length));
   } catch (e) {
     console.error('[dungeon] interaction error:', e);
     try { await interaction.reply({ content: `⚠️ Something went wrong: ${e.message}`, flags: 64 }); } catch {}
@@ -306,13 +336,69 @@ function makePartySlot(userId, username) {
 
 async function beginFloor(run, thread) {
   const room = rooms.generateRoom(run);
-  combat.startCombat(run, room.enemyKeys);
+  run.currentRoom = room;
   state.markDirty(run);
 
-  // Post/refresh status embed
+  if (room.kind === 'combat' || room.kind === 'elite') {
+    combat.startCombat(run, room.enemyKeys);
+    state.markDirty(run);
+    await postStatus(run, thread, true);
+    const intro = room.kind === 'elite' ? `⚠️ **Floor ${run.floor}** — elite encounter!` : `⬇️ **Floor ${run.floor}** begins.`;
+    await thread.send({ content: intro }).catch(() => {});
+    await processTurn(run, thread);
+    return;
+  }
+
   await postStatus(run, thread, true);
-  await thread.send({ content: `⬇️ **Floor ${run.floor}** begins.` }).catch(() => {});
-  await processTurn(run, thread);
+  if (room.kind === 'treasure') return enterTreasureRoom(run, thread);
+  if (room.kind === 'event') return enterEventRoom(run, thread);
+  if (room.kind === 'merchant') return enterMerchantRoom(run, thread);
+  if (room.kind === 'rest') return enterRestRoom(run, thread);
+  console.warn('[dungeon] unknown room kind:', room.kind);
+}
+
+async function enterTreasureRoom(run, thread) {
+  await thread.send(display.buildTreasureRoom(run)).catch(() => {});
+}
+
+async function enterEventRoom(run, thread) {
+  const event = getEvent(run.currentRoom.eventKey);
+  if (!event) {
+    console.warn('[dungeon] unknown event:', run.currentRoom.eventKey);
+    return advanceToNextFloor(run, thread);
+  }
+  await thread.send(display.buildEventRoom(run, event)).catch(() => {});
+}
+
+async function enterMerchantRoom(run, thread) {
+  await thread.send(display.buildMerchantRoom(run)).catch(() => {});
+}
+
+async function enterRestRoom(run, thread) {
+  const healed = 40;
+  for (const p of run.party) {
+    if (p.downed) continue;
+    p.hp = Math.min(p.maxHp, p.hp + healed);
+  }
+  state.markDirty(run);
+  await thread.send(display.buildRestRoom(run, healed)).catch(() => {});
+  setTimeout(() => advanceToNextFloor(run, thread).catch(() => {}), 2500);
+}
+
+async function advanceToNextFloor(run, thread) {
+  if (run.floor >= FINAL_FLOOR) return endRun(run, thread, 'victory');
+  run.floor += 1;
+  // Auto-revive between floors
+  for (const p of run.party) {
+    if (p.downed) {
+      p.downed = false;
+      p.hp = Math.floor(p.maxHp * 0.5);
+      run.log.push(`🌱 ${p.username} stands back up at ${p.hp}/${p.maxHp} HP`);
+    }
+  }
+  state.markDirty(run);
+  await thread.send(display.buildFloorClearedEmbed(run)).catch(() => {});
+  setTimeout(() => beginFloor(run, thread).catch(() => {}), 1500);
 }
 
 async function postStatus(run, thread, fresh = false) {
@@ -464,8 +550,205 @@ async function handleAction(interaction, runId, action, data = {}) {
 }
 
 async function handleItemMenu(interaction, runId) {
-  // Slice 2 wires actual item UI. For now, inform.
-  await interaction.reply({ content: 'Items arrive in slice 2 🥛', flags: 64 });
+  const run = state.getRun(runId);
+  if (!run) return interaction.reply({ content: 'Run not found.', flags: 64 });
+  const player = run.party.find(p => p.userId === interaction.user.id);
+  if (!player) return interaction.reply({ content: "You're not in this run.", flags: 64 });
+  const consumablesByKey = Object.fromEntries(loot.listConsumables().map(c => [c.key, c]));
+  return interaction.reply(display.buildItemPicker(run, player, consumablesByKey));
+}
+
+async function handleUseItem(interaction, runId, itemIdx) {
+  const userId = interaction.user.id;
+  let result = null;
+  await withLock('dun:' + runId, async () => {
+    const run = state.getRun(runId);
+    if (!run) { result = { error: 'Run not found.' }; return; }
+    const player = run.party.find(p => p.userId === userId);
+    if (!player || !player.items[itemIdx]) { result = { error: 'Item not found.' }; return; }
+    const itemKey = player.items[itemIdx];
+    const consumable = loot.getConsumable(itemKey);
+    if (!consumable) { result = { error: 'Unknown item.' }; return; }
+    const ctx = {
+      userId,
+      targetId: userId,
+      party: run.party,
+      enemies: run.currentRoom?.enemies || [],
+    };
+    const effects = consumable.use(ctx);
+    const logs = combat.processEffects(run, effects, `${player.username} (${consumable.name})`, run.rng);
+    run.log.push(...logs);
+    // Remove the item
+    player.items.splice(itemIdx, 1);
+    state.markDirty(run);
+    result = { ok: true, name: consumable.name };
+  });
+  if (result.error) return interaction.reply({ content: result.error, flags: 64 });
+  await interaction.reply({ content: `✅ Used ${result.name}`, flags: 64 });
+  const run = state.getRun(runId);
+  const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+  if (thread) postStatus(run, thread).catch(() => {});
+}
+
+async function handleChest(interaction, runId, chestIdx) {
+  const userId = interaction.user.id;
+  let replyText = '';
+  let shouldAdvance = false;
+  await withLock('dun:' + runId, async () => {
+    const run = state.getRun(runId);
+    if (!run || run.currentRoom?.kind !== 'treasure') { replyText = 'Not a treasure room.'; return; }
+    const player = run.party.find(p => p.userId === userId);
+    if (!player) { replyText = "You're not in this run."; return; }
+    const room = run.currentRoom;
+    if (room.claimed[userId] !== undefined) { replyText = 'You already picked.'; return; }
+    if (Object.values(room.claimed).includes(chestIdx)) { replyText = 'Already claimed.'; return; }
+    room.claimed[userId] = chestIdx;
+    const chest = room.chests[chestIdx];
+    if (chest.kind === 'relic') {
+      if (!run.relics.includes(chest.item.key)) {
+        run.relics.push(chest.item.key);
+        replyText = `🎁 Relic: **${chest.item.name}** — ${chest.item.description}`;
+      } else {
+        replyText = `🎁 Duplicate relic (converted to 200 🥛)`;
+        run.pot += 200;
+      }
+    } else {
+      player.items.push(chest.item.key);
+      replyText = `🎁 Item: **${chest.item.name}**`;
+    }
+    state.markDirty(run);
+    // Advance when everyone's picked OR 1+ minute pass (for now, advance when all picked or 3 claims total)
+    const claimsCount = Object.keys(room.claimed).length;
+    if (claimsCount >= Math.min(run.party.length, room.chests.length)) {
+      shouldAdvance = true;
+    }
+  });
+  await interaction.reply({ content: replyText, flags: 64 });
+  if (shouldAdvance) {
+    const run = state.getRun(runId);
+    const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+    if (thread) setTimeout(() => advanceToNextFloor(run, thread).catch(() => {}), 1500);
+  }
+}
+
+async function handleEventChoice(interaction, runId, choiceIdx) {
+  const userId = interaction.user.id;
+  let replyText = '';
+  let shouldAdvance = false;
+  let spawnCombatKeys = null;
+  await withLock('dun:' + runId, async () => {
+    const run = state.getRun(runId);
+    if (!run || run.currentRoom?.kind !== 'event' || run.currentRoom.resolved) {
+      replyText = 'Event already resolved.';
+      return;
+    }
+    const event = getEvent(run.currentRoom.eventKey);
+    if (!event || !event.choices[choiceIdx]) { replyText = 'Invalid choice.'; return; }
+    const choice = event.choices[choiceIdx];
+    const roll = 1 + run.rng.int(20);
+    const outcome = resolveRoll(choice, roll);
+    run.currentRoom.resolved = true;
+
+    const ctx = { chooserId: userId, party: run.party };
+    const effects = outcome.effects(ctx) || [];
+
+    // Process "special" effects (grant_relic, grant_item, pot_add/sub, spawn_combat)
+    const combatEffects = [];
+    for (const eff of effects) {
+      if (eff.kind === 'grant_relic') {
+        const relic = loot.rollRelicDrop(run.rng, eff.rarityBias || 1);
+        if (!run.relics.includes(relic.key)) {
+          run.relics.push(relic.key);
+          run.log.push(`🏺 Relic acquired: **${relic.name}**`);
+        } else {
+          run.pot += 200;
+          run.log.push(`🏺 Duplicate relic converted to 200 🥛`);
+        }
+      } else if (eff.kind === 'grant_item') {
+        const target = run.party.find(p => p.userId === eff.target) || run.party.find(p => p.userId === userId);
+        if (!target) continue;
+        let item;
+        if (eff.item === 'random') item = loot.rollConsumableDrop(run.rng);
+        else item = loot.getConsumable(eff.item);
+        if (item) {
+          target.items.push(item.key);
+          run.log.push(`🎒 ${target.username} got ${item.name}`);
+        }
+      } else if (eff.kind === 'pot_add') {
+        run.pot += eff.amount;
+        run.log.push(`💰 +${eff.amount} to pot`);
+      } else if (eff.kind === 'pot_sub') {
+        run.pot = Math.max(0, run.pot - eff.amount);
+        run.log.push(`💸 -${eff.amount} from pot`);
+      } else if (eff.kind === 'spawn_combat') {
+        spawnCombatKeys = eff.enemies;
+      } else {
+        combatEffects.push(eff);
+      }
+    }
+    const logs = combat.processEffects(run, combatEffects, `Event:${event.title}`, run.rng);
+    run.log.push(`🎲 Rolled **${roll}** — ${outcome.text}`, ...logs);
+    state.markDirty(run);
+
+    if (spawnCombatKeys) {
+      // Convert room to combat with these enemies
+      combat.startCombat(run, spawnCombatKeys);
+      state.markDirty(run);
+    } else {
+      shouldAdvance = true;
+    }
+    replyText = `🎲 Rolled ${roll} — ${outcome.text}`;
+  });
+  await interaction.reply({ content: replyText, flags: 64 });
+  const run = state.getRun(runId);
+  const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+  if (!thread) return;
+  if (spawnCombatKeys) {
+    await postStatus(run, thread, true);
+    setTimeout(() => processTurn(run, thread).catch(() => {}), 1200);
+  } else if (shouldAdvance) {
+    setTimeout(() => advanceToNextFloor(run, thread).catch(() => {}), 2500);
+  }
+}
+
+async function handleBuy(interaction, runId, itemIdx) {
+  const userId = interaction.user.id;
+  let replyText = '';
+  await withLock('dun:' + runId, async () => {
+    const run = state.getRun(runId);
+    if (!run || run.currentRoom?.kind !== 'merchant') { replyText = 'Not in a merchant room.'; return; }
+    const room = run.currentRoom;
+    const slot = room.items[itemIdx];
+    if (!slot) { replyText = 'Invalid item.'; return; }
+    if (room.purchased[itemIdx]) { replyText = 'Already bought.'; return; }
+    if (run.pot < slot.price) { replyText = `Pot has ${run.pot}, need ${slot.price}.`; return; }
+    const player = run.party.find(p => p.userId === userId);
+    if (!player) { replyText = "You're not in this run."; return; }
+    run.pot -= slot.price;
+    room.purchased[itemIdx] = userId;
+    player.items.push(slot.item.key);
+    state.markDirty(run);
+    replyText = `✅ Bought ${slot.item.name}`;
+  });
+  await interaction.reply({ content: replyText, flags: 64 });
+  // Refresh merchant display
+  const run = state.getRun(runId);
+  const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+  if (thread && run.currentRoom?.kind === 'merchant') {
+    try {
+      const msgs = await thread.messages.fetch({ limit: 10 });
+      const merchantMsg = msgs.find(m => m.embeds[0]?.title?.includes('Milk Merchant'));
+      if (merchantMsg) await merchantMsg.edit(display.buildMerchantRoom(run));
+    } catch {}
+  }
+}
+
+async function handleLeave(interaction, runId) {
+  await interaction.reply({ content: 'Leaving merchant...', flags: 64 });
+  const run = state.getRun(runId);
+  if (!run) return;
+  const thread = await interaction.client.channels.fetch(run.threadId).catch(() => null);
+  if (thread) setTimeout(() => advanceToNextFloor(run, thread).catch(() => {}), 800);
 }
 
 async function handleCombatEnd(run, thread, end) {
@@ -474,7 +757,7 @@ async function handleCombatEnd(run, thread, end) {
     return endRun(run, thread, 'defeat');
   }
 
-  // Floor cleared — advance
+  // Floor cleared — award per-floor payout and drop loot
   const perFloorBucks = BASE_REWARD_PER_FLOOR;
   for (const p of run.party) {
     if (!p.downed) {
@@ -483,22 +766,30 @@ async function handleCombatEnd(run, thread, end) {
   }
   run.log.push(`💰 Each survivor earned ${perFloorBucks} milk bucks + ${BASE_XP_PER_FLOOR} XP`);
 
-  if (run.floor >= FINAL_FLOOR) {
-    return endRun(run, thread, 'victory');
-  }
-
-  run.floor += 1;
-  // Auto-revive solo deaths at 50% HP between floors
-  for (const p of run.party) {
-    if (p.downed) {
-      p.downed = false;
-      p.hp = Math.floor(p.maxHp * 0.5);
-      run.log.push(`🌱 ${p.username} stands back up at ${p.hp}/${p.maxHp} HP`);
+  // Loot drops
+  const room = run.currentRoom;
+  if (room?.guaranteesRelic) {
+    const relic = loot.rollRelicDrop(run.rng, 2);
+    if (!run.relics.includes(relic.key)) {
+      run.relics.push(relic.key);
+      run.log.push(`🏺 Elite drop: **${relic.name}** — ${relic.description}`);
+    } else {
+      run.pot += 300;
+      run.log.push(`🏺 Duplicate relic — +300 🥛 to pot`);
+    }
+  } else if (room?.guaranteesLoot || run.rng.chance(0.25)) {
+    // Consumable drop goes to a random living party member
+    const living = run.party.filter(p => !p.downed);
+    if (living.length > 0) {
+      const lucky = living[run.rng.int(living.length)];
+      const drop = loot.rollConsumableDrop(run.rng);
+      lucky.items.push(drop.key);
+      run.log.push(`🎒 ${lucky.username} picked up **${drop.name}**`);
     }
   }
   state.markDirty(run);
-  await thread.send(display.buildFloorClearedEmbed(run)).catch(() => {});
-  setTimeout(() => beginFloor(run, thread).catch(() => {}), 1500);
+
+  await advanceToNextFloor(run, thread);
 }
 
 async function endRun(run, thread, outcome) {

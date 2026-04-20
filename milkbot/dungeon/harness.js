@@ -4,7 +4,7 @@
 
 const { listClasses, getClass } = require('./classes');
 const { initPlayer, startCombat, isCombatOver, currentActor, advanceTurn, processEffects, playerAttack, playerAbility, enemyTurn } = require('./combat');
-const { generateRoom } = require('./rooms');
+const { generateRoom, generateCombatRoom } = require('./rooms');
 const { makeRunRng, newSeed } = require('./rng');
 
 const MAX_TURNS_PER_COMBAT = 200;
@@ -64,7 +64,8 @@ function pickPlayerAction(run, player) {
 }
 
 function simulateOneCombat(run) {
-  const room = generateRoom(run);
+  // Harness is combat-balance focused — skip non-combat rooms.
+  const room = generateCombatRoom(run);
   startCombat(run, room.enemyKeys);
   let turns = 0;
   while (turns++ < MAX_TURNS_PER_COMBAT) {

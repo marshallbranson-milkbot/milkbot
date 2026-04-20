@@ -216,6 +216,123 @@ function buildFloorClearedEmbed(run) {
   return { embeds: [embed] };
 }
 
+// === Treasure room ===
+
+function buildTreasureRoom(run) {
+  const room = run.currentRoom;
+  const desc = room.chests.map((c, i) => {
+    const claimedBy = Object.entries(room.claimed).find(([uid, idx]) => idx === i);
+    if (claimedBy) {
+      const user = run.party.find(p => p.userId === claimedBy[0]);
+      return `**Chest ${i + 1}** — *claimed by ${user?.username || '?'}*`;
+    }
+    return `**Chest ${i + 1}** — ???`;
+  }).join('\n');
+  const embed = new EmbedBuilder()
+    .setColor(0xFFC107)
+    .setTitle(`💰 Treasure Room — Floor ${run.floor}`)
+    .setDescription('Three chests. Each party member picks one. Pick wisely — contents are hidden.')
+    .addFields({ name: 'Chests', value: desc });
+  const row = new ActionRowBuilder().addComponents(
+    ...room.chests.map((_, i) =>
+      new ButtonBuilder()
+        .setCustomId(`dun_chest_${run.runId}_${i}`)
+        .setLabel(`Chest ${i + 1}`)
+        .setEmoji('🎁')
+        .setStyle(ButtonStyle.Primary)
+    ),
+  );
+  return { embeds: [embed], components: [row] };
+}
+
+// === Event room ===
+
+function buildEventRoom(run, event) {
+  const embed = new EmbedBuilder()
+    .setColor(0x9C27B0)
+    .setTitle(`📜 ${event.title}`)
+    .setDescription(event.description);
+  const row = new ActionRowBuilder().addComponents(
+    ...event.choices.map((c, i) =>
+      new ButtonBuilder()
+        .setCustomId(`dun_evc_${run.runId}_${i}`)
+        .setLabel(c.label)
+        .setEmoji(c.emoji || '▶️')
+        .setStyle(ButtonStyle.Secondary)
+    ),
+  );
+  return { embeds: [embed], components: [row] };
+}
+
+// === Merchant room ===
+
+function buildMerchantRoom(run) {
+  const room = run.currentRoom;
+  const desc = room.items.map((slot, i) => {
+    const bought = room.purchased[i];
+    if (bought) return `~~${slot.item.emoji} ${slot.item.name} — ${slot.price}🥛~~ *(bought)*`;
+    return `${slot.item.emoji} **${slot.item.name}** — ${slot.price}🥛`;
+  }).join('\n');
+  const embed = new EmbedBuilder()
+    .setColor(0x795548)
+    .setTitle(`🛒 Milk Merchant — Floor ${run.floor}`)
+    .setDescription(`Pot: **${run.pot.toLocaleString()}** 🥛\n\n${desc}\n\nClick an item to buy (cost deducted from pot). Click **Leave** when done.`);
+  const buyRow = new ActionRowBuilder().addComponents(
+    ...room.items.map((slot, i) =>
+      new ButtonBuilder()
+        .setCustomId(`dun_buy_${run.runId}_${i}`)
+        .setLabel(`${slot.price}🥛`)
+        .setEmoji(slot.item.emoji)
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!!room.purchased[i])
+    ),
+  );
+  const leaveRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dun_leave_${run.runId}`).setLabel('Leave merchant').setEmoji('🚪').setStyle(ButtonStyle.Secondary),
+  );
+  return { embeds: [embed], components: [buyRow, leaveRow] };
+}
+
+// === Rest room ===
+
+function buildRestRoom(run, healedAmount) {
+  const embed = new EmbedBuilder()
+    .setColor(0x00BCD4)
+    .setTitle(`🏕️ Rest Room — Floor ${run.floor}`)
+    .setDescription(`The party rests. Everyone recovers **${healedAmount} HP**.`)
+    .addFields({
+      name: 'Party', value: run.party.map(p => `${p.username} — ${p.hp}/${p.maxHp} HP`).join('\n'),
+    });
+  return { embeds: [embed] };
+}
+
+// === Item picker (ephemeral, player's inventory) ===
+
+function buildItemPicker(run, player, consumablesByKey) {
+  if (!player.items || player.items.length === 0) {
+    return { content: "You have no items.", flags: 64 };
+  }
+  const embed = new EmbedBuilder()
+    .setColor(COLOR_INFO)
+    .setTitle('🎒 Your items')
+    .setDescription('Click an item to use it.');
+  const rows = [];
+  let row = new ActionRowBuilder();
+  for (let i = 0; i < player.items.length; i++) {
+    if (row.components.length === 5) { rows.push(row); row = new ActionRowBuilder(); }
+    const c = consumablesByKey[player.items[i]];
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`dun_useitem_${run.runId}_${i}`)
+        .setLabel(c?.name || player.items[i])
+        .setEmoji(c?.emoji || '❓')
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+  if (row.components.length > 0) rows.push(row);
+  return { embeds: [embed], components: rows, flags: 64 };
+}
+
 module.exports = {
   buildExplainerEmbed,
   buildLobbyPanel,
@@ -225,4 +342,9 @@ module.exports = {
   buildVictoryEmbed,
   buildDefeatEmbed,
   buildFloorClearedEmbed,
+  buildTreasureRoom,
+  buildEventRoom,
+  buildMerchantRoom,
+  buildRestRoom,
+  buildItemPicker,
 };
