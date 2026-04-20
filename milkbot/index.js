@@ -380,6 +380,33 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       console.log('[reset] lb_reset_v1 applied — bigtrades cleared, Grinder set to level 40');
     }
 
+    // One-time: normalize all portfolios (fix missing .spent, NaN shares, etc.)
+    // Prevents users from getting stuck unable to sell due to legacy/corrupt holdings.
+    const portfolioNormV1Path = path.join(__dirname, 'data/portfolio_norm_v1_done.json');
+    if (!fs.existsSync(portfolioNormV1Path)) {
+      const _portPath = path.join(__dirname, 'data/portfolios.json');
+      if (fs.existsSync(_portPath)) {
+        let _port = {};
+        try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) { console.error('[portnorm] corrupted:', e.message); }
+        let fixed = 0;
+        for (const userId of Object.keys(_port)) {
+          const holdings = _port[userId];
+          if (!holdings || typeof holdings !== 'object') { delete _port[userId]; continue; }
+          for (const ticker of Object.keys(holdings)) {
+            const h = holdings[ticker];
+            if (!h || typeof h !== 'object') { delete holdings[ticker]; fixed++; continue; }
+            if (!Number.isFinite(h.shares) || h.shares <= 0) { delete holdings[ticker]; fixed++; continue; }
+            if (!Number.isFinite(h.spent) || h.spent < 0) { h.spent = 0; fixed++; }
+            if (!Number.isFinite(h.boughtAt)) { h.boughtAt = Date.now(); }
+          }
+          if (Object.keys(holdings).length === 0) delete _port[userId];
+        }
+        fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
+        console.log(`[portnorm] normalized portfolios (${fixed} fixes)`);
+      }
+      fs.writeFileSync(portfolioNormV1Path, JSON.stringify({ done: true }));
+    }
+
     // One-time: correct Grinder XP to level 20
     const grinderXpV2Path = path.join(__dirname, 'data/grinder_xp_v2_done.json');
     if (!fs.existsSync(grinderXpV2Path)) {

@@ -40,12 +40,28 @@ module.exports = {
     const portfolios = getPortfolios();
     const holding = portfolios[userId]?.[ticker];
 
-    if (!holding || holding.shares <= 0) {
+    // Normalize legacy/corrupt fields defensively — missing spent, NaN shares, etc. would
+    // silently break the sell path otherwise.
+    if (!holding) {
       return message.reply(`You don't own any **${ticker}**. 🥛`);
+    }
+    if (!Number.isFinite(holding.shares) || holding.shares <= 0) {
+      // Clean up zombie holding so it doesn't block future buys/sells
+      delete portfolios[userId][ticker];
+      savePortfolios(portfolios);
+      return message.reply(`You don't own any **${ticker}**. 🥛`);
+    }
+    if (!Number.isFinite(holding.spent) || holding.spent < 0) {
+      holding.spent = 0;  // treat as pure profit
     }
 
     const prices = getPrices();
-    const price = prices[ticker].price;
+    const priceEntry = prices[ticker];
+    if (!priceEntry || !Number.isFinite(priceEntry.price)) {
+      console.error(`[sell] missing price for ${ticker}, user=${userId}`);
+      return message.reply(`**${ticker}** has no current price. Try again in a minute. 🥛`);
+    }
+    const price = priceEntry.price;
 
     let sharesToSell;
     if (amountArg === 'all') {
@@ -61,16 +77,21 @@ module.exports = {
       }
     }
 
-    const revenue = sharesToSell * price;
+    const revenue = Math.max(0, Math.round(sharesToSell * price));
     const spentPerShare = holding.spent / holding.shares;
-    const costBasis = Math.round(spentPerShare * sharesToSell);
+    const costBasis = Math.max(0, Math.round(spentPerShare * sharesToSell));
     const profit = revenue - costBasis;
     const profitRatio = costBasis > 0 ? profit / costBasis : 0;
     const heldHours = holding.boughtAt ? (Date.now() - holding.boughtAt) / (1000 * 60 * 60) : 0;
 
+    if (!Number.isFinite(revenue)) {
+      console.error(`[sell] invalid revenue`, { userId, ticker, price, sharesToSell, holding });
+      return message.reply(`something's off with your **${ticker}** position — tell an admin. 🥛`);
+    }
+
     // Update portfolio
     holding.shares -= sharesToSell;
-    holding.spent -= costBasis;
+    holding.spent = Math.max(0, holding.spent - costBasis);
     if (holding.shares <= 0) {
       delete portfolios[userId][ticker];
     }
