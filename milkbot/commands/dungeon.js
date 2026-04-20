@@ -1057,8 +1057,10 @@ async function endRun(run, thread, outcome) {
   const xpBonus = run._xpMul || 1;
 
   const hardcoreMul = run.difficulty === 'hardcore' ? 3 : 1;
+  // Cosmic Ledger / The First Drop modify the pot payout on win.
+  const potMul = run._potMultiplierOnWin || 1;
   if (outcome === 'victory') {
-    perPlayerBucks = Math.floor((run.pot / run.party.length) * hardcoreMul);
+    perPlayerBucks = Math.floor((run.pot / run.party.length) * hardcoreMul * potMul);
     perPlayerXp = Math.floor(BASE_XP_PER_FLOOR * run.floor * xpBonus * hardcoreMul);
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
@@ -1140,7 +1142,12 @@ async function endRun(run, thread, outcome) {
         noRevives,
       }, thread);
       if (completed && deepestFloor >= FINAL_FLOOR) {
-        require('../achievements').check(p.userId, p.username, 'dungeon_curdfather_kill', {}, thread);
+        // Emit the right final-boss event per dungeon so per-dungeon quests fire.
+        const did = run.dungeonId || 'spoiled_vault';
+        const killEvent = did === 'udder_abyss' ? 'dungeon_uddergod_kill'
+          : did === 'creamspire_cosmos' ? 'dungeon_mothergalaxy_kill'
+          : 'dungeon_curdfather_kill';
+        require('../achievements').check(p.userId, p.username, killEvent, {}, thread);
       }
     } catch (e) { console.warn('[dungeon] achievement check failed:', e.message); }
   }

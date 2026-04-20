@@ -21,6 +21,14 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
+  // Atomic write (tmp + rename). Used by one-shot migrations so a mid-write
+  // crash doesn't truncate balances.json / xp.json / portfolios.json etc.
+  function atomicWriteJson(filePath, obj) {
+    const tmp = filePath + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
+    fs.renameSync(tmp, filePath);
+  }
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -269,22 +277,22 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       _pres['879171470700445747'] = 2;
       _xp['879171470700445747']   = 0;
 
-      fs.writeFileSync(_balPath,  JSON.stringify(_bal,  null, 2));
-      fs.writeFileSync(_presPath, JSON.stringify(_pres, null, 2));
-      fs.writeFileSync(_xpPath,   JSON.stringify(_xp,   null, 2));
+      atomicWriteJson(_balPath,  _bal);
+      atomicWriteJson(_presPath, _pres);
+      atomicWriteJson(_xpPath,   _xp);
 
       if (fs.existsSync(_portPath)) {
         let _port = {};
         try { _port = JSON.parse(fs.readFileSync(_portPath, 'utf8')); } catch (e) { console.error('[reset] corrupted portfolios:', e.message); }
         delete _port['646425076748517386'];
         delete _port['879171470700445747'];
-        fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
+        atomicWriteJson(_portPath, _port);
       }
       if (fs.existsSync(_achPath)) {
         let _ach = {};
         try { _ach = JSON.parse(fs.readFileSync(_achPath, 'utf8')); } catch (e) { console.error('[reset] corrupted ach:', e.message); }
         if (_ach['879171470700445747']) _ach['879171470700445747'].level = 1;
-        fs.writeFileSync(_achPath, JSON.stringify(_ach, null, 2));
+        atomicWriteJson(_achPath, _ach);
       }
 
       fs.writeFileSync(playerResetFlagPath, JSON.stringify({ done: true }));
@@ -295,7 +303,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     const jackpotResetPath = path.join(__dirname, 'data/jackpot_reset_done.json');
     if (!fs.existsSync(jackpotResetPath)) {
       const jackpotFilePath = path.join(__dirname, 'data/jackpot.json');
-      fs.writeFileSync(jackpotFilePath, JSON.stringify({ amount: 10000 }, null, 2));
+      atomicWriteJson(jackpotFilePath, { amount: 10000 });
       fs.writeFileSync(jackpotResetPath, JSON.stringify({ done: true }));
       console.log('[jackpot] reset to 10,000');
     }
@@ -355,7 +363,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
             const oldCur = _rb.currentHp;
             _rb.maxHp = 15000;
             _rb.currentHp = Math.max(1, Math.floor((_rb.currentHp || 0) * scale));
-            fs.writeFileSync(_rbPath, JSON.stringify(_rb, null, 2));
+            atomicWriteJson(_rbPath, _rb);
             console.log(`[raidboss] rescaled active boss: ${oldCur}/${oldMax} → ${_rb.currentHp}/${_rb.maxHp}`);
           }
         } catch (e) { console.error('[raidboss rescale] failed:', e.message); }
@@ -391,7 +399,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       let _bal = {};
       try { if (fs.existsSync(_balPath)) _bal = JSON.parse(fs.readFileSync(_balPath, 'utf8')); } catch (e) { console.error('[restore] corrupted balances:', e.message); }
       _bal['879171470700445747'] = 50000;
-      fs.writeFileSync(_balPath, JSON.stringify(_bal, null, 2));
+      atomicWriteJson(_balPath, _bal);
       fs.writeFileSync(grinderRestorePath, JSON.stringify({ done: true }));
       console.log('[restore] grinder_restore_v1 applied — 50k balance set');
     }
@@ -403,7 +411,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       let _bal = {};
       try { if (fs.existsSync(_balPath)) _bal = JSON.parse(fs.readFileSync(_balPath, 'utf8')); } catch (e) { console.error('[restore] corrupted balances:', e.message); }
       _bal['879171470700445747'] = 10_000_000;
-      fs.writeFileSync(_balPath, JSON.stringify(_bal, null, 2));
+      atomicWriteJson(_balPath, _bal);
       fs.writeFileSync(grinderRestoreV2Path, JSON.stringify({ done: true }));
       console.log('[restore] grinder_restore_v2 applied — 10M balance set');
     }
@@ -412,12 +420,12 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
     const lbResetV1Path = path.join(__dirname, 'data/lb_reset_v1_done.json');
     if (!fs.existsSync(lbResetV1Path)) {
       const _bigTradesPath = path.join(__dirname, 'data/bigtrades.json');
-      fs.writeFileSync(_bigTradesPath, JSON.stringify({}, null, 2));
+      atomicWriteJson(_bigTradesPath, {});
       const _xpPath = path.join(__dirname, 'data/xp.json');
       let _xp = {};
       try { if (fs.existsSync(_xpPath)) _xp = JSON.parse(fs.readFileSync(_xpPath, 'utf8')); } catch (e) { console.error('[reset] corrupted xp:', e.message); }
       _xp['879171470700445747'] = 78000;
-      fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
+      atomicWriteJson(_xpPath, _xp);
       fs.writeFileSync(lbResetV1Path, JSON.stringify({ done: true }));
       console.log('[reset] lb_reset_v1 applied — bigtrades cleared, Grinder set to level 40');
     }
@@ -506,7 +514,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
             if (Object.keys(holdings).length === 0) delete _port[userId];
           }
           try {
-            fs.writeFileSync(_portPath, JSON.stringify(_port, null, 2));
+            atomicWriteJson(_portPath, _port);
             console.log(`[portnorm v2] normalized portfolios (${fixed} fixes)`);
           } catch (e) {
             console.error('[portnorm v2] write failed — leaving flag unset:', e.message);
@@ -524,7 +532,7 @@ const GAMES_MENU_PASSTHROUGH = new Set(['g', 'a', 'd', 'j']);
       let _xp = {};
       try { if (fs.existsSync(_xpPath)) _xp = JSON.parse(fs.readFileSync(_xpPath, 'utf8')); } catch (e) { console.error('[reset] corrupted xp:', e.message); }
       _xp['879171470700445747'] = 19000;
-      fs.writeFileSync(_xpPath, JSON.stringify(_xp, null, 2));
+      atomicWriteJson(_xpPath, _xp);
       fs.writeFileSync(grinderXpV2Path, JSON.stringify({ done: true }));
       console.log('[reset] grinder_xp_v2 applied — Grinder set to level 20');
     }

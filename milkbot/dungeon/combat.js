@@ -105,6 +105,19 @@ function applyRelicPassives(run) {
     partyAtkMul: 1,
     partyCritBonus: 0,
     sourTickDamage: SOUR_TICK_DAMAGE_DEFAULT,
+    // Extended fields the mythics set. Any combat/payout code that wants to
+    // honour a mythic reads from the matching run._* field.
+    bossDmgMul: 1,
+    critMultiplier: CRIT_MULTIPLIER,
+    cooldownReduction: 0,
+    potMultiplierOnWin: 1,
+    firstAttackGuaranteedSuperCrit: false,
+    hardcoreReviveAvailable: false,
+    partyWipeReviveAvailable: false,
+    neverMiss: false,
+    incomingDmgMul: 1,
+    critHealAmount: 0,
+    merchantDiscount: 0,
   };
   for (const relicKey of run.relics || []) {
     const relic = getRelic(relicKey);
@@ -113,6 +126,17 @@ function applyRelicPassives(run) {
   run._partyAtkMul = ctx.partyAtkMul;
   run._partyCritBonus = ctx.partyCritBonus;
   run._sourTickDamage = ctx.sourTickDamage;
+  run._bossDmgMul = ctx.bossDmgMul;
+  run._critMultiplier = ctx.critMultiplier;
+  run._cooldownReduction = ctx.cooldownReduction;
+  run._potMultiplierOnWin = ctx.potMultiplierOnWin;
+  run._firstAttackGuaranteedSuperCrit = ctx.firstAttackGuaranteedSuperCrit;
+  run._hardcoreReviveAvailable = ctx.hardcoreReviveAvailable;
+  run._partyWipeReviveAvailable = ctx.partyWipeReviveAvailable;
+  run._neverMiss = ctx.neverMiss;
+  run._incomingDmgMul = ctx.incomingDmgMul;
+  run._critHealAmount = ctx.critHealAmount;
+  run._merchantDiscount = ctx.merchantDiscount;
 }
 
 // === Effect processing ===
@@ -140,10 +164,17 @@ function computeDamage(rawAmount, defender, rng, options = {}) {
   // Variance
   const variance = 1 + (rng.next() * 2 - 1) * DAMAGE_VARIANCE;
   dmg = dmg * variance;
-  // Crit
+  // Crit — mythics can override the base multiplier (Blood Butter → 3x) OR
+  // force a guaranteed super-crit on the first attack of a fight (Milkgod's Tear).
+  const critMul = options.critMultiplier ?? CRIT_MULTIPLIER;
   const critChance = (options.critChance ?? BASE_CRIT_CHANCE);
-  const crit = rng.chance(critChance);
-  if (crit) dmg *= CRIT_MULTIPLIER;
+  const forceSuperCrit = options.forceSuperCrit === true;
+  const crit = forceSuperCrit || rng.chance(critChance);
+  if (crit) dmg *= (forceSuperCrit ? 5 : critMul);
+  // Boss damage mul (Crown of Cream): applied when attacking a boss target.
+  if (options.bossDmgMul && defender.isBoss) dmg *= options.bossDmgMul;
+  // Incoming damage mul (Helm of the Cheesemonger): reduces damage to players.
+  if (options.incomingDmgMul && defender.userId) dmg *= options.incomingDmgMul;
   // Defending reduces incoming damage by 50%
   if (defender.defending) dmg *= 0.5;
   // Shielded blocks entirely
@@ -164,18 +195,43 @@ function processEffect(run, effect, sourceName, rng) {
       const enemy = findEnemyById(run, effect.target);
       const target = player || enemy;
       if (!target) break;
-      // Dodge check (enemies with dodgeChance)
-      if (target.extras && target.extras.dodgeChance && rng.chance(target.extras.dodgeChance)) {
+      // Dodge check — skipped entirely if the attacker has Abyss Monocle's neverMiss.
+      const attackerIsPartyMember = !!findPlayerById(run, sourceName);
+      const suppressDodge = run._neverMiss && !target.userId;
+      if (!suppressDodge && target.extras && target.extras.dodgeChance && rng.chance(target.extras.dodgeChance)) {
         logs.push(`${sourceName}'s attack on ${target.name || target.username} missed — dodged!`);
         break;
       }
-      const { amount, crit, blocked } = computeDamage(effect.amount, target, rng, effect);
+      // First-attack-of-combat super-crit (Milkgod's Tear). Enemy-sourced damage
+      // doesn't consume it; only a player hitting an enemy does.
+      const consumeFirstStrike = run._firstAttackGuaranteedSuperCrit
+        && !run._firstStrikeUsed
+        && target.hp !== undefined
+        && !target.userId;
+      if (consumeFirstStrike) run._firstStrikeUsed = true;
+      const options = {
+        ...effect,
+        critMultiplier: run._critMultiplier,
+        bossDmgMul: run._bossDmgMul,
+        incomingDmgMul: run._incomingDmgMul,
+        forceSuperCrit: consumeFirstStrike,
+      };
+      const { amount, crit, blocked } = computeDamage(effect.amount, target, rng, options);
       if (blocked) {
         logs.push(`${target.name || target.username}'s shield blocked the hit!`);
         break;
       }
       target.hp = Math.max(0, target.hp - amount);
       logs.push(`${sourceName} hit ${target.name || target.username} for ${amount}${crit ? ' 💥 CRIT' : ''} (${target.hp}/${target.maxHp} HP)`);
+      // Starlight Locket: crits heal the attacker.
+      if (crit && run._critHealAmount > 0) {
+        const attacker = run.party.find(p => p.username === sourceName || (sourceName || '').startsWith(p.username));
+        if (attacker && attacker.hp < attacker.maxHp) {
+          const heal = Math.min(run._critHealAmount, attacker.maxHp - attacker.hp);
+          attacker.hp += heal;
+          logs.push(`✨ ${attacker.username} healed for ${heal} (crit locket)`);
+        }
+      }
 
       // Whey Warden counter-attack statuses — reflect damage back at the attacker
       if (player && amount > 0) {
@@ -358,6 +414,9 @@ function startCombat(run, enemyKeys) {
   run.turnIndex = 0;
   run._fleeing = false;
   run.log = [`⚔️ A wild ${enemies.map(e => e.name).join(', ')} appears!`];
+  // Reset per-combat flags so Milkgod's Tear / other one-shot bonuses fire
+  // once per fight, not once per run.
+  run._firstStrikeUsed = false;
   applyRelicPassives(run);
   // Fire relic onEvent hooks for combat_start and enemy_spawn
   run.log.push(...fireRelicHooks(run, 'combat_start'));
@@ -535,7 +594,10 @@ function playerAbility(run, player, abilityKey, targetId) {
     rng: run.rng,
   };
   const effects = ability.run(ctx);
-  player.cooldowns[abilityKey] = ability.cooldown || 1;
+  // Curdlord's Scepter: all cooldowns reduced by N. Floor at 0 (instant refresh).
+  const rawCd = ability.cooldown || 1;
+  const reducedCd = Math.max(0, rawCd - (run._cooldownReduction || 0));
+  player.cooldowns[abilityKey] = reducedCd;
   return { effects, abilityName: ability.name };
 }
 
