@@ -8,6 +8,7 @@ const { withLock } = require('../balancelock');
 const dungeon = require('../dungeon');
 const { state, combat, rooms, display, classes, loot } = dungeon;
 const { getEvent, resolveRoll } = require('../dungeon/events');
+const { getGate, classUnlockFor, hasCompletedDungeon } = require('../dungeon/unlocks');
 
 const balancesPath = path.join(__dirname, '../data/balances.json');
 const xpPath = path.join(__dirname, '../data/xp.json');
@@ -69,46 +70,61 @@ async function payout(userId, bucks, xp) {
 // ========= Channel panels (top explainer + bottom lobby) =========
 
 async function refreshChannelPanels(client, channel) {
-  // Find existing messages by embed title, in order: explainer, vault-panel, abyss-panel
-  let explainerMsg = null, vaultMsg = null, abyssMsg = null, statsMsg = null;
+  // One persistent message per dungeon (plus explainer + stats). Data-driven:
+  // adding a dungeon is a DUNGEON_META entry, no edits here.
+  const dungeonIds = Object.keys(display.DUNGEON_META);
+
+  let explainerMsg = null, statsMsg = null;
+  const dungeonMsgs = {};  // dungeonId -> Message
   const orphansToDelete = [];
+
   try {
     const recent = await channel.messages.fetch({ limit: 50 });
     for (const m of recent.values()) {
       if (m.author.id !== client.user.id) continue;
       const title = m.embeds[0]?.title || '';
-      if (title.includes('MilkBot Dungeon') && (title.includes('Spoiled Vault') || title.includes('Udder Abyss'))) explainerMsg = m;
-      else if (title.includes('The Spoiled Vault')) vaultMsg = m;
-      else if (title.includes('The Udder Abyss')) abyssMsg = m;
-      else if (!m.embeds.length && m.content.includes('───')) statsMsg = m;
+      // Explainer recognised by the top "MilkBot Dungeons" header (or legacy titles).
+      if (title.includes('MilkBot Dungeon') && !dungeonIds.some(id => title.includes(display.DUNGEON_META[id].displayName))) {
+        explainerMsg = m;
+        continue;
+      }
+      // Match dungeon panels by their displayName.
+      let matched = false;
+      for (const id of dungeonIds) {
+        const meta = display.DUNGEON_META[id];
+        if (title.includes(meta.displayName)) {
+          dungeonMsgs[id] = m;
+          matched = true;
+          break;
+        }
+      }
+      if (matched) continue;
+      if (!m.embeds.length && m.content.includes('───')) { statsMsg = m; continue; }
       // Old v1 lobby panel (pre-split) — orphan, remove.
-      else if (title.includes('Dungeon Lobby')) orphansToDelete.push(m);
+      if (title.includes('Dungeon Lobby')) orphansToDelete.push(m);
     }
   } catch (e) {
     console.warn('[dungeon] fetch panels failed:', e.message);
   }
 
-  // Clean up orphaned old panels before re-rendering
   for (const m of orphansToDelete) {
     await m.delete().catch(() => {});
     console.log('[dungeon] deleted orphan panel:', m.embeds[0]?.title || '(no title)');
   }
 
-  // Post/edit in order: top explainer → Vault lobby → Abyss lobby → stats button row
   const explainerPayload = display.buildExplainerEmbed();
   if (explainerMsg) await explainerMsg.edit(explainerPayload).catch(() => {});
   else explainerMsg = await channel.send(explainerPayload).catch(() => null);
 
   const runs = state.allRuns();
-  const vaultPayload = display.buildLobbyPanel(runs, 'spoiled_vault', true);
-  if (vaultMsg) await vaultMsg.edit(vaultPayload).catch(() => {});
-  else vaultMsg = await channel.send(vaultPayload).catch(() => null);
-
-  // Abyss unlock is evaluated per-user, but the panel shows the locked state visually for clarity.
-  // Individual users' lock enforcement happens in handleStart.
-  const abyssPayload = display.buildLobbyPanel(runs, 'udder_abyss', true);
-  if (abyssMsg) await abyssMsg.edit(abyssPayload).catch(() => {});
-  else abyssMsg = await channel.send(abyssPayload).catch(() => null);
+  const panelIdMap = {};
+  for (const dungeonId of dungeonIds) {
+    const payload = display.buildLobbyPanel(runs, dungeonId, true);
+    let msg = dungeonMsgs[dungeonId];
+    if (msg) await msg.edit(payload).catch(() => {});
+    else msg = await channel.send(payload).catch(() => null);
+    panelIdMap[dungeonId] = msg?.id;
+  }
 
   const statsPayload = display.buildStatsButton();
   if (statsMsg) await statsMsg.edit(statsPayload).catch(() => {});
@@ -117,8 +133,7 @@ async function refreshChannelPanels(client, channel) {
   channelPanels.set(channel.guildId, {
     channelId: channel.id,
     explainerId: explainerMsg?.id,
-    vaultId: vaultMsg?.id,
-    abyssId: abyssMsg?.id,
+    panelIds: panelIdMap,
     statsId: statsMsg?.id,
   });
 }
@@ -130,16 +145,12 @@ async function refreshLobby(client) {
     const channel = guild.channels.cache.get(panel.channelId);
     if (!channel) continue;
     const runs = state.allRuns();
-    if (panel.vaultId) {
+    const ids = panel.panelIds || {};
+    for (const [dungeonId, messageId] of Object.entries(ids)) {
+      if (!messageId) continue;
       try {
-        const msg = await channel.messages.fetch(panel.vaultId);
-        await msg.edit(display.buildLobbyPanel(runs, 'spoiled_vault', true));
-      } catch {}
-    }
-    if (panel.abyssId) {
-      try {
-        const msg = await channel.messages.fetch(panel.abyssId);
-        await msg.edit(display.buildLobbyPanel(runs, 'udder_abyss', true));
+        const msg = await channel.messages.fetch(messageId);
+        await msg.edit(display.buildLobbyPanel(runs, dungeonId, true));
       } catch {}
     }
   }
@@ -178,10 +189,18 @@ async function handleButtonInteraction(interaction) {
   try {
     if (id === 'dun_start' || id === 'dun_start_normal') return handleStart(interaction, 'normal', 'spoiled_vault');
     if (id === 'dun_start_hardcore') return handleStart(interaction, 'hardcore', 'spoiled_vault');
-    if (id === 'dun_start_spoiled_vault_normal') return handleStart(interaction, 'normal', 'spoiled_vault');
-    if (id === 'dun_start_spoiled_vault_hardcore') return handleStart(interaction, 'hardcore', 'spoiled_vault');
-    if (id === 'dun_start_udder_abyss_normal') return handleStart(interaction, 'normal', 'udder_abyss');
-    if (id === 'dun_start_udder_abyss_hardcore') return handleStart(interaction, 'hardcore', 'udder_abyss');
+    // Dynamic: dun_start_<dungeonId>_<normal|hardcore>
+    if (id.startsWith('dun_start_')) {
+      const rest = id.slice('dun_start_'.length);
+      const lastUnderscore = rest.lastIndexOf('_');
+      if (lastUnderscore > 0) {
+        const dungeonId = rest.slice(0, lastUnderscore);
+        const difficulty = rest.slice(lastUnderscore + 1);
+        if (display.DUNGEON_META[dungeonId] && (difficulty === 'normal' || difficulty === 'hardcore')) {
+          return handleStart(interaction, difficulty, dungeonId);
+        }
+      }
+    }
     if (id === 'dun_stats') return handleStats(interaction);
     if (id.startsWith('dun_join_')) return handleJoin(interaction, id.slice('dun_join_'.length));
     if (id.startsWith('dun_pick_')) {
@@ -241,11 +260,16 @@ async function handleStart(interaction, difficulty = 'normal', dungeonId = 'spoi
   const userId = interaction.user.id;
   const username = sanitizeUsername(interaction.user.globalName || interaction.user.username);
 
-  // Unlock gate: Udder Abyss requires prior Spoiled Vault completion
-  if (dungeonId === 'udder_abyss') {
+  // Unlock gate: each dungeon may require completing a prior one. Table-driven.
+  const gate = getGate(dungeonId);
+  if (gate && gate.requiresCompletion) {
     const stats = state.getUserStats(userId);
-    if ((stats.completions || 0) < 1) {
-      return interaction.reply({ content: '🔒 **The Udder Abyss is locked.** Beat the Curdfather in the Spoiled Vault first. 🥛', flags: 64 });
+    if (!hasCompletedDungeon(stats, gate.requiresCompletion)) {
+      const meta = display.DUNGEON_META?.[dungeonId];
+      const prevMeta = display.DUNGEON_META?.[gate.requiresCompletion];
+      const name = meta?.displayName || dungeonId;
+      const prevName = prevMeta?.displayName || gate.requiresCompletion;
+      return interaction.reply({ content: `🔒 **${name} is locked.** Complete **${prevName}** first. 🥛`, flags: 64 });
     }
   }
 
@@ -464,17 +488,19 @@ async function advanceToNextFloor(run, thread) {
   const hookLogs = combat.fireRelicHooks(run, 'floor_start');
   if (hookLogs.length) run.log.push(...hookLogs);
 
-  // Class unlock: clearing floor 5 unlocks different classes per dungeon
+  // Class unlock: clearing floor 5 unlocks the dungeon's designated class.
   if (run.floor === 5) {
-    const unlockKey = (run.dungeonId === 'udder_abyss') ? 'frothmancer' : 'curd_medic';
-    const unlockName = unlockKey === 'frothmancer' ? 'Frothmancer' : 'Curd Medic';
-    for (const p of run.party) {
-      const stats = state.getUserStats(p.userId);
-      if (!stats.classUnlocks.includes(unlockKey)) {
-        state.updateUserStats(p.userId, s => {
-          if (!s.classUnlocks.includes(unlockKey)) s.classUnlocks.push(unlockKey);
-        });
-        run.log.push(`🗝️ ${p.username} unlocked **${unlockName}**!`);
+    const unlockKey = classUnlockFor(run.dungeonId || 'spoiled_vault', 5);
+    if (unlockKey) {
+      const unlockName = classes.getClass(unlockKey)?.name || unlockKey;
+      for (const p of run.party) {
+        const stats = state.getUserStats(p.userId);
+        if (!stats.classUnlocks.includes(unlockKey)) {
+          state.updateUserStats(p.userId, s => {
+            if (!s.classUnlocks.includes(unlockKey)) s.classUnlocks.push(unlockKey);
+          });
+          run.log.push(`🗝️ ${p.username} unlocked **${unlockName}**!`);
+        }
       }
     }
   }
@@ -932,18 +958,15 @@ async function endRun(run, thread, outcome) {
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }
-    // Class unlocks on completion:
-    // - Spoiled Vault completion unlocks Lactic Mage (+ Curd Medic as backfill)
-    // - Udder Abyss completion unlocks Whey Warden (+ Frothmancer as backfill)
+    // Class unlocks on completion: floor 10 clear grants the dungeon's final-class unlock
+    // AND backfills its floor-5 class in case the player skipped or missed the midboss credit.
+    const did = run.dungeonId || 'spoiled_vault';
+    const f5Key = classUnlockFor(did, 5);
+    const f10Key = classUnlockFor(did, 10);
     for (const p of run.party) {
       state.updateUserStats(p.userId, s => {
-        if (run.dungeonId === 'udder_abyss') {
-          if (!s.classUnlocks.includes('whey_warden')) s.classUnlocks.push('whey_warden');
-          if (!s.classUnlocks.includes('frothmancer')) s.classUnlocks.push('frothmancer');
-        } else {
-          if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
-          if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
-        }
+        if (f10Key && !s.classUnlocks.includes(f10Key)) s.classUnlocks.push(f10Key);
+        if (f5Key && !s.classUnlocks.includes(f5Key)) s.classUnlocks.push(f5Key);
         // 3rd-ability unlock for whichever class they played
         if (!s.abilityUnlocks) s.abilityUnlocks = [];
         const key = `${p.classKey}_3`;
@@ -974,7 +997,13 @@ async function endRun(run, thread, outcome) {
   for (const p of run.party) {
     state.updateUserStats(p.userId, s => {
       s.totalRuns += 1;
-      if (completed) s.completions += 1;
+      if (completed) {
+        s.completions += 1;
+        // Per-dungeon completion tracking gates the next dungeon's unlock.
+        if (!s.completionsByDungeon) s.completionsByDungeon = {};
+        const did = run.dungeonId || 'spoiled_vault';
+        s.completionsByDungeon[did] = (s.completionsByDungeon[did] || 0) + 1;
+      }
       if (run.difficulty === 'hardcore') {
         if (completed) s.hardcoreCompletions = (s.hardcoreCompletions || 0) + 1;
         if (deepestFloor > (s.hardcoreDeepestFloor || 0)) s.hardcoreDeepestFloor = deepestFloor;
@@ -1052,6 +1081,19 @@ async function handleStats(interaction) {
   await interaction.reply({ embeds: [embed], flags: 64 });
 }
 
+// Called by dungeon/index.js after restoreActiveRuns to re-prompt the active
+// player's turn. The previous turn's button message was deleted on shutdown
+// (and _activeTurnMessageId isn't persisted), so without this the run stalls.
+async function resumePlayingRun(run, thread) {
+  if (run.state !== 'PLAYING') return;
+  // Re-post the status embed so the thread shows current state.
+  await postStatus(run, thread, true).catch(() => {});
+  // If we're mid-combat, re-issue the current turn prompt.
+  if (run.currentRoom && (run.currentRoom.kind === 'combat' || run.currentRoom.kind === 'elite' || run.currentRoom.kind === 'boss')) {
+    await processTurn(run, thread).catch(e => console.warn('[dungeon] resume processTurn failed:', e.message));
+  }
+}
+
 module.exports = {
   name: 'dun',
   description: 'MilkBot Dungeon — form a party and descend into the Spoiled Vault',
@@ -1060,4 +1102,5 @@ module.exports = {
   executeSlash,
   handleButtonInteraction,
   refreshChannelPanels,
+  resumePlayingRun,
 };

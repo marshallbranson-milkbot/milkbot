@@ -190,6 +190,13 @@ const COLOR_INFO = 0x3F51B5;         // indigo
 // === Channel top: pinned game explainer ===
 
 function buildExplainerEmbed() {
+  const dungeonIds = Object.keys(DUNGEON_META);
+  const titleSuffix = dungeonIds.map(id => DUNGEON_META[id].displayName.replace(/^The\s+/, '')).join(' · ');
+  const dungeonLines = dungeonIds.map(id => {
+    const m = DUNGEON_META[id];
+    return `${m.emoji} **${m.displayName}** — ${m.description}`;
+  }).join('\n');
+
   const classFields = listClasses().map(c => {
     const lockLine = c.unlockedByDefault
       ? ''
@@ -203,11 +210,10 @@ function buildExplainerEmbed() {
 
   const embed = new EmbedBuilder()
     .setColor(COLOR_INFO)
-    .setTitle('🏰 MilkBot Dungeon — The Spoiled Vault + The Udder Abyss')
+    .setTitle(`🏰 MilkBot Dungeons — ${titleSuffix}`)
     .setDescription(
-      'Descend with up to 3 friends. Two dungeons to explore.\n\n' +
-      '🏰 **The Spoiled Vault** — entry dungeon. Beat the Curdfather to unlock the Abyss.\n' +
-      '🕳️ **The Udder Abyss** — deeper horrors, harder enemies. Unlock by clearing the Vault.\n\n' +
+      `Descend with up to 3 friends. ${dungeonIds.length} dungeon${dungeonIds.length === 1 ? '' : 's'} to explore.\n\n` +
+      `${dungeonLines}\n\n` +
       '**Entry:** 1,000 milk bucks per player (pooled into the reward pot)\n' +
       '**Rewards:** milk bucks, XP, rare relics, achievements, and bragging rights\n' +
       '**Death:** 0 HP = Curdled, teammates revive. Party wipe ends the run.\n' +
@@ -221,7 +227,7 @@ function buildExplainerEmbed() {
         value: 'Scroll to the right dungeon section below, click **Start** or **Hardcore**, others click **Join**. A private thread opens and the descent begins.',
       },
     )
-    .setFooter({ text: 'MilkBot Dungeon v2 • runs take 20-45 minutes • the milk is NEVER safe' });
+    .setFooter({ text: 'MilkBot Dungeon • runs take 20-45 minutes • the milk is NEVER safe' });
   return { embeds: [embed] };
 }
 
@@ -310,32 +316,37 @@ function buildStatsButton() {
 
 function buildClassPicker(run, userId, userAbilityUnlocks = []) {
   const picked = run.party.find(p => p.userId === userId)?.classKey;
+  const all = listClasses();
+
   const embed = new EmbedBuilder()
     .setColor(COLOR_LOBBY)
     .setTitle('🎭 Pick Your Class')
     .setDescription(
       picked
         ? `You picked **${getClass(picked).name}**. Waiting for others.`
-        : 'Choose one. Class locks in the moment you click — no take-backs.',
+        : 'Choose one. Class locks in the moment you click — no take-backs.\n*Tap a class button below. Full ability details appear on your turn.*',
     )
     .addFields(
-      ...listClasses().map(cls => ({
-        name: `${cls.emoji} ${cls.name} — ${cls.role}${cls.unlockedByDefault ? '' : ' 🔒'}`,
-        value:
-          `*${cls.description}*\n` +
-          `HP ${cls.base.hp} · ATK ${cls.base.atk} · DEF ${cls.base.def} · SPD ${cls.base.spd}\n` +
-          cls.abilities.map(a => {
-            const locked = a.unlockedBy && !userAbilityUnlocks.includes(a.unlockedBy);
-            const label = locked ? `🔒 ${a.name}` : `**${a.name}**`;
-            const hint = locked ? ' *(mastery — clear a run as this class)*' : '';
-            return `• ${label} (cd ${a.cooldown || 1}) — ${a.description}${hint}`;
-          }).join('\n'),
-      })),
-    );
+      ...all.map(cls => {
+        const lockBadge = cls.unlockedByDefault ? '' : ' 🔒';
+        const b = cls.base;
+        const statsLine = `\`HP ${String(b.hp).padStart(3)}  ATK ${String(b.atk).padStart(2)}  DEF ${String(b.def).padStart(2)}  SPD ${String(b.spd).padStart(2)}\``;
+        const abilityLine = cls.abilities.map(a => {
+          const locked = a.unlockedBy && !userAbilityUnlocks.includes(a.unlockedBy);
+          return locked ? `🔒 ${a.name}` : `• ${a.name}`;
+        }).join('  ');
+        const unlockLine = cls.unlockedByDefault ? '' : `\n*🔒 ${cls.unlockLabel || 'hidden requirement'}*`;
+        return {
+          name: `${cls.emoji} ${cls.name} — ${cls.role}${lockBadge}`,
+          value: `${statsLine}\n${abilityLine}${unlockLine}`,
+          inline: true,
+        };
+      }),
+    )
+    .setFooter({ text: '🔒 = class or ability locked · stats scale per floor' });
 
   // One button per class, max 4 per row (Discord caps at 5; leave headroom).
   const rows = [];
-  const all = listClasses();
   for (let i = 0; i < all.length; i += 4) {
     const slice = all.slice(i, i + 4);
     const row = new ActionRowBuilder().addComponents(

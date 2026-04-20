@@ -129,7 +129,7 @@ const CLASSES = {
         ]),
       },
     ],
-    unlockLabel: 'Clear floor 5 once',
+    unlockLabel: 'Clear Spoiled Vault floor 5 (The Lactose Lich)',
     unlockedByDefault: false,
   },
   lactic_mage: {
@@ -173,7 +173,7 @@ const CLASSES = {
         ]),
       },
     ],
-    unlockLabel: 'Beat the Curdfather',
+    unlockLabel: 'Beat the Curdfather (Spoiled Vault floor 10)',
     unlockedByDefault: false,
   },
   frothmancer: {

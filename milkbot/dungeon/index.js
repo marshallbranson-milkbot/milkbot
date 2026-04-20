@@ -35,6 +35,7 @@ async function init(client) {
   }
 
   // Verify each restored run's thread still exists; prune stale runs.
+  const cmd = require('../commands/dungeon');
   for (const run of restored) {
     if (!run.threadId) continue;
     const thread = await client.channels.fetch(run.threadId).catch(() => null);
@@ -44,12 +45,15 @@ async function init(client) {
       continue;
     }
     if (run.state === 'PLAYING') {
-      thread.send({ content: `🔄 **Run recovered after bot restart.** Whoever's turn it is, click your action button to continue.` }).catch(() => {});
+      await thread.send({ content: `🔄 **Run recovered after bot restart.** Re-posting the current turn now.` }).catch(() => {});
+      // Actively re-prompt the current player — the pre-shutdown turn message
+      // was deleted and _activeTurnMessageId isn't persisted.
+      await cmd.resumePlayingRun(run, thread).catch(e => console.warn('[dungeon] resume failed:', e.message));
     }
   }
   state.flushActiveRunsNow();
 
-  await require('../commands/dungeon').refreshChannelPanels(client, channel).catch(e => console.error('[dungeon] panel refresh failed:', e.message));
+  await cmd.refreshChannelPanels(client, channel).catch(e => console.error('[dungeon] panel refresh failed:', e.message));
   console.log('[dungeon] ready');
 }
 
