@@ -126,13 +126,41 @@ function deleteRun(runId) {
   markDirty({});  // force flush
 }
 
+// Repair any non-finite HP values on a restored run. JSON turns NaN into null,
+// and the Milkmaid Ghost unblockable-damage bug could leave hp as NaN in-memory
+// before flush. Either way, non-finite = reset to full so players can continue.
+function repairCorruptHp(run) {
+  let repaired = 0;
+  for (const p of run.party || []) {
+    if (!Number.isFinite(p.hp) || !Number.isFinite(p.maxHp) || p.maxHp <= 0) {
+      p.maxHp = Number.isFinite(p.maxHp) && p.maxHp > 0 ? p.maxHp : 100;
+      p.hp = p.maxHp;
+      p.downed = false;
+      repaired++;
+    }
+  }
+  for (const e of run.currentRoom?.enemies || []) {
+    if (!Number.isFinite(e.hp) || !Number.isFinite(e.maxHp) || e.maxHp <= 0) {
+      e.maxHp = Number.isFinite(e.maxHp) && e.maxHp > 0 ? e.maxHp : 50;
+      e.hp = e.maxHp;
+      repaired++;
+    }
+  }
+  if (repaired) console.log(`[dungeon] repaired ${repaired} corrupt HP values in run ${run.runId}`);
+  return repaired > 0;
+}
+
 function restoreActiveRuns() {
   const snapshot = readJson(ACTIVE_PATH, {});
   for (const [runId, data] of Object.entries(snapshot)) {
     const run = { ...data };
     run.rng = makeRunRng(run.seed);
     run.dirty = false;
+    if (repairCorruptHp(run)) run.dirty = true;
     activeRuns.set(runId, run);
+  }
+  if (flushTimer === null && [...activeRuns.values()].some(r => r.dirty)) {
+    flushTimer = setTimeout(() => { flushTimer = null; flushActiveRunsNow(); }, FLUSH_DEBOUNCE_MS);
   }
   console.log(`[dungeon] restored ${activeRuns.size} active run(s)`);
   return [...activeRuns.values()];
@@ -162,10 +190,12 @@ function getUserStats(userId) {
       last10Runs: [],
       achievementsEarned: [],
       abilityUnlocks: [],
+      completionsByDungeon: {},
     };
     writeStats(stats);
   }
   if (!stats[userId].abilityUnlocks) stats[userId].abilityUnlocks = [];
+  if (!stats[userId].completionsByDungeon) stats[userId].completionsByDungeon = {};
   return stats[userId];
 }
 
@@ -183,9 +213,11 @@ function updateUserStats(userId, mutator) {
       last10Runs: [],
       achievementsEarned: [],
       abilityUnlocks: [],
+      completionsByDungeon: {},
     };
   }
   if (!stats[userId].abilityUnlocks) stats[userId].abilityUnlocks = [];
+  if (!stats[userId].completionsByDungeon) stats[userId].completionsByDungeon = {};
   mutator(stats[userId]);
   writeStats(stats);
   return stats[userId];
