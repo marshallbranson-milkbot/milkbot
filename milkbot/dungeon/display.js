@@ -264,7 +264,7 @@ function buildLobbyPanel(activeRuns) {
 
 // === Inside thread: class picker ===
 
-function buildClassPicker(run, userId) {
+function buildClassPicker(run, userId, userAbilityUnlocks = []) {
   const picked = run.party.find(p => p.userId === userId)?.classKey;
   const embed = new EmbedBuilder()
     .setColor(COLOR_LOBBY)
@@ -280,7 +280,12 @@ function buildClassPicker(run, userId) {
         value:
           `*${cls.description}*\n` +
           `HP ${cls.base.hp} · ATK ${cls.base.atk} · DEF ${cls.base.def} · SPD ${cls.base.spd}\n` +
-          cls.abilities.map(a => `• **${a.name}** (cd ${a.cooldown || 1}) — ${a.description}`).join('\n'),
+          cls.abilities.map(a => {
+            const locked = a.unlockedBy && !userAbilityUnlocks.includes(a.unlockedBy);
+            const label = locked ? `🔒 ${a.name}` : `**${a.name}**`;
+            const hint = locked ? ' *(mastery — clear a run as this class)*' : '';
+            return `• ${label} (cd ${a.cooldown || 1}) — ${a.description}${hint}`;
+          }).join('\n'),
       })),
     );
 
@@ -348,30 +353,35 @@ function buildStatusEmbed(run) {
 
 // === Turn buttons (ephemeral, shown to the active player) ===
 
-function buildTurnActions(run, player) {
+function buildTurnActions(run, player, userAbilityUnlocks = []) {
   const cls = getClass(player.classKey);
-  const a1 = cls.abilities[0];
-  const a2 = cls.abilities[1];
-  const cd1 = player.cooldowns[a1.key] || 0;
-  const cd2 = player.cooldowns[a2.key] || 0;
+  const abilities = cls.abilities;
 
-  const row1 = new ActionRowBuilder().addComponents(
+  const mkAbilityButton = (ability) => {
+    const cd = player.cooldowns[ability.key] || 0;
+    const locked = ability.unlockedBy && !userAbilityUnlocks.includes(ability.unlockedBy);
+    const label = locked
+      ? `🔒 ${ability.name}`
+      : (cd ? `${ability.name} (${cd})` : ability.name);
+    return new ButtonBuilder()
+      .setCustomId(`dun_abi_${run.runId}_${ability.key}`)
+      .setLabel(label.slice(0, 80))
+      .setEmoji(cls.emoji)
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(!!cd || locked);
+  };
+
+  const row1Components = [
     new ButtonBuilder().setCustomId(`dun_atk_${run.runId}`).setLabel('Attack').setEmoji('⚔️').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`dun_abi_${run.runId}_${a1.key}`)
-      .setLabel(cd1 ? `${a1.name} (${cd1})` : a1.name)
-      .setEmoji(cls.emoji)
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(!!cd1),
-    new ButtonBuilder()
-      .setCustomId(`dun_abi_${run.runId}_${a2.key}`)
-      .setLabel(cd2 ? `${a2.name} (${cd2})` : a2.name)
-      .setEmoji(cls.emoji)
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(!!cd2),
+    mkAbilityButton(abilities[0]),
+    mkAbilityButton(abilities[1]),
     new ButtonBuilder().setCustomId(`dun_def_${run.runId}`).setLabel('Defend').setEmoji('🛡️').setStyle(ButtonStyle.Secondary),
-  );
-  const row2 = new ActionRowBuilder().addComponents(
+  ];
+  const row1 = new ActionRowBuilder().addComponents(...row1Components);
+
+  const row2Components = [];
+  if (abilities[2]) row2Components.push(mkAbilityButton(abilities[2]));
+  row2Components.push(
     new ButtonBuilder()
       .setCustomId(`dun_item_${run.runId}`)
       .setLabel(`Items (${player.items?.length || 0})`)
@@ -379,14 +389,22 @@ function buildTurnActions(run, player) {
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!player.items || player.items.length === 0),
   );
+  const row2 = new ActionRowBuilder().addComponents(...row2Components);
+
+  const abilityLines = abilities.map(a => {
+    const locked = a.unlockedBy && !userAbilityUnlocks.includes(a.unlockedBy);
+    return locked
+      ? `🔒 **${a.name}** — ${a.description} *(clear a run as this class)*`
+      : `${cls.emoji} **${a.name}** — ${a.description}`;
+  }).join('\n');
+
   const embed = new EmbedBuilder()
     .setColor(COLOR_COMBAT)
     .setTitle(`${cls.emoji} ${player.username}'s turn — ${cls.name}`)
     .setDescription(
       `**${player.hp}/${player.maxHp} HP** · 90s to act.\n\n` +
       `⚔️ **Attack** — basic hit (ATK ${player.atk})\n` +
-      `${cls.emoji} **${a1.name}** — ${a1.description}\n` +
-      `${cls.emoji} **${a2.name}** — ${a2.description}\n` +
+      abilityLines + `\n` +
       `🛡️ **Defend** — halve next incoming damage`,
     );
   return { embeds: [embed], components: [row1, row2] };

@@ -161,9 +161,11 @@ function getUserStats(userId) {
       relicsSeen: [],
       last10Runs: [],
       achievementsEarned: [],
+      abilityUnlocks: [],
     };
     writeStats(stats);
   }
+  if (!stats[userId].abilityUnlocks) stats[userId].abilityUnlocks = [];
   return stats[userId];
 }
 
@@ -180,8 +182,10 @@ function updateUserStats(userId, mutator) {
       relicsSeen: [],
       last10Runs: [],
       achievementsEarned: [],
+      abilityUnlocks: [],
     };
   }
+  if (!stats[userId].abilityUnlocks) stats[userId].abilityUnlocks = [];
   mutator(stats[userId]);
   writeStats(stats);
   return stats[userId];

@@ -243,8 +243,9 @@ async function handleStart(interaction, difficulty = 'normal') {
     return interaction.editReply({ content: `Couldn't create your dungeon thread: ${e.message}` });
   }
 
-  // Post class picker in thread
-  await thread.send(display.buildClassPicker(run, userId));
+  // Post class picker in thread (pass user's ability unlocks so mastery skills show correctly)
+  const userStats = state.getUserStats(userId);
+  await thread.send(display.buildClassPicker(run, userId, userStats.abilityUnlocks || []));
   await thread.send({ content: `Party forming — **${run.party.length}/${run.maxPartySize}**. Waiting for others to join from #milkbot-dungeon. When everyone's picked a class, the descent begins.` });
 
   await interaction.editReply({ content: `🏰 Your descent is ready: <#${thread.id}>` });
@@ -293,7 +294,8 @@ async function handleJoin(interaction, runId) {
     try {
       const thread = await interaction.client.channels.fetch(run.threadId);
       await thread.members.add(userId);
-      await thread.send(display.buildClassPicker(run, userId));
+      const joinerStats = state.getUserStats(userId);
+      await thread.send(display.buildClassPicker(run, userId, joinerStats.abilityUnlocks || []));
       await thread.send(`🥛 **${username}** joined — ${run.party.length}/${run.maxPartySize}`);
     } catch (e) {
       console.warn('[dungeon] add-to-thread failed:', e.message);
@@ -500,7 +502,8 @@ async function promptPlayerTurn(run, thread, player) {
 
   const cls = classes.getClass(player.classKey);
   const prompt = `<@${player.userId}> — ${cls.emoji} **${cls.name}** turn`;
-  const { embeds, components } = display.buildTurnActions(run, player);
+  const userStats = state.getUserStats(player.userId);
+  const { embeds, components } = display.buildTurnActions(run, player, userStats.abilityUnlocks || []);
   try {
     const msg = await thread.send({ content: prompt, embeds, components });
     run._activeTurnMessageId = msg.id;
@@ -880,11 +883,15 @@ async function endRun(run, thread, outcome) {
     for (const p of run.party) {
       await payout(p.userId, perPlayerBucks, perPlayerXp);
     }
-    // Unlock Lactic Mage on completion
+    // Unlock Lactic Mage on completion + grant class mastery (3rd ability) for each player's class
     for (const p of run.party) {
       state.updateUserStats(p.userId, s => {
         if (!s.classUnlocks.includes('lactic_mage')) s.classUnlocks.push('lactic_mage');
         if (!s.classUnlocks.includes('curd_medic')) s.classUnlocks.push('curd_medic');
+        // 3rd-ability unlock for whichever class they played
+        if (!s.abilityUnlocks) s.abilityUnlocks = [];
+        const key = `${p.classKey}_3`;
+        if (!s.abilityUnlocks.includes(key)) s.abilityUnlocks.push(key);
       });
     }
 
